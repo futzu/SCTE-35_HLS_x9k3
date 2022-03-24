@@ -1,7 +1,8 @@
 """
 X9K3
 """
-import io, sys
+import io
+import sys
 from functools import partial
 from threefive import Stream
 
@@ -23,6 +24,8 @@ class X9K3(Stream):
         self.seg_start = 0
         self.seg_stop = 0
         self.start = False
+        self.cue = None
+        self.cue_tag = None
         self.m3u8 = open("index.m3u8", "w+")
         self.m3u8.write(
             """#EXTM3U
@@ -45,14 +48,32 @@ class X9K3(Stream):
         self.m3u8.write("#EXT-X-ENDLIST")
         self.m3u8.close()
 
-    def _mk_segment(self, pkt, pid):
+    def _chk_cue(self, pkt, pid):
+        """
+        _chk_cue checks for SCTE-35 cues and adds them to the manifest
+        """
+        if pid in self._pids["scte35"]:
+            self.cue = self._parse_scte35(pkt, pid)
+            if self.cue:
+                self.cue.show()
+                self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}"\n'
+
+    def _mk_segment(self,pid):
         """
         _mk_segment cuts hls segments
         """
+        if self.cue:
+            if self.cue.command.pts_time:
+                if self.cue.command.pts_time <= self.seg_stop:
+                    self.seg_stop = self.cue.command.pts_time
         if self.pts(pid) >= self.seg_stop:
             print(self.seg_start, self.pts(pid))
             seg_file = f"seg{self.seg_num}.ts"
             seg_time = round(self.pts(pid) - self.seg_start, 6)
+            if self.cue_tag:
+                self.m3u8.write(self.cue_tag)
+                self.cue_tag = None
+                self.cue = None
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
             self.m3u8.write(f"#EXTINF:{seg_time},\n")
@@ -124,7 +145,7 @@ class X9K3(Stream):
         if pid in self._pid_prgm:
             prgm = self._pid_prgm[pid]
         if prgm not in self._prgm_pts:
-            return -1
+            return False
         return self.as_90k(self._prgm_pts[prgm])
 
     def _parse(self, pkt):
@@ -133,12 +154,13 @@ class X9K3(Stream):
         writes the packet to self.active_segment.
         """
         pid = self._parse_info(pkt)
+        self._chk_cue(pkt, pid)
         if self._pusi_flag(pkt):
-            if self._is_key(pkt):
-                self._mk_segment(pkt, pid)
             self._parse_pts(pkt, pid)
+            if self._is_key(pkt):
+                self._mk_segment(pid)
         if self._is_idr(pkt):
-            self._mk_segment(pkt, pid)
+            self._mk_segment(pid)
         self.active_segment.write(pkt)
 
 
