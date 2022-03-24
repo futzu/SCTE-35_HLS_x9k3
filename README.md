@@ -1,7 +1,9 @@
 # x9k3
-* x9k3 is an HLS Segmenter with SCTE-35 Support. 
-* SCTE-35 Cues in MpegTS Streams are Translated into `#EXT-X-SCTE35` tags.
-
+* __x9k3__ is an __HLS Segmenter with SCTE-35 Support__. 
+* __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into `#EXT-X-SCTE35` tags.
+* Supports __h264__ and __h265__(hevc)
+* Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
+ 
 ### Requires 
 * python 3.6+
 * [threefive](https://github.com/futzu/scte35-threefive)  
