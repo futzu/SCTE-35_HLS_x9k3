@@ -26,6 +26,7 @@ class X9K3(Stream):
         self.start = False
         self.cue = None
         self.cue_tag = None
+        self.cue_time = None
         self.m3u8 = open("index.m3u8", "w+")
         self.m3u8.write(
             """#EXTM3U
@@ -55,6 +56,10 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.cue = self._parse_scte35(pkt, pid)
             if self.cue:
+                if self.cue.command.pts_time:
+                    self.cue_time = self.cue.command.pts_time
+                else:
+                    self.cue_time = self.pts(pid)
                 self.cue.show()
                 self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}"\n'
 
@@ -62,10 +67,11 @@ class X9K3(Stream):
         """
         _mk_segment cuts hls segments
         """
-        if self.cue:
-            if self.cue.command.pts_time:
-                if self.cue.command.pts_time <= self.seg_stop:
-                    self.seg_stop = self.cue.command.pts_time
+        if self.cue_time:
+            if self.cue_time > self.seg_start:
+                if self.cue_time  <= self.seg_stop:
+                    self.seg_stop = self.cue_time
+                    self.cue_time = None
         if self.pts(pid) >= self.seg_stop:
             print(self.seg_start, self.pts(pid))
             seg_file = f"seg{self.seg_num}.ts"
