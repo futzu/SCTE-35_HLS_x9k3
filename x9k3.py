@@ -49,6 +49,18 @@ class X9K3(Stream):
         self.m3u8.write("#EXT-X-ENDLIST")
         self.m3u8.close()
 
+    def _mk_tag(self):
+        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
+        if self.cue.command.command_type ==5: 
+            if self.cue.command.out_of_network_indicator:
+                self.cue_tag +='CUE-OUT="YES" '
+            else:
+                self.cue_tag +='CUE-IN="YES" '
+            if self.cue.command.break_duration:
+                self.cue_tag += f'DURATION={self.cue.command.break_duration} '
+        self.cue_tag +='\n'
+
+        
     def _chk_cue(self, pkt, pid):
         """
         _chk_cue checks for SCTE-35 cues and adds them to the manifest
@@ -60,8 +72,9 @@ class X9K3(Stream):
                     self.cue_time = self.cue.command.pts_time
                 else:
                     self.cue_time = self.pts(pid)
+                self._mk_tag()
                 self.cue.show()
-                self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}"\n'
+                
 
     def _mk_segment(self,pid):
         """
