@@ -63,3 +63,16 @@ seg9.ts
 ffplay index.m3u8
 ```
 
+### 2020 SCTE-35 Specification Regarding The HLS `#EXT-X-SCTE35` Tag
+
+![image](https://user-images.githubusercontent.com/52701496/160178288-fc75bcfc-b408-43f0-a7ec-83ecdfb10e8b.png)
+![image](https://user-images.githubusercontent.com/52701496/160177961-aa7f1706-2f49-4144-a3e3-36efb458037d.png)
+![image](https://user-images.githubusercontent.com/52701496/160178082-a978772d-d650-4093-a442-2aeb907bba19.png)
+
+
+
+
+
+
+
+
