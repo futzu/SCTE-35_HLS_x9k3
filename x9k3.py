@@ -53,15 +53,6 @@ class X9K3(Stream):
     def _mk_tag(self):
         self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
 
-    # if self.cue.command.command_type ==5:
-    #    if self.cue.command.out_of_network_indicator:
-    #       self.cue_tag +='CUE-OUT="YES" '
-    #  else:
-    #     self.cue_tag +='CUE-IN="YES" '
-    # if self.cue.command.break_duration:
-    #   self.cue_tag += f'DURATION={self.cue.command.break_duration} '
-    # self.cue_tag +='\n'
-
     def _chk_cue(self, pkt, pid):
         """
         _chk_cue checks for SCTE-35 cues and adds them to the manifest
@@ -98,11 +89,11 @@ class X9K3(Stream):
                     if self.cue.command.command_type == 5:
                         if self.cue.command.out_of_network_indicator:
                             if not self.cue_out:
-                                self.cue_tag += "CUE-OUT=YES"
+                                self.cue_tag += 'CUE-OUT=YES'
                                 self.cue_out = "CONT"
                         else:
                             if self.seg_start <= self.cue_time <= self.seg_stop:
-                                self.cue_tag += 'CUE-IN="YES"'
+                                self.cue_tag += 'CUE-IN=YES'
                                 self.cue = None
                                 self.cue_time = None
                                 self.cue_out = None
