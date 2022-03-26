@@ -24,6 +24,7 @@ class X9K3(Stream):
         self.seg_start = 0
         self.seg_stop = 0
         self.start = False
+        self.cue_out = None
         self.cue = None
         self.cue_tag = None
         self.cue_time = None
@@ -51,16 +52,16 @@ class X9K3(Stream):
 
     def _mk_tag(self):
         self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
-        if self.cue.command.command_type ==5: 
-            if self.cue.command.out_of_network_indicator:
-                self.cue_tag +='CUE-OUT="YES" '
-            else:
-                self.cue_tag +='CUE-IN="YES" '
-            if self.cue.command.break_duration:
-                self.cue_tag += f'DURATION={self.cue.command.break_duration} '
-        self.cue_tag +='\n'
 
-        
+    # if self.cue.command.command_type ==5:
+    #    if self.cue.command.out_of_network_indicator:
+    #       self.cue_tag +='CUE-OUT="YES" '
+    #  else:
+    #     self.cue_tag +='CUE-IN="YES" '
+    # if self.cue.command.break_duration:
+    #   self.cue_tag += f'DURATION={self.cue.command.break_duration} '
+    # self.cue_tag +='\n'
+
     def _chk_cue(self, pkt, pid):
         """
         _chk_cue checks for SCTE-35 cues and adds them to the manifest
@@ -73,26 +74,43 @@ class X9K3(Stream):
                 else:
                     self.cue_time = self.pts(pid)
                 self._mk_tag()
+                self.cue_out = None
                 self.cue.show()
-                
 
-    def _mk_segment(self,pid):
+    def _mk_segment(self, pid):
         """
         _mk_segment cuts hls segments
         """
         if self.cue_time:
             if self.cue_time > self.seg_start:
-                if self.cue_time  <= self.seg_stop:
+                if self.cue_time <= self.seg_stop:
                     self.seg_stop = self.cue_time
-                    self.cue_time = None
         if self.pts(pid) >= self.seg_stop:
             print(self.seg_start, self.pts(pid))
             seg_file = f"seg{self.seg_num}.ts"
             seg_time = round(self.pts(pid) - self.seg_start, 6)
             if self.cue_tag:
-                self.m3u8.write(self.cue_tag)
+                self.m3u8.write(self.cue_tag + "\n")
                 self.cue_tag = None
-                self.cue = None
+            else:
+                if self.cue:
+                    self._mk_tag()
+                    if self.cue.command.command_type == 5:
+                        if self.cue.command.out_of_network_indicator:
+                            if not self.cue_out:
+                                self.cue_tag += "CUE-OUT=YES"
+                                self.cue_out = "CONT"
+                        else:
+                            if self.seg_start <= self.cue_time <= self.seg_stop:
+                                self.cue_tag += 'CUE-IN="YES"'
+                                self.cue = None
+                                self.cue_time = None
+                                self.cue_out = None
+                    else:
+                        self.cue = None
+                if self.cue_tag:
+                    self.m3u8.write(self.cue_tag + "\n")
+                    self.cue_tag = None
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
             self.m3u8.write(f"#EXTINF:{seg_time},\n")
