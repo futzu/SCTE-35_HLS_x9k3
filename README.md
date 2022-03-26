@@ -1,9 +1,24 @@
 # x9k3
 * __x9k3__ is an __HLS Segmenter with SCTE-35 Support__. 
-* __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into `#EXT-X-SCTE35` tags.
+* __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
 * Supports __h264__ and __h265__(hevc)
 * Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
+
+
+ The specifications for HLS and SCTE-35 each provide their own way to implement
+ SCTE-35 in HLS.
+ 
+ There are gaps in both implementations.
+ 
+ For example, 
+ 
+ how to handle a Time Signal with multiple descriptors in a #EXT-DATE-RANGE tag.
+ 
+ If you have an opinion about this, I would love to hear it. 
+ Please open an [issue](https://github.com/futzu/x9k3/issues)
+ and tell me.
+
  
 ### Requires 
 * python 3.6+ or pypy3
@@ -44,17 +59,14 @@ seg4.ts
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
 #EXTINF:2.3023,
 seg5.ts
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
+#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES 
 #EXTINF:2.168833,
 seg6.ts
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
 #EXTINF:2.7027,
 seg7.ts
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
 #EXTINF:1.668334,
 seg8.ts
 ...
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
 #EXTINF:2.2022,
 seg40.ts
 #EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=" 
