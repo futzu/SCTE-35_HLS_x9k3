@@ -27,7 +27,9 @@ cat video.ts | python3 x9k3.py
 ```
 
 ### Output
+
 * index.m3u8
+
 ```smalltalk
 #EXTM3U
 #EXT-X-VERSION:3
@@ -40,53 +42,52 @@ seg0.ts
 seg1.ts
 #EXTINF:2.168833,
 seg2.ts
-#EXTINF:3.336667,
-seg3.ts
-#EXTINF:2.969633,
-seg4.ts
-#
-####                     SCTE-35 Cue is added when received
-#
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
-#EXTINF:2.3023,
-seg5.ts
-#
-####               Video Segment is cut at splice point. 
-####               SCTE-35 Cue is added or repeated.
-#
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES 
-#EXTINF:2.168833,
-seg6.ts
-#EXTINF:2.7027,
-seg7.ts
-#EXTINF:1.668334,
-seg8.ts
-...
-#EXTINF:2.2022,
-seg40.ts
-#
-####                SCTE-35 Cue is added when received.
-#
-#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=" 
-#EXTINF:2.869533,
-seg41.ts
-#
-####               Video Segment is cut at splice point. 
-####               SCTE-35 Cue is added or repeated.
-#
-#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=" CUE-IN=YES
-#EXTINF:0.934267,
-seg42.ts
-#EXTINF:2.268933,
-seg43.ts
-#EXTINF:2.135467,
-seg44.ts
-
-
 
 ```
 
-* segments are named seg1.ts seg2.ts etc...
+*  SCTE-35 Cues are added when received
+
+
+```smalltalk
+#EXTINF:2.002,
+seg5.ts
+#EXTINF:2.002,
+seg6.ts
+#EXTINF:2.002,
+seg7.ts
+#EXTINF:2.002,
+seg8.ts
+#EXT-X-SCTE35:CUE="/DBfAAAAAAAAAP/wBQb+W/fXFwBJAg9DVUVJCXDUcX+fASIhAQECD0NVRUkJcNRwf58BIhEBAQIPQ1VFSQlxDxd/nwEEEAEBAhRDVUVJCXEPGH/fAAc0VHABBCABAe6Vhcw=" 
+#EXTINF:2.002,
+seg9.ts
+```
+
+*  Video Segment is cut at splice point.
+* SCTE-35 Cues are added or repeated.
+
+
+
+```smalltalk
+#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
+#EXTINF:1.668334,
+seg13.ts
+
+```
+
+* Segments are cut on iframes.
+* Segment size is 2 seconds or more, determined by GOP size. 
+* Segments are named seg1.ts seg2.ts etc...
+
+```smalltalk
+seg47.ts
+#EXTINF:2.12,
+seg48.ts
+#EXTINF:2.12,
+seg49.ts
+#EXTINF:2.12,
+seg50.ts
+
+```
 
 ### Test
 ```
@@ -98,7 +99,6 @@ ffplay index.m3u8
 ![image](https://user-images.githubusercontent.com/52701496/160178288-fc75bcfc-b408-43f0-a7ec-83ecdfb10e8b.png)
 ![image](https://user-images.githubusercontent.com/52701496/160177961-aa7f1706-2f49-4144-a3e3-36efb458037d.png)
 ![image](https://user-images.githubusercontent.com/52701496/160178082-a978772d-d650-4093-a442-2aeb907bba19.png)
-
 
 
 
