@@ -11,18 +11,18 @@
 ### Requires 
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
-```
+```smalltalk
 pip3 install threefive
 ```
 
 ### How to Use
-```sh
+```smalltalk
 python3 x9k3.py video.mpegts
 ```
-```sh 
+```smalltalk
 python3 x9k3.py https://example.com/video.ts
 ```
-```sh
+```smalltalk
 cat video.ts | python3 x9k3.py
 ```
 
