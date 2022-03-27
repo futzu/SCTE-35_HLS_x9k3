@@ -27,7 +27,7 @@ cat video.ts | python3 x9k3.py
 
 ### Output
 * index.m3u8
-```
+```smalltalk
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:3
