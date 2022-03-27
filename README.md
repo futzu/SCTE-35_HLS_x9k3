@@ -6,19 +6,6 @@
 * Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
 
 
- The specifications for HLS and SCTE-35 each provide their own way to implement
- SCTE-35 in HLS.
- 
- There are gaps in both implementations.
- 
- For example, 
- 
- how to handle a Time Signal with multiple descriptors in a #EXT-DATE-RANGE tag.
- 
- If you have an opinion about this, I would love to hear it. 
- Please open an [issue](https://github.com/futzu/x9k3/issues)
- and tell me.
-
  
 ### Requires 
 * python 3.6+ or pypy3
@@ -56,9 +43,16 @@ seg2.ts
 seg3.ts
 #EXTINF:2.969633,
 seg4.ts
+#
+####                     SCTE-35 Cue is added when received
+#
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" 
 #EXTINF:2.3023,
 seg5.ts
+#
+####               Video Segment is cut at splice point. 
+####               SCTE-35 Cue is added or repeated.
+#
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES 
 #EXTINF:2.168833,
 seg6.ts
@@ -69,9 +63,16 @@ seg8.ts
 ...
 #EXTINF:2.2022,
 seg40.ts
+#
+####                SCTE-35 Cue is added when received.
+#
 #EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=" 
 #EXTINF:2.869533,
 seg41.ts
+#
+####               Video Segment is cut at splice point. 
+####               SCTE-35 Cue is added or repeated.
+#
 #EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=" CUE-IN=YES
 #EXTINF:0.934267,
 seg42.ts
