@@ -12,7 +12,7 @@ class X9K3(Stream):
     X9K3 class
     """
 
-    def __init__(self, tsdata, show_null=True):
+    def __init__(self, tsdata, show_null=False):
         """
         tsdata is an file or http/https url or multicast url
         set show_null=False to exclude Splice Nulls
@@ -42,17 +42,15 @@ class X9K3(Stream):
         decode reads self.tsdata to cut hls segments.
 
         """
-        if not self._find_start():
-            return False
-        for chunk in iter(partial(self._tsdata.read, self._PACKET_SIZE * 10000), b""):
-            for i in range(0, len(chunk), self._PACKET_SIZE):
-                self._parse(chunk[i : i + self._PACKET_SIZE])
+        if self._find_start():
+            for chunk in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
+                self._parse(chunk)
         self.m3u8.write("#EXT-X-ENDLIST")
         self.m3u8.close()
+        
 
     def _mk_tag(self):
         self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
-
 
     def _chk_cue(self, pkt, pid):
         """
@@ -63,10 +61,13 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.cue = self._parse_scte35(pkt, pid)
             if self.cue:
+                self.m3u8.write(f"# {self.cue.command.name}\n")
                 if self.cue.command.pts_time:
                     self.cue_time = self.cue.command.pts_time
+                    print(f"preroll: {self.cue.command.pts_time- self.pts(pid)} ")
                 else:
                     self.cue_time = self.pts(pid)
+                    print("splice immediate")
                 self._mk_tag()
                 self.cue_out = None
                 self.cue.show()
@@ -77,25 +78,25 @@ class X9K3(Stream):
         at the time specified in the cue.
 
         """
-        if self.seg_start <= self.cue_time < self.seg_stop:
+        if self.seg_start <= self.cue_time <= self.seg_stop:
             self._mk_tag()
-            if self.cue.command.command_type ==5:
+            if self.cue.command.command_type == 5:
                 if self.cue.command.out_of_network_indicator:
-                    self.cue_tag += 'CUE-OUT=YES'
+                    self.cue_tag += "CUE-OUT=YES"
                 else:
-                    self.cue_tag += 'CUE-IN=YES'
+                    self.cue_tag += "CUE-IN=YES"
             self.cue = None
             self.cue_time = None
             self.cue_out = None
             self.m3u8.write(self.cue_tag + "\n")
-            self.cue_tag = None        
+            self.cue_tag = None
 
     def _mk_segment(self, pid):
         """
         _mk_segment cuts hls segments
         """
         if self.cue_time:
-            if self.cue_time > self.seg_start:
+            if self.cue_time >= self.seg_start:
                 if self.cue_time <= self.seg_stop:
                     self.seg_stop = self.cue_time
         if self.pts(pid) >= self.seg_stop:
@@ -108,11 +109,11 @@ class X9K3(Stream):
             else:
                 if self.cue:
                     self._mk_cue_splice_point()
-
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
             self.m3u8.write(f"#EXTINF:{seg_time},\n")
             self.m3u8.write(seg_file + "\n")
+            self.m3u8.write(f"# {self.pts(pid)}\n")
             print(f"{seg_file}: {seg_time }")
             self.seg_start = self.pts(pid)
             self.seg_stop = self.seg_start + self.seconds
@@ -203,6 +204,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
+            print(f"video stream: {arg}\n")
             X9K3(arg).decode()
 
     else:
