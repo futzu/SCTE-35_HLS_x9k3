@@ -3,11 +3,12 @@
  HLS SCTE-35 for the people. 
 
 * __x9k3__ is an HLS Segmenter with SCTE-35 Support. 
-* SCTE-35 Cues in __MpegTS Streams__ are Translated into HLS tags.
+* SCTE-35 Cues in __Mpegts Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
-* M3u8 Manifests are created with __SCTE-35 HLS tags__.
+* M3U8 Manifests are created with __SCTE-35 HLS tags__.
 * Supports __h264__ and __h265__(hevc)
-* __Multi-protocol.__ Files, Http(s), Multicast, and Udp.  
+* __Multi-protocol.__ Files, Http(s), Multicast, and Udp.
+* Built using the highest rated SCTE-35 lib on the Planet, [__threefive__](https://github.com/futzu/scte35-threefive)
 
 # Clean Code.
 * This code is cleaner than your dishes.
@@ -26,7 +27,7 @@ Your code has been rated at 9.79/10
 
 # Heads Up.
 > This is not yet stable, vis-à-vis bugs.`Expect changes. 
-# Be cool.
+# Be Cool.
 > Give me a hand.
   * Write Code, if you do that or want to learn.
   * Write Docs, if code is not your thing.
