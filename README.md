@@ -1,5 +1,6 @@
 
-# x9k3
+# __x9k3__
+> HLS SCTE-35 for the people. 
 
 * __x9k3__ is an __HLS Segmenter with SCTE-35 Support__. 
 * __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into HLS tags.
@@ -8,18 +9,9 @@
 * Supports __h264__ and __h265__(hevc)
 * Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
 
-
-
-# Heads Up, 
-> This is not yet stable, vis-à-vis bugs.`Expect changes. 
-# Be cool.
-> Give me a hand.
-  * Write Code, if you do that or want to learn.
-  * Write Docs, if code is not your thing.
-  * Break Stuff_and tell me what happened.
+# Clean Code
+> This code is cleaner than your dishes.
  
-# The code is clean.
-
 ```smalltalk
 a@fumatica:~/x9k3$ pylint x9k3.py 
 ************* Module x9k3
@@ -30,6 +22,16 @@ x9k3.py:34:20: R1732: Consider using 'with' for resource-allocating operations (
 -----------------------------------
 Your code has been rated at 9.79/10
 ```
+
+
+# Heads Up, 
+> This is not yet stable, vis-à-vis bugs.`Expect changes. 
+# Be cool.
+> Give me a hand.
+  * Write Code, if you do that or want to learn.
+  * Write Docs, if code is not your thing.
+  * Break Stuff_and tell me what happened.
+ 
 
  
 # Requires 
