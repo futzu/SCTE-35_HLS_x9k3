@@ -1,6 +1,8 @@
 """
 X9K3
 """
+from base64 import b64encode
+
 import io
 import sys
 from functools import partial
@@ -28,13 +30,14 @@ class X9K3(Stream):
         self.cue = None
         self.cue_tag = None
         self.cue_time = None
+        self.b64 = None
         self.m3u8 = open("index.m3u8", "w+")
         self.m3u8.write(
             """#EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:3
 #EXT-X-MEDIA-SEQUENCE:0
- \n"""
+"""
         )
 
     def decode(self, func=None):
@@ -47,10 +50,10 @@ class X9K3(Stream):
                 self._parse(chunk)
         self.m3u8.write("#EXT-X-ENDLIST")
         self.m3u8.close()
-        
 
     def _mk_tag(self):
-        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
+        print(self.b64)
+        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.b64}" '
 
     def _chk_cue(self, pkt, pid):
         """
@@ -61,16 +64,24 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.cue = self._parse_scte35(pkt, pid)
             if self.cue:
+                self.b64 = b64encode(self.cue.bites).decode()
                 self.m3u8.write(f"# {self.cue.command.name}\n")
                 if self.cue.command.pts_time:
                     self.cue_time = self.cue.command.pts_time
                     print(f"preroll: {self.cue.command.pts_time- self.pts(pid)} ")
                 else:
                     self.cue_time = self.pts(pid)
-                    print("splice immediate")
+                    self.m3u8.write("# Splice Immediate")
                 self._mk_tag()
                 self.cue_out = None
-                self.cue.show()
+                # self.cue.show()
+
+    def _cue_out_cue_in(self):
+        if self.cue.command.command_type == 5:
+            if self.cue.command.out_of_network_indicator:
+                self.cue_tag += ", CUE-OUT=YES"
+            else:
+                self.cue_tag += ", CUE-IN=YES"
 
     def _mk_cue_splice_point(self):
         """
@@ -80,11 +91,8 @@ class X9K3(Stream):
         """
         if self.seg_start <= self.cue_time <= self.seg_stop:
             self._mk_tag()
-            if self.cue.command.command_type == 5:
-                if self.cue.command.out_of_network_indicator:
-                    self.cue_tag += "CUE-OUT=YES"
-                else:
-                    self.cue_tag += "CUE-IN=YES"
+            self.m3u8.write("# Splice Point\n")
+            self._cue_out_cue_in()
             self.cue = None
             self.cue_time = None
             self.cue_out = None
@@ -95,14 +103,17 @@ class X9K3(Stream):
         """
         _mk_segment cuts hls segments
         """
+        now = self.pts(pid)
         if self.cue_time:
             if self.cue_time >= self.seg_start:
                 if self.cue_time <= self.seg_stop:
                     self.seg_stop = self.cue_time
-        if self.pts(pid) >= self.seg_stop:
-            print(self.seg_start, self.pts(pid))
+
+        if now >= self.seg_stop:
+            self.seg_stop = now
+            print(self.seg_start, self.seg_stop)
             seg_file = f"seg{self.seg_num}.ts"
-            seg_time = round(self.pts(pid) - self.seg_start, 6)
+            seg_time = round(self.seg_stop - self.seg_start, 6)
             if self.cue_tag:
                 self.m3u8.write(self.cue_tag + "\n")
                 self.cue_tag = None
@@ -112,10 +123,11 @@ class X9K3(Stream):
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
             self.m3u8.write(f"#EXTINF:{seg_time},\n")
+            self.m3u8.write(f"# {now}\n")
+
             self.m3u8.write(seg_file + "\n")
-            self.m3u8.write(f"# {self.pts(pid)}\n")
             print(f"{seg_file}: {seg_time }")
-            self.seg_start = self.pts(pid)
+            self.seg_start = now
             self.seg_stop = self.seg_start + self.seconds
             self.seg_num += 1
             self.active_segment = io.BytesIO()
@@ -172,6 +184,7 @@ class X9K3(Stream):
                 self.start = True
                 self.seg_start = self.as_90k(pts)
                 self.seg_stop = self.seg_start + self.seconds
+                self.m3u8.write(f"# START {self.seg_start}\n")
 
     def pts(self, pid):
         """
@@ -197,7 +210,8 @@ class X9K3(Stream):
                 self._mk_segment(pid)
         if self._is_idr(pkt):
             self._mk_segment(pid)
-        self.active_segment.write(pkt)
+        if self.start:
+            self.active_segment.write(pkt)
 
 
 if __name__ == "__main__":
