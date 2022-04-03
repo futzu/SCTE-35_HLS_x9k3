@@ -1,16 +1,16 @@
 
 # __x9k3__
-> HLS SCTE-35 for the people. 
+ HLS SCTE-35 for the people. 
 
-* __x9k3__ is an __HLS Segmenter with SCTE-35 Support__. 
-* __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into HLS tags.
+* __x9k3__ is an HLS Segmenter with SCTE-35 Support. 
+* SCTE-35 Cues in __MpegTS Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
-* __m3u8__ Manifests are created with __SCTE-35 HLS tags__.
+* m3u8 Manifests are created with __SCTE-35 HLS tags__.
 * Supports __h264__ and __h265__(hevc)
-* Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
+* Supports Files, Http(s), Multicast, and UDP MpegTS inputs.  
 
 # Clean Code
-> This code is cleaner than your dishes.
+* This code is cleaner than your dishes.
  
 ```smalltalk
 a@fumatica:~/x9k3$ pylint x9k3.py 
@@ -24,7 +24,7 @@ Your code has been rated at 9.79/10
 ```
 
 
-# Heads Up, 
+# Heads Up.
 > This is not yet stable, vis-à-vis bugs.`Expect changes. 
 # Be cool.
 > Give me a hand.
