@@ -1,4 +1,6 @@
+
 # x9k3
+
 * __x9k3__ is an __HLS Segmenter with SCTE-35 Support__. 
 * __SCTE-35 Cues__ in __MpegTS Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
@@ -7,6 +9,15 @@
 * Supports __Files, Http(s), Multicast, and UDP MpegTS__ inputs.  
 
 
+
+# Heads Up, 
+> This is not yet stable, vis-à-vis bugs.`Expect changes. 
+# Be cool.
+> Give me a hand.
+  * Write Code, if you do that or want to learn.
+  * Write Docs, if code is not your thing.
+  * Break Stuff_and tell me what happened.
+    
  
 ### Requires 
 * python 3.6+ or pypy3
