@@ -17,16 +17,29 @@
   * Write Code, if you do that or want to learn.
   * Write Docs, if code is not your thing.
   * Break Stuff_and tell me what happened.
-    
  
-### Requires 
+# The code is clean.
+
+```smalltalk
+a@fumatica:~/x9k3$ pylint x9k3.py 
+************* Module x9k3
+x9k3.py:12:0: R0902: Too many instance attributes (12/7) (too-many-instance-attributes)
+x9k3.py:34:20: W1514: Using open without explicitly specifying an encoding (unspecified-encoding)
+x9k3.py:34:20: R1732: Consider using 'with' for resource-allocating operations (consider-using-with)
+
+-----------------------------------
+Your code has been rated at 9.79/10
+```
+
+ 
+# Requires 
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
 ```smalltalk
 pip3 install threefive
 ```
 
-### How to Use
+# How to Use
 ```smalltalk
 python3 x9k3.py video.mpegts
 ```
@@ -37,7 +50,7 @@ python3 x9k3.py https://example.com/video.ts
 cat video.ts | python3 x9k3.py
 ```
 
-### Output
+# Output
 
 * index.m3u8
 
@@ -100,12 +113,12 @@ seg50.ts
 
 ```
 
-### Test
+# Test
 ```
 ffplay index.m3u8
 ```
 
-### 2020 SCTE-35 Specification Regarding The HLS `#EXT-X-SCTE35` Tag
+# 2020 SCTE-35 Specification Regarding The HLS `#EXT-X-SCTE35` Tag
 
 ![image](https://user-images.githubusercontent.com/52701496/160178288-fc75bcfc-b408-43f0-a7ec-83ecdfb10e8b.png)
 ![image](https://user-images.githubusercontent.com/52701496/160177961-aa7f1706-2f49-4144-a3e3-36efb458037d.png)
