@@ -9,7 +9,7 @@
 * Supports __h264__ and __h265__(hevc)
 * __Multi-protocol.__ Files, Http(s), Multicast, and Udp.  
 
-# Clean Code
+# Clean Code.
 * This code is cleaner than your dishes.
  
 ```smalltalk
