@@ -5,9 +5,9 @@
 * __x9k3__ is an HLS Segmenter with SCTE-35 Support. 
 * SCTE-35 Cues in __MpegTS Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
-* m3u8 Manifests are created with __SCTE-35 HLS tags__.
+* M3u8 Manifests are created with __SCTE-35 HLS tags__.
 * Supports __h264__ and __h265__(hevc)
-* Supports Files, Http(s), Multicast, and UDP MpegTS inputs.  
+* __Multi-protocol.__ Files, Http(s), Multicast, and Udp.  
 
 # Clean Code
 * This code is cleaner than your dishes.
