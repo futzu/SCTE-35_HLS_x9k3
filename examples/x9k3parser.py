@@ -3,9 +3,7 @@ x9k3parser
 """
 
 
-import os
 import sys
-import pyaes
 import threefive
 
 
@@ -22,6 +20,7 @@ class Stanza:
         self.clean_segment()
         self.pts = None
         self.start = start
+        self.end = None
         self.duration = 0
         self.cue = False
 
@@ -36,12 +35,11 @@ class Stanza:
 
     def _get_pts_start(self, seg):
         if not self.start:
-            pts_start = 0.0
+            pts_start = 0.000001
             try:
                 strm = threefive.Stream(seg)
                 strm.decode(func=None)
-                end = round(strm._prgm_pts[1] / 90000.0, 6)
-
+                # self.end = round(strm._prgm_pts.values()[0] / 90000.0, 6)
                 if len(strm.start.values()) > 0:
                     pts_start = strm.start.popitem()[1]
                 self.pts = round(pts_start / 90000.0, 6)
@@ -57,7 +55,12 @@ class Stanza:
 
     def _ext_x_scte35(self, line):
         if line.startswith("#EXT-X-SCTE35"):
-            self.cue = line.split("CUE=")[1].split(",")[0]
+            line = line.replace(" ", "")
+            tag, tail = line.split(":", 1)
+            attributes = {
+                a[0]: a[1] for a in [p.split("=", 1) for p in tail.split(",")]
+            }
+            self.cue = attributes["CUE"]
             self.do_cue()
 
     def do_cue(self):
@@ -66,13 +69,15 @@ class Stanza:
         via the threefive.Cue class
         """
         if self.cue:
+            print(f"\nSCTE-35 CUE Data:\n")
+            print(self.cue, "\n")
             tf = threefive.Cue(self.cue)
             tf.decode()
             tf.show()
 
     def decode(self):
+        print(f"-- {self.segment}\n")
         for line in self.lines:
-            print(line)
             self._ext_x_scte35(line)
             self._extinf(line)
             if not self.pts:
@@ -111,9 +116,12 @@ class X9K3Parser:
         return line
 
     def show_segment_times(self, stanza):
-        print(f"Segment Start: {round(stanza.start,6)}")
-        print(f"Segment Duration: {stanza.duration}")
-        print(f"HLS Time: {round(self.hls_time,6)}")
+        print(f"\tStart: {round(stanza.start,6)}")
+        print(f"\tEnd: {round(stanza.start,6) + stanza.duration}")
+
+        print(f"\tDuration: {stanza.duration}")
+
+        print(f"\tHLS Time: {round(self.hls_time,6)}")
 
     def do_segment(self, line):
         segment = line
@@ -152,3 +160,4 @@ class X9K3Parser:
 if __name__ == "__main__":
     arg = sys.argv[1]
     X9K3Parser(arg).decode()
+
