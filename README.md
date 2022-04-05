@@ -1,8 +1,7 @@
+  
+ # __x9k3__ 
+ __HLS Segmenter__ with __SCTE-35__ baked in.   
 
-# __x9k3__
- HLS SCTE-35 for the people. 
-
-* __x9k3__ is an HLS Segmenter with SCTE-35 Support. 
 * SCTE-35 Cues in __Mpegts Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
 * M3U8 Manifests are created with __SCTE-35 HLS tags__.
@@ -28,12 +27,14 @@ Your code has been rated at 9.79/10
 # Heads Up.
 > This is not yet stable, vis-à-vis bugs.`Expect changes. 
 # Be Cool.
-> Give me a hand.
+> Give me a hand f you have a patch or idea or suggestion, Open an issue, I want to heard it. I'll will reply
+as soon as possible, usually within a day or two. I may not use it, and if I dont, I'll tell you why. 
+I believe in Open Source software, and Open Source works best when people get involved. 
+
   * Write Code, if you do that or want to learn.
   * Write Docs, if code is not your thing.
   * Break Stuff_and tell me what happened.
- 
-
+  
  
 # Requires 
 * python 3.6+ or pypy3
