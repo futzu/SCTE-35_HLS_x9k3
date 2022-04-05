@@ -40,7 +40,7 @@ class X9K3(Stream):
         """
         m3u = "#EXTM3U"
         version = "#EXT-X-VERSION:3"
-        target = f"EXT-X-TARGETDURATION:{self.seconds+1}"
+        target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
         return "\n".join((m3u, version, target, seq))
 
