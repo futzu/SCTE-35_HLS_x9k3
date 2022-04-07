@@ -101,31 +101,33 @@ class X9K3(Stream):
         self.cue_tag = None
 
     def _write_segment(self):
-        print(self.seg_start, self.seg_stop)
-        seg_file = f"seg{self.seg_num}.ts"
-        seg_time = round(self.seg_stop - self.seg_start, 6)
-        if self.cue_tag:
-            self.active_data.write(self.cue_tag + "\n")
-            self.cue_tag = None
-        with open(seg_file, "wb+") as seg:
-            seg.write(self.active_segment.getbuffer())
-        self.active_data.write(f"#EXTINF:{seg_time},\n")
-        self.active_data.write(seg_file + "\n")
-        print(f"{seg_file}: {seg_time }")
-        self.seg_start = self.seg_stop
-        self.seg_stop += self.seconds
-        self.seg_num += 1
-        self.queue.append(self.active_data.getvalue())
+        if self.seg_stop:
+            print(self.seg_start, self.seg_stop)
+            seg_file = f"seg{self.seg_num}.ts"
+            seg_time = round(self.seg_stop - self.seg_start, 6)
+            if self.cue_tag:
+                self.active_data.write(self.cue_tag + "\n")
+                self.cue_tag = None
+            with open(seg_file, "wb+") as seg:
+                seg.write(self.active_segment.getbuffer())
+            self.active_data.write(f"# start @ {self.seg_start}\n")
+            self.active_data.write(f"#EXTINF:{seg_time},\n")
+            self.active_data.write(seg_file + "\n")
+            print(f"{seg_file}: {seg_time }")
+            self.seg_start = self.seg_stop
+            self.seg_stop += self.seconds
+            self.seg_num += 1
+            self.queue.append(self.active_data.getvalue())
 
     def _write_manifest(self):
         if self.live:
             self.queue = self.queue[-5:]
-        with open("index.m3u8", "w+") as fu:
-            fu.write(self.header())
+        with open("index.m3u8", "w+") as mufu:
+            mufu.write(self.header())
             for i in self.queue:
-                fu.write(i)
+                mufu.write(i)
             if not self.live:
-                fu.write("#EXT-X-ENDLIST")
+                mufu.write("#EXT-X-ENDLIST")
         self.active_data = io.StringIO()
         self.active_segment = io.BytesIO()
 
@@ -161,6 +163,7 @@ class X9K3(Stream):
                 return True
         if pkt[5] & 0xA8:
             return True
+
         return False
 
     @staticmethod
@@ -222,8 +225,10 @@ class X9K3(Stream):
             self._parse_pts(pkt, pid)
             if self._is_key(pkt):
                 self._mk_segment(pid)
-        if self.start:
-            self.active_segment.write(pkt)
+
+
+        #if self.start:
+        self.active_segment.write(pkt)
 
 
 if __name__ == "__main__":
