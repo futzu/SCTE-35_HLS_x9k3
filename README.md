@@ -14,13 +14,14 @@
  
 ```smalltalk
 a@fumatica:~/x9k3$ pylint x9k3.py 
+
 ************* Module x9k3
-x9k3.py:12:0: R0902: Too many instance attributes (12/7) (too-many-instance-attributes)
+x9k3.py:12:0: R0902: Too many instance attributes (14/7) (too-many-instance-attributes)
 x9k3.py:34:20: W1514: Using open without explicitly specifying an encoding (unspecified-encoding)
-x9k3.py:34:20: R1732: Consider using 'with' for resource-allocating operations (consider-using-with)
 
 -----------------------------------
-Your code has been rated at 9.79/10
+Your code has been rated at 9.87/10
+
 ```
 
 
