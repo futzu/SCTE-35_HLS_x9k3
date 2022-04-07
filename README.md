@@ -1,8 +1,4 @@
-  >April 7th, 2022
-  >
-  > I fixed some bugs this morning. __git pull__. 
-  > 
-  > ~ Adrian 
+  > April 7th, 2022  :   I fixed some bugs this morning. __git pull__.       ~ Adrian 
 
 
 
