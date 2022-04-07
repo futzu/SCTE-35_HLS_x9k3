@@ -1,4 +1,12 @@
-  
+  >April 7th, 2022
+  >
+  > I fixed some bugs this morning. __git pull__. 
+  > 
+  > ~ Adrian 
+
+
+
+
  # __x9k3__ 
  __HLS Segmenter__ with __SCTE-35__ baked in.   
 
