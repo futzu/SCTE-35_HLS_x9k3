@@ -11,6 +11,7 @@ class Stanza:
     """
     The Stanza class represents a segment
     and associated data
+
     """
 
     def __init__(self, lines, segment, start):
@@ -116,8 +117,8 @@ class X9K3Parser:
 
     def show_segment_times(self, stanza):
         print(f"\tStart: {round(stanza.start,6)}")
-        print(f"\tEnd: {round(stanza.start,6) + stanza.duration}")
         print(f"\tDuration: {stanza.duration}")
+        print(f"\tEnd: {round(stanza.start,6)+ stanza.duration}")
         print(f"\tHLS Time: {round(self.hls_time,6)}")
 
     def do_segment(self, line):
@@ -135,6 +136,7 @@ class X9K3Parser:
             self.next_expected += round(stanza.duration, 6)
             self.hls_time += stanza.duration
             self.show_segment_times(stanza)
+
         self.chunk = []
 
     def decode(self):
@@ -148,6 +150,7 @@ class X9K3Parser:
                     if "ENDLIST" in line:
                         return False
                     self.chunk.append(line)
+
                     if not line.startswith("#"):
                         if len(line):
                             self.do_segment(line)
