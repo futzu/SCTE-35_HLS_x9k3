@@ -31,14 +31,18 @@ Your code has been rated at 9.87/10
 
 # Heads Up.
 > This is not yet stable, vis-à-vis bugs.`Expect changes. 
-# Be Cool.
-> Give me a hand f you have a patch or idea or suggestion, Open an issue, I want to heard it. I'll will reply
-as soon as possible, usually within a day or two. I may not use it, and if I dont, I'll tell you why. 
-I believe in Open Source software, and Open Source works best when people get involved. 
+# Be Cool. Give me a hand.
 
-  * Write Code, if you do that or want to learn.
-  * Write Docs, if code is not your thing.
-  * Break Stuff_and tell me what happened.
+  * __Write Code__, if you do that or want to learn.
+  * __Write Docs__, if code is not your thing.
+  * __Break Stuff__ and tell me what happened.
+  
+
+> If you have a patch or idea or suggestion, Open an issue, I want to hear it. 
+> 
+> I'll reply as soon as possible, usually within a day or two. 
+> 
+> I may not use it, and if I dont, I'll tell you why. 
   
  
 # Requires 
