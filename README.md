@@ -38,11 +38,9 @@ Your code has been rated at 9.87/10
   * __Break Stuff__ and tell me what happened.
   
 
-> If you have a patch or idea or suggestion, Open an issue, I want to hear it. 
-> 
-> I'll reply as soon as possible, usually within a day or two. 
-> 
-> I may not use it, and if I dont, I'll tell you why. 
+ If you have a patch or idea or suggestion, Open an issue, I want to hear it. 
+ I reply to everybody that takes the time to contact me.
+ If I dont use your idea, I'll tell you why .
   
  
 # Requires 
@@ -86,23 +84,34 @@ seg2.ts
 
 
 ```smalltalk
-#EXTINF:2.002,
-seg5.ts
-#EXTINF:2.002,
-seg6.ts
-#EXTINF:2.002,
-seg7.ts
-#EXTINF:2.002,
-seg8.ts
-#EXT-X-SCTE35:CUE="/DBfAAAAAAAAAP/wBQb+W/fXFwBJAg9DVUVJCXDUcX+fASIhAQECD0NVRUkJcNRwf58BIhEBAQIPQ1VFSQlxDxd/nwEEEAEBAhRDVUVJCXEPGH/fAAc0VHABBCABAe6Vhcw=" 
-#EXTINF:2.002,
-seg9.ts
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:3
+#EXT-X-MEDIA-SEQUENCE:0
+
+#EXTINF:2.152145,
+seg0.ts
+# Time Signal
+#EXT-X-SCTE35:CUE="/DC+AAAAAAAAAP/wBQb+W+M4YgCoAiBDVUVJCW3YD3+fARFEcmF3aW5nRlJJMTE1V0FCQzUBAQIZQ1VFSQlONI9/nwEKVEtSUjE2MDY3QREBAQIxQ1VFSQlw1HB/nwEiUENSMV8xMjEwMjExNDU2V0FCQ0dFTkVSQUxIT1NQSVRBTBABAQI2Q1VFSQlw1HF/3wAAFJlwASJQQ1IxXzEyMTAyMTE0NTZXQUJDR0VORVJBTEhPU1BJVEFMIAEBhgjtJQ==" 
+#EXTINF:2.085422,
+seg1.ts
 ```
 
-*  Video Segment is cut at splice point.
-* SCTE-35 Cues are added or repeated.
 
+*  Video Segments are cut at the the first iframe >=  the splice point pts.
+* SCTE-35 Cues with a preroll are inserted again at the splice point.
 
+```smalltalk
+# Splice Point @ 17129.086244
+#EXT-X-SCTE35:CUE="/DC+AAAAAAAAAP/wBQb+W+M4YgCoAiBDVUVJCW3YD3+fARFEcmF3aW5nRlJJMTE1V0FCQzUBAQIZQ1VFSQlONI9/nwEKVEtSUjE2MDY3QREBAQIxQ1VFSQlw1HB/nwEiUENSMV8xMjEwMjExNDU2V0FCQ0dFTkVSQUxIT1NQSVRBTBABAQI2Q1VFSQlw1HF/3wAAFJlwASJQQ1IxXzEyMTAyMTE0NTZXQUJDR0VORVJBTEhPU1BJVEFMIAEBhgjtJQ==" 
+#EXTINF:0.867544,
+seg2.ts
+#EXTINF:2.235556,
+seg3.ts
+
+```
+
+* CUE-OUT ans CUE-IN are added for splice insert commands at the splice point.
 
 ```smalltalk
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
