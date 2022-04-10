@@ -31,7 +31,7 @@ Your code has been rated at 9.87/10
 
 # Heads Up.
 > This is not yet stable, vis-à-vis bugs.`Expect changes. 
-# Be Cool. Give me a hand.
+# Be Cool.
 
   * __Write Code__, if you do that or want to learn.
   * __Write Docs__, if code is not your thing.
