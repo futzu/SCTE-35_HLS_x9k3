@@ -1,10 +1,10 @@
-  > April 7th, 2022  :   I fixed some bugs this morning. __git pull__.       ~ Adrian 
 
 
 
+# x9k3
+##  __HLS Segmenter__ with __SCTE-35__ baked in.
+scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 
- # __x9k3__ 
- __HLS Segmenter__ with __SCTE-35__ baked in.   
 
 * SCTE-35 Cues in __Mpegts Streams__ are Translated into HLS tags.
 * Segments are __Split on SCTE-35 Cues__ as needed.
