@@ -30,7 +30,7 @@ Your code has been rated at 9.87/10
 
 
 # Heads Up.
-> This is not yet stable, vis-à-vis bugs.`Expect changes. 
+> This is not yet stable.`Expect changes. 
 # Be Cool.
 
   * __Write Code__, if you do that or want to learn.
