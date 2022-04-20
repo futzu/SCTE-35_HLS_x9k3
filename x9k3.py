@@ -1,10 +1,11 @@
 """
 X9K3
 """
-from base64 import b64encode
 
+import argparse
 import io
 import sys
+from base64 import b64encode
 from functools import partial
 from threefive import Stream
 
@@ -27,23 +28,24 @@ class X9K3(Stream):
         self.seg_start = 0
         self.seg_stop = 0
         self.start = False
-        self.cue_out = None
+        self.cue_out = None  # None, YES,CONT,NO
         self.cue = None
         self.cue_tag = None
         self.cue_time = None
         self.b64 = None
         self.queue = []
         self.live = False
+        self.header = None
 
-    def header(self):
+    def mk_header(self):
         """
         header generates the m3u8 header lines
         """
         m3u = "#EXTM3U"
         version = "#EXT-X-VERSION:3"
         target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
-        seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
-        return "\n".join((m3u, version, target, seq, ""))
+        #  seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
+        self.header = "\n".join((m3u, version, target, ""))
 
     def decode(self, func=None):
         """
@@ -55,7 +57,7 @@ class X9K3(Stream):
 
     def _mk_tag(self):
         print(self.b64)
-        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.b64}" '
+        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.b64}"'
 
     def _chk_cue(self, pkt, pid):
         """
@@ -81,8 +83,11 @@ class X9K3(Stream):
         if self.cue.command.command_type == 5:
             if self.cue.command.out_of_network_indicator:
                 self.cue_tag += ",CUE-OUT=YES"
+                self.cue_out = "CONT"
+
             else:
                 self.cue_tag += ",CUE-IN=YES"
+                self.cue_out = None
 
     def _mk_cue_splice_point(self):
         """
@@ -94,9 +99,9 @@ class X9K3(Stream):
         print(f"# Splice Point @ {self.cue_time}\n")
         self.active_data.write(f"# Splice Point @ {self.cue_time}\n")
         self._cue_out_cue_in()
-        self.cue = None
-        self.cue_time = None
-        self.cue_out = None
+        if self.cue_out is None:
+            self.cue = None
+            self.cue_time = None
         self.active_data.write(self.cue_tag + "\n")
         self.cue_tag = None
 
@@ -105,6 +110,10 @@ class X9K3(Stream):
             print(self.seg_start, self.seg_stop)
             seg_file = f"seg{self.seg_num}.ts"
             seg_time = round(self.seg_stop - self.seg_start, 6)
+            if self.live:
+                if self.cue_out == "CONT":
+                    self._mk_tag()
+                    self.cue_tag += ",CUE-OUT=CONT"
             if self.cue_tag:
                 self.active_data.write(self.cue_tag + "\n")
                 self.cue_tag = None
@@ -123,7 +132,8 @@ class X9K3(Stream):
         if self.live:
             self.queue = self.queue[-5:]
         with open("index.m3u8", "w+") as mufu:
-            mufu.write(self.header())
+            mufu.write(self.header)
+            self.mk_header()
             for i in self.queue:
                 mufu.write(i)
             if not self.live:
@@ -219,25 +229,52 @@ class X9K3(Stream):
         _parse parses mpegts and
         writes the packet to self.active_segment.
         """
+        self.mk_header()
         pid = self._parse_info(pkt)
         self._chk_cue(pkt, pid)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
             if self._is_key(pkt):
                 self._mk_segment(pid)
+        if self.start:
+            self.active_segment.write(pkt)
 
 
-        #if self.start:
-        self.active_segment.write(pkt)
+def parse_args():
+    """
+    parse_args parse command line args
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-i",
+        "--input",
+        help=""" Input source, like "/home/a/vid.ts"
+                                or "udp://@235.35.3.5:3535"
+                                or "https://futzu.com/xaa.ts"
+                                """,
+    )
+
+    parser.add_argument(
+        "-l",
+        "--live",
+        action="store_const",
+        default=False,
+        const=True,
+        help="Flag for a live event.(enables sliding window m3u8)",
+    )
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
 
     if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            print(f"video stream: {arg}\n")
-            X9K3(arg).decode()
+        args = parse_args()
+        x9k3 = X9K3(args.input)
+        x9k3.live = args.live
+        x9k3.decode()
 
     else:
         # for piping in video
         X9K3(sys.stdin.buffer).decode()
+
