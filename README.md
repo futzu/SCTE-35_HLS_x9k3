@@ -20,11 +20,11 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 a@fumatica:~/x9k3$ pylint x9k3.py 
 
 ************* Module x9k3
-x9k3.py:12:0: R0902: Too many instance attributes (14/7) (too-many-instance-attributes)
-x9k3.py:34:20: W1514: Using open without explicitly specifying an encoding (unspecified-encoding)
+x9k3.py:13:0: R0902: Too many instance attributes (15/7) (too-many-instance-attributes)
 
------------------------------------
-Your code has been rated at 9.87/10
+------------------------------------------------------------------
+Your code has been rated at 9.94/10 (previous run: 9.89/10, +0.06)
+
 
 ```
 
@@ -52,10 +52,24 @@ pip3 install threefive
 
 # How to Use
 ```smalltalk
-python3 x9k3.py video.mpegts
+$ pypy3  x9k3.py -h
+usage: x9k3.py [-h] [-i INPUT] [-l]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+  -l, --live            Flag for a live event.(enables sliding window m3u8)
+```
+* the --live flag enables:
+   *  a five segment sliding window m3u8 written every new segment.
+   *  CUE-OUT=CONT tags for active ad breaks.
+
+```smalltalk
+python3 x9k3.py -i video.mpegts
 ```
 ```smalltalk
-python3 x9k3.py https://example.com/video.ts
+python3 x9k3.py -i --live https://example.com/video.ts
 ```
 ```smalltalk
 cat video.ts | python3 x9k3.py
@@ -87,7 +101,6 @@ seg2.ts
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:3
-#EXT-X-MEDIA-SEQUENCE:0
 
 #EXTINF:2.152145,
 seg0.ts
