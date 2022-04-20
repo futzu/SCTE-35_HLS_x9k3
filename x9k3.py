@@ -1,280 +1,220 @@
 """
-X9K3
+x9k3parser
 """
 
-import argparse
-import io
+import json
 import sys
-from base64 import b64encode
-from functools import partial
-from threefive import Stream
+import threefive
 
 
-class X9K3(Stream):
+class Segment:
     """
-    X9K3 class
+    The Segment class represents a segment
+    and associated data
+
     """
 
-    def __init__(self, tsdata, show_null=False):
-        """
-        tsdata is an file or http/https url or multicast url
-        set show_null=False to exclude Splice Nulls
-        """
-        super().__init__(tsdata, show_null)
-        self.active_segment = io.BytesIO()
-        self.active_data = io.StringIO()
-        self.seconds = 2
-        self.seg_num = 0
-        self.seg_start = 0
-        self.seg_stop = 0
-        self.start = False
-        self.cue_out = None  # None, YES,CONT,NO
-        self.cue = None
-        self.cue_tag = None
-        self.cue_time = None
-        self.b64 = None
-        self.queue = []
-        self.live = False
-        self.header = None
+    def __init__(self, lines, media_uri, start):
+        self._lines = lines
+        self.media = media_uri
+        self.pts = None
+        self.start = start
+        self.end = None
+        self.duration = 0
+        self.cue = False
+        self.cue_data = None
+        self.tags = {}
 
-    def mk_header(self):
-        """
-        header generates the m3u8 header lines
-        """
-        m3u = "#EXTM3U"
-        version = "#EXT-X-VERSION:3"
-        target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
-        #  seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
-        self.header = "\n".join((m3u, version, target, ""))
-
-    def decode(self, func=None):
-        """
-        decode reads self.tsdata to cut hls segments.
-        """
-        if self._find_start():
-            for chunk in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
-                self._parse(chunk)
-
-    def _mk_tag(self):
-        print(self.b64)
-        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.b64}"'
-
-    def _chk_cue(self, pkt, pid):
-        """
-        _chk_cue checks for SCTE-35 cues
-        and inserts a tag at the time
-        the cue is received.
-        """
-        if pid in self._pids["scte35"]:
-            self.cue = self._parse_scte35(pkt, pid)
-            if self.cue:
-                self.b64 = b64encode(self.cue.bites).decode()
-                self.active_data.write(f"# {self.cue.command.name}\n")
-                if self.cue.command.pts_time:
-                    self.cue_time = self.cue.command.pts_time
-                    print(f"preroll: {self.cue.command.pts_time- self.pid2pts(pid)} ")
-                else:
-                    self.cue_time = self.pid2pts(pid)
-                    self.active_data.write("# Splice Immediate\n")
-                self._mk_tag()
-                self.cue_out = None
-
-    def _cue_out_cue_in(self):
-        if self.cue.command.command_type == 5:
-            if self.cue.command.out_of_network_indicator:
-                self.cue_tag += ",CUE-OUT=YES"
-                self.cue_out = "CONT"
-
-            else:
-                self.cue_tag += ",CUE-IN=YES"
-                self.cue_out = None
-
-    def _mk_cue_splice_point(self):
-        """
-        _mk_cue_splice_point inserts a tag
-        at the time specified in the cue.
-
-        """
-        self._mk_tag()
-        print(f"# Splice Point @ {self.cue_time}\n")
-        self.active_data.write(f"# Splice Point @ {self.cue_time}\n")
-        self._cue_out_cue_in()
-        if self.cue_out is None:
-            self.cue = None
-            self.cue_time = None
-        self.active_data.write(self.cue_tag + "\n")
-        self.cue_tag = None
-
-    def _write_segment(self):
-        if self.seg_stop:
-            print(self.seg_start, self.seg_stop)
-            seg_file = f"seg{self.seg_num}.ts"
-            seg_time = round(self.seg_stop - self.seg_start, 6)
-            if self.live:
-                if self.cue_out == "CONT":
-                    self._mk_tag()
-                    self.cue_tag += ",CUE-OUT=CONT"
-            if self.cue_tag:
-                self.active_data.write(self.cue_tag + "\n")
-                self.cue_tag = None
-            with open(seg_file, "wb+") as seg:
-                seg.write(self.active_segment.getbuffer())
-            self.active_data.write(f"# start @ {self.seg_start}\n")
-            self.active_data.write(f"#EXTINF:{seg_time},\n")
-            self.active_data.write(seg_file + "\n")
-            print(f"{seg_file}: {seg_time }")
-            self.seg_start = self.seg_stop
-            self.seg_stop += self.seconds
-            self.seg_num += 1
-            self.queue.append(self.active_data.getvalue())
-
-    def _write_manifest(self):
-        if self.live:
-            self.queue = self.queue[-5:]
-        with open("index.m3u8", "w+") as mufu:
-            mufu.write(self.header)
-            self.mk_header()
-            for i in self.queue:
-                mufu.write(i)
-            if not self.live:
-                mufu.write("#EXT-X-ENDLIST")
-        self.active_data = io.StringIO()
-        self.active_segment = io.BytesIO()
-
-    def _mk_segment(self, pid):
-        """
-        _mk_segment cuts hls segments
-        """
-        if self.cue_time:
-            print("self.cue_time: ", self.cue_time)
-            if self.seg_start < self.cue_time < self.seg_stop:
-                self.seg_stop = self.cue_time
-                print("self.seg_stop: ", self.seg_stop)
-                self._mk_cue_splice_point()
-                self.cue_time = None
-        now = self.pid2pts(pid)
-        if now >= self.seg_stop:
-            self.seg_stop = now
-            self._write_segment()
-            self._write_manifest()
+    def __repr__(self):
+        return str(self.__dict__)
 
     @staticmethod
-    def _is_key(pkt):
+    def dot_dot(media_uri):
         """
-        _is_key is fast and loose key frame detection.
+        dot dot resolves '..' in  urls
+        """
+        ssu = media_uri.split("/")
+        while ".." in ssu:
+            i = ssu.index("..")
+            del ssu[i]
+            del ssu[i - 1]
+        media_uri = "/".join(ssu)
+        return media_uri
 
+    def kv_clean(self):
         """
-        if b"\x00\x00\x01\x65" in pkt:
-            return True
-        if not pkt[3] & 0x20:
-            return False
-        if pkt[5] & 0x10:
-            if pkt[5] & 0x40:
-                return True
-        if pkt[5] & 0xA8:
-            return True
+        kv_clean removes items from a dict if the value is None
+        """
 
-        return False
+        def b2l(val):
+            if isinstance(val, (list)):
+                val = [b2l(v) for v in val]
+            if isinstance(val, (dict)):
+                val = {k: b2l(v) for k, v in val.items()}
+            return val
 
-    @staticmethod
-    def as_90k(ticks):
-        """
-        as_90k returns ticks as 90k clock time
-        """
-        return round((ticks / 90000.0), 6)
+        return {k: b2l(v) for k, v in vars(self).items() if v not in [None, 0, 0.0]}
 
-    def _parse_pts(self, pkt, pid):
+    def _get_pts_start(self, seg):
+        if not self.start:
+            pts_start = 0.000001
+            try:
+                strm = threefive.Stream(seg)
+                strm.decode(func=None)
+                if len(strm.start.values()) > 0:
+                    pts_start = strm.start.popitem()[1]
+                self.start = self.pts = round(pts_start / 90000.0, 6)
+            except:
+                pass
+        self.start = self.pts
+
+    def _extinf(self):
+        self.duration = round(float(self.tags["#EXTINF"]), 6)
+
+    def _ext_x_scte35(self):
+        self.cue = self.tags["#EXT-X-SCTE35"]["CUE"]
+        self.do_cue()
+
+    def parse_tags(self, line):
         """
-        parse pts from pkt and store it
-        in the dict Stream._pid_pts.
+        parse_tags parses tags and
+        associated attributes
         """
-        payload = self._parse_payload(pkt)
-        if len(payload) < 14:
+        line = line.replace(" ", "")
+        if ":" not in line:
             return
-        if self._pts_flag(payload):
-            pts = ((payload[9] >> 1) & 7) << 30
-            pts |= payload[10] << 22
-            pts |= (payload[11] >> 1) << 15
-            pts |= payload[12] << 7
-            pts |= payload[13] >> 1
-            prgm = self.pid2prgm(pid)
-            self._prgm_pts[prgm] = pts
+        tag, tail = line.split(":", 1)
+        if tail.endswith(","):
+            tail = tail[:-1]
+        self.tags[tag] = {}
+        while tail:
+            if "=" not in tail:
+                self.tags[tag] = tail
+                return
+            if not tail.endswith('"'):
+                tail, value = tail.rsplit("=", 1)
+            else:
+                tail, value = tail[:-1].rsplit('="', 1)
+            splitup = tail.rsplit(",", 1)
+            if len(splitup) == 2:
+                tail, key = splitup
+            else:
+                key = splitup[0]
+                tail = None
+            self.tags[tag][key] = value
+
+    def show(self):
+        print(json.dumps(self.kv_clean(), indent=4))
+
+    def do_cue(self):
+        """
+        do_cue parses a SCTE-35 encoded string
+        via the threefive.Cue class
+        """
+        if self.cue:
+            tf = threefive.Cue(self.cue)
+            tf.decode()
+            self.cue_data = tf.get()
+            # tf.show()
+
+    def decode(self):
+        self.media = self.dot_dot(self.media)
+        for line in self._lines:
+            self.parse_tags(line)
+            if "#EXTINF" in self.tags:
+                self._extinf()
+            if "#EXT-X-SCTE35" in self.tags:
+                self._ext_x_scte35()
             if not self.start:
-                self.start = True
-                self.seg_start = self.as_90k(pts)
-                self.seg_stop = self.seg_start + self.seconds
-
-    def pid2prgm(self, pid):
-        """
-        pid2prgm takes a pid,
-        returns the program
-        """
-        prgm = 1
-        if pid in self._pid_prgm:
-            prgm = self._pid_prgm[pid]
-        return prgm
-
-    def pid2pts(self, pid):
-        """
-        pid2pts takes a pid
-        return current pts
-        """
-        prgm = self.pid2prgm(pid)
-        if prgm not in self._prgm_pts:
-            return False
-        return self.as_90k(self._prgm_pts[prgm])
-
-    def _parse(self, pkt):
-        """
-        _parse parses mpegts and
-        writes the packet to self.active_segment.
-        """
-        self.mk_header()
-        pid = self._parse_info(pkt)
-        self._chk_cue(pkt, pid)
-        if self._pusi_flag(pkt):
-            self._parse_pts(pkt, pid)
-            if self._is_key(pkt):
-                self._mk_segment(pid)
-        if self.start:
-            self.active_segment.write(pkt)
+                self._get_pts_start(self.media)
+                self.start = self.pts
+        if not self.start:
+            self.start = 0.0
+        self.start = round(self.start, 6)
+        self.end = round(self.start + self.duration, 6)
+        del self._lines
+        self.show()
+        return self.start
 
 
-def parse_args():
+class X9K3Parser:
     """
-    parse_args parse command line args
+    X9K3 Parser for x9k3 generated
+    Manifests.
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i",
-        "--input",
-        help=""" Input source, like "/home/a/vid.ts"
-                                or "udp://@235.35.3.5:3535"
-                                or "https://futzu.com/xaa.ts"
-                                """,
-    )
 
-    parser.add_argument(
-        "-l",
-        "--live",
-        action="store_const",
-        default=False,
-        const=True,
-        help="Flag for a live event.(enables sliding window m3u8)",
-    )
+    def __init__(self, arg):
+        self.m3u8 = arg
+        self.hls_time = 0.0
+        self.media_list = []
+        self._start = None
+        self.chunk = []
+        self.base_uri = ""
+        if arg.startswith("http"):
+            self.base_uri = arg[: arg.rindex("/") + 1]
+        self.manifest = None
+        self.segments = []
+        self.next_expected = 0
+        self.master = False
+        self.reload = True
 
-    return parser.parse_args()
+    @staticmethod
+    def _clean_line(line):
+        if isinstance(line, bytes):
+            line = line.decode(errors="ignore")
+            line = line.replace("\n", "").replace("\r", "")
+        return line
+
+    def is_master(self, line):
+        if "STREAM-INF" in line:
+            self.master = True
+            self.reload = False
+
+    def do_media(self, line):
+        media = line
+        if self.master and "URI" in line:
+            media = line.split('URI="')[1].split('"')[0]
+        if not line.startswith("http"):
+            media = self.base_uri + media
+        if media not in self.media_list:
+            self.media_list.append(media)
+            self.media_list = self.media_list[-200:]
+
+            segment = Segment(self.chunk, media, self._start)
+            self.segments.append(segment)
+            segment.decode()
+            if not self._start:
+                self._start = segment.start
+            self._start += segment.duration
+            self.next_expected = self._start + self.hls_time
+            self.next_expected += round(segment.duration, 6)
+            self.hls_time += segment.duration
+        self.chunk = []
+
+    def decode(self):
+        while self.reload:
+            with threefive.reader(self.m3u8) as self.manifest:
+                while self.manifest:
+                    line = self.manifest.readline()
+                    if not line:
+                        break
+                    line = self._clean_line(line)
+                    if not (line.startswith("#EXT-X-VERSION") or line.startswith(
+                        "#EXT-X-TARGETDURATION")
+                    ):
+                        if "ENDLIST" in line:
+                            return False
+                        self.is_master(line)
+                        self.chunk.append(line)
+                        if not line.startswith("#") or line.startswith(
+                            "#EXT-X-I-FRAME-STREAM-INF"
+                        ):
+                            if len(line):
+                                self.do_media(line)
 
 
 if __name__ == "__main__":
-
-    if len(sys.argv) > 1:
-        args = parse_args()
-        x9k3 = X9K3(args.input)
-        x9k3.live = args.live
-        x9k3.decode()
-
-    else:
-        # for piping in video
-        X9K3(sys.stdin.buffer).decode()
-
+    args = sys.argv[1:]
+    for arg in args:
+        x9k3p = X9K3Parser(arg)
+        x9k3p.decode()
