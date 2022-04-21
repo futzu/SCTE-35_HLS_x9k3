@@ -59,7 +59,7 @@ optional arguments:
                         Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
   -l, --live            Flag for a live event.(enables sliding window m3u8)
 ```
-### [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3/edit/main/README.md#live)
+### [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3/README.md#live)
 
 ```smalltalk
 python3 x9k3.py -i video.mpegts
