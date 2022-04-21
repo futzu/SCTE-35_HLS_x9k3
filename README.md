@@ -148,6 +148,7 @@ seg50.ts
 ```
 
 ## Live
+
  * M3u8 Manifests are regenerated every time a segment is written.
  * Sliding Window for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
  * A `#EXT-X-SCTE35:CUE="..."` with a `CUE-OUT=CONT`  Added to First Segment in Manifest during an Ad Break.  
@@ -181,6 +182,17 @@ seg49.ts
 ....
 
 ```
+
+* The [Video](https://so.slo.me/longb.ts). 
+* On the left, the video it is being live segmented by x9k3 and played with ffplay.
+* On the right, the video is being played with ffplay directly. 
+* When started at the same time, the playback on the left loads and plays faster.
+* 
+![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
+
+
+
+
 ## Test
 ```
 ffplay index.m3u8
