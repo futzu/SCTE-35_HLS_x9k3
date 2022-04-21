@@ -1,6 +1,5 @@
 
 
-
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
 scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
@@ -11,7 +10,6 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * M3U8 Manifests are created with __SCTE-35 HLS tags__.
 * Supports __h264__ and __h265__(hevc)
 * __Multi-protocol.__ Files, Http(s), Multicast, and Udp.
-* Built using the highest rated SCTE-35 lib on the Planet, [__threefive__](https://github.com/futzu/scte35-threefive)
 
 # Clean Code.
 * This code is cleaner than your dishes.
@@ -61,9 +59,7 @@ optional arguments:
                         Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
   -l, --live            Flag for a live event.(enables sliding window m3u8)
 ```
-* the --live flag enables:
-   *  a five segment sliding window m3u8 written every new segment.
-   *  CUE-OUT=CONT tags for active ad breaks.
+### [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3/edit/main/README.md#live)
 
 ```smalltalk
 python3 x9k3.py -i video.mpegts
@@ -74,8 +70,8 @@ python3 x9k3.py -i --live https://example.com/video.ts
 ```smalltalk
 cat video.ts | python3 x9k3.py
 ```
-
-# Output
+## VOD 
+### Output
 
 * index.m3u8
 
@@ -124,7 +120,7 @@ seg3.ts
 
 ```
 
-* CUE-OUT ans CUE-IN are added for splice insert commands at the splice point.
+* CUE-OUT ans CUE-IN are added for Splice Insert commands at the splice point.
 
 ```smalltalk
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
@@ -148,7 +144,41 @@ seg50.ts
 
 ```
 
-# Test
+## Live
+ * M3u8 Manifests are regenerated every time a segment is written.
+ * Sliding Window for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
+ * A `#EXT-X-SCTE35:CUE="..."` with a `CUE-OUT=CONT`  Added to First Segment in Manifest during an Ad Break.  
+
+### Output
+
+```smalltalk
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:3
+#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==",CUE-OUT=CONT
+#EXTINF:2.002,
+seg43.ts
+#EXTINF:2.002,
+seg44.ts
+#EXTINF:2.002,
+seg45.ts
+# Splice Insert
+#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0="
+#EXTINF:2.168834,
+seg46.ts
+# Splice Point @ 38203.125478
+#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=",CUE-IN=YES
+#EXTINF:1.001,
+seg47.ts
+#EXTINF:2.836166,
+seg48.ts
+#EXTINF:2.002,
+seg49.ts
+#EXTINF:2.002,
+....
+
+```
+## Test
 ```
 ffplay index.m3u8
 ```
