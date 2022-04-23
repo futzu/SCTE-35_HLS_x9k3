@@ -13,6 +13,7 @@ from threefive import Stream
 
 # sliding window size
 MEDIA_SLOTS = 10
+# target segment time.
 SECONDS = 2
 
 
@@ -29,20 +30,50 @@ class X9K3(Stream):
         super().__init__(tsdata, show_null)
         self.active_segment = io.BytesIO()
         self.active_data = io.StringIO()
-        self.seconds = SECONDS
         self.seg_num = 0
         self.seg_start = 0
         self.seg_stop = 0
         self.start = False
-        self.cue_out = None  # None, YES,CONT,NO
-        self.cue = None
-        self.cue_tag = None
-        self.cue_time = None
-        self.b64 = None
+        self.scte35 = None
         self.queue = []
         self.live = False
-        self.cue_slot = 0
+        self.media_slot = 0
         self.header = None
+        self.cue = None
+        self.cue_out = None
+        self.cue_tag = None
+        self.cue_time = None
+
+    @staticmethod
+    def mk_cue_tag(cue):
+        """
+        mk_cue_tag
+        """
+        return f'#EXT-X-SCTE35:CUE="{b64encode(cue.bites).decode()}"'
+
+    @staticmethod
+    def is_cue_out(cue):
+        """
+        is_cue_out checks a Cue instance
+        to see if it is a cue_out event.
+        Returns True for a cue_out event.
+        """
+        if cue.command.command_type == 5:
+            if cue.command.out_of_network_indicator:
+                return True
+        return False
+
+    @staticmethod
+    def is_cue_in(cue):
+        """
+        is_cue_in checks a Cue instance
+        to see if it is a cue_in event.
+        Returns True for a cue_in event.
+        """
+        if cue.command.command_type == 5:
+            if not cue.command.out_of_network_indicator:
+                return True
+        return False
 
     def mk_header(self):
         """
@@ -50,7 +81,7 @@ class X9K3(Stream):
         """
         m3u = "#EXTM3U"
         version = "#EXT-X-VERSION:3"
-        target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
+        target = f"#EXT-X-TARGETDURATION:{SECONDS+SECONDS}"
         #  seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
         self.header = "\n".join((m3u, version, target, ""))
 
@@ -62,10 +93,6 @@ class X9K3(Stream):
             for chunk in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
                 self._parse(chunk)
 
-    def _mk_tag(self):
-        print(self.b64)
-        self.cue_tag = f'#EXT-X-SCTE35:CUE="{self.b64}"'
-
     def _chk_cue(self, pkt, pid):
         """
         _chk_cue checks for SCTE-35 cues
@@ -75,25 +102,27 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.cue = self._parse_scte35(pkt, pid)
             if self.cue:
-                self.b64 = b64encode(self.cue.bites).decode()
                 self.active_data.write(f"# {self.cue.command.name}\n")
                 if self.cue.command.pts_time:
                     self.cue_time = self.cue.command.pts_time
-                    print(f"preroll: {self.cue.command.pts_time- self.pid2pts(pid)} ")
+                    print(f"Preroll: {self.cue.command.pts_time- self.pid2pts(pid)} ")
                 else:
                     self.cue_time = self.pid2pts(pid)
                     self.active_data.write("# Splice Immediate\n")
-                self._mk_tag()
+                self.cue_tag = self.mk_cue_tag(self.cue)
                 self.cue_out = None
 
-    def _cue_out_cue_in(self):
-        if self.cue.command.command_type == 5:
-            if self.cue.command.out_of_network_indicator:
-                self.cue_tag += ",CUE-OUT=YES"
-                self.cue_out = "CONT"
-            else:
-                self.cue_tag += ",CUE-IN=YES"
-                self.cue_out = None
+    def cue_out_cue_in(self):
+        """
+        cue_out_cue_in adds CUE-OUT
+        and CUE-IN attributes to hls scte35 tags
+        """
+        if self.is_cue_out(self.cue):
+            self.cue_tag += ",CUE-OUT=YES"
+            self.cue_out = "CONT"
+        if self.is_cue_in(self.cue):
+            self.cue_tag += ",CUE-IN=YES"
+            self.cue_out = None
 
     def _mk_cue_splice_point(self):
         """
@@ -101,32 +130,34 @@ class X9K3(Stream):
         at the time specified in the cue.
 
         """
-        self._mk_tag()
+        self.cue_tag = self.mk_cue_tag(self.cue)
         print(f"# Splice Point @ {self.cue_time}\n")
         self.active_data.write(f"# Splice Point @ {self.cue_time}\n")
-        self._cue_out_cue_in()
+        self.cue_out_cue_in()
         if self.cue_out is None:
-            self.cue = None
             self.cue_time = None
         self.active_data.write(self.cue_tag + "\n")
         self.cue_tag = None
 
     def _write_segment(self):
+        if not self.start:
+            return
         if self.seg_stop:
             print(self.seg_start, self.seg_stop)
             seg_file = f"seg{self.seg_num}.ts"
             seg_time = round(self.seg_stop - self.seg_start, 6)
             if self.live:
-                print("CUE in Slot", self.cue_slot)
+                # print("CUE in Slot", self.media_slot)
                 if self.cue_out == "CONT":
-                    self.cue_slot += 1
-                    if self.cue_slot == MEDIA_SLOTS - 1:
-                        self.cue_slot = 0
-                    if self.cue_slot == 0:
-                        self._mk_tag()
+                    self.media_slot += 1
+                    if self.media_slot == MEDIA_SLOTS - 1:
+                        self.media_slot = 0
+                    if self.media_slot == 0:
+                        self.cue_tag = self.mk_cue_tag(self.cue)
                         self.cue_tag += ",CUE-OUT=CONT"
             if self.cue_tag:
                 self.active_data.write(self.cue_tag + "\n")
+                print(self.cue_tag)
                 self.cue_tag = None
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
@@ -134,7 +165,7 @@ class X9K3(Stream):
             self.active_data.write(seg_file + "\n")
             print(f"{seg_file}: {seg_time }")
             self.seg_start = self.seg_stop
-            self.seg_stop += self.seconds
+            self.seg_stop += SECONDS
             self.seg_num += 1
             self.queue.append(self.active_data.getvalue())
 
@@ -156,10 +187,9 @@ class X9K3(Stream):
         _mk_segment cuts hls segments
         """
         if self.cue_time:
-            print("self.cue_time: ", self.cue_time)
             if self.seg_start < self.cue_time < self.seg_stop:
                 self.seg_stop = self.cue_time
-                print("self.seg_stop: ", self.seg_stop)
+                # print("self.seg_stop: ", self.seg_stop)
                 self._mk_cue_splice_point()
                 self.cue_time = None
         now = self.pid2pts(pid)
@@ -209,10 +239,10 @@ class X9K3(Stream):
             pts |= payload[13] >> 1
             prgm = self.pid2prgm(pid)
             self._prgm_pts[prgm] = pts
-            if not self.start:
-                self.start = True
-                self.seg_start = self.as_90k(pts)
-                self.seg_stop = self.seg_start + self.seconds
+            if self.start:
+                if not self.seg_start:
+                    self.seg_start = self.as_90k(pts)
+                    self.seg_stop = self.seg_start + SECONDS
 
     def pid2prgm(self, pid):
         """
@@ -246,6 +276,8 @@ class X9K3(Stream):
             self._parse_pts(pkt, pid)
             if self._is_key(pkt):
                 self._mk_segment(pid)
+                if not self.start:
+                    self.start = True
         if self.start:
             self.active_segment.write(pkt)
 
