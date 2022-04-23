@@ -187,14 +187,14 @@ seg49.ts
 ## FAQ
 #### Q.
 > How do I customize CUE-OUT and CUE-IN ad break events?
-#### A. Override the X9K3.is_cue_out and  X9K3.is_cue_in methods
+#### A. Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods
 > A lot of companies mark ad breaks using different SCTE-35 attributes, such as a Time Signal with a Segmentation Descriptor and a Upid.
 > The X9K3 class has static methods is_cue_out(cue) and is_cue_in(cue). 
-* Both methods accept one arg, a threefive.Cue instance
-* Both return a boolean.
+* __Both methods accept one arg__ `cue`, a threefive.Cue instance
+* __Both return a boolean__.
 
 #### Example
-* X9K3.is_cue_out
+* This is `X9K3.is_cue_out`
 
 ```smalltalk
     @staticmethod
@@ -209,7 +209,7 @@ seg49.ts
                 return True
         return False
 ```
-* To override, define a function matching the interface
+* To override, __define a function matching the interface__
 
     
 ```smalltalk
@@ -219,13 +219,13 @@ seg49.ts
 ....      return False
 ....
 ```
-* Create an X9K3 instance
+* __Create__ an __X9K3__ instance
 
 ```smalltalk
 >>>> from x9k3 import X9K3
 >>>> x9 = X9K3("vid.ts")
 ```
-* set is_cue_out to your custom function
+* __set is_cue_out to your custom function__
 
 ```smalltalk
 >>>> x9.is_cue_out = my_cue_out
