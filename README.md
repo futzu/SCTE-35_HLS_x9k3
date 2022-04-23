@@ -10,8 +10,8 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
 * Supports __h264__ and __h265__(hevc)
 * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
-* Supports [__live__](https://github.com/futzu/scte35-hls-x9k3#live) streaming.
-* [__Customizable Ad Break criteria__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)
+* Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
+* [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
 # Clean Code.
 * This code is cleaner than your dishes.
