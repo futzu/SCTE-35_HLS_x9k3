@@ -18,11 +18,10 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 a@fumatica:~/x9k3$ pylint x9k3.py 
 
 ************* Module x9k3
-x9k3.py:13:0: R0902: Too many instance attributes (15/7) (too-many-instance-attributes)
+x9k3.py:20:0: R0902: Too many instance attributes (15/7) (too-many-instance-attributes)
 
 ------------------------------------------------------------------
-Your code has been rated at 9.94/10 (previous run: 9.89/10, +0.06)
-
+Your code has been rated at 9.95/10 (previous run: 9.95/10, +0.00)
 
 ```
 
@@ -66,9 +65,11 @@ optional arguments:
 python3 x9k3.py -i video.mpegts
 ```
 
+
 ```smalltalk
-python3 x9k3.py -i --live https://example.com/video.ts
+python3 x9k3.py --live -i udp://@235.35.3.5:3535
 ```
+ (Try [`mudpie`](https://github.com/futzu/mudpie) to stream multicast to x9k3)
 
 ```smalltalk
 cat video.ts | python3 x9k3.py
@@ -183,11 +184,54 @@ seg49.ts
 
 ```
 
-* The [Video](https://so.slo.me/longb.ts). 
-* On the left, the video it is being live segmented by x9k3 and played with ffplay.
-* On the right, the video is being played with ffplay directly. 
-* When started at the same time, the playback on the left loads and plays faster.
-* 
+## FAQ
+#### Q.
+> How do I customize CUE-OUT and CUE-IN ad break events?
+#### A. Override the X9K3.is_cue_out and  X9K3.is_cue_in methods
+> A lot of companies mark ad breaks using different SCTE-35 attributes, such as a Time Signal with a Segmentation Descriptor and a Upid.
+> The X9K3 class has static methods is_cue_out(cue) and is_cue_in(cue). 
+* Both methods accept one arg, a threefive.Cue instance
+* Both return a boolean.
+
+#### Example
+* X9K3.is_cue_out
+
+```smalltalk
+    @staticmethod
+    def is_cue_out(cue):
+        """
+        is_cue_out checks a Cue instance
+        to see if it is a cue_out event.
+        Returns True for a cue_out event.
+        """
+        if cue.command.command_type == 5:
+            if cue.command.out_of_network_indicator:
+                return True
+        return False
+```
+* To override, define a function matching the interface
+
+    
+```smalltalk
+>>>> def my_cue_out(cue):
+....      if cue.command.command_type == 6: # time signal
+....         return True
+....      return False
+....
+```
+* Create an X9K3 instance
+
+```smalltalk
+>>>> from x9k3 import X9K3
+>>>> x9 = X9K3("vid.ts")
+```
+* set is_cue_out to your custom function
+
+```smalltalk
+>>>> x9.is_cue_out = my_cue_out
+>>>> x9.decode()
+```
+
 ![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
 
 
