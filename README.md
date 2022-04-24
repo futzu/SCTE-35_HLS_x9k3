@@ -29,9 +29,10 @@ Your code has been rated at 9.95/10 (previous run: 9.95/10, +0.00)
 
 
 # Heads Up.
+---
 > This is not yet stable.`Expect changes. 
 # Be Cool.
-
+---
   * __Write Code__, if you do that or want to learn.
   * __Write Docs__, if code is not your thing.
   * __Break Stuff__ and tell me what happened.
@@ -43,6 +44,7 @@ Your code has been rated at 9.95/10 (previous run: 9.95/10, +0.00)
   
  
 # Requires 
+---
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
 ```smalltalk
@@ -50,6 +52,8 @@ pip3 install threefive
 ```
 
 # How to Use
+---
+
 ```smalltalk
 $ pypy3  x9k3.py -h
 usage: x9k3.py [-h] [-i INPUT] [-l]
@@ -76,7 +80,8 @@ python3 x9k3.py --live -i udp://@235.35.3.5:3535
 ```smalltalk
 cat video.ts | python3 x9k3.py
 ```
-## VOD 
+## `VOD` 
+---
 ### Output
 
 * index.m3u8
@@ -87,16 +92,16 @@ cat video.ts | python3 x9k3.py
 #EXT-X-TARGETDURATION:3
 #EXT-X-MEDIA-SEQUENCE:0
  
-#EXTINF:2.168833,
+#EXTINF:2.002,
 seg0.ts
-#EXTINF:2.335667,
+#EXTINF:2.002,
 seg1.ts
-#EXTINF:2.168833,
+#EXTINF:2.002,
 seg2.ts
 
 ```
 
-*  SCTE-35 Cues are added when received
+*  __SCTE-35 Cues are Added When Received__
 
 
 ```smalltalk
@@ -113,8 +118,8 @@ seg1.ts
 ```
 
 
-*  Video Segments are cut at the the first iframe >=  the splice point pts.
-* SCTE-35 Cues with a preroll are inserted again at the splice point.
+*  Video Segments are __cut at the the first iframe >=  the splice point pts__.
+* __SCTE-35 Cues with a preroll__ are __Inserted Again__ at the __splice point__.
 
 ```smalltalk
 # Splice Point @ 17129.086244
@@ -126,7 +131,7 @@ seg3.ts
 
 ```
 
-* CUE-OUT ans CUE-IN are added for Splice Insert commands at the splice point.
+* __CUE-OUT ans CUE-IN__ are added at __the splice point__.
 
 ```smalltalk
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
@@ -135,26 +140,26 @@ seg13.ts
 
 ```
 
-* Segments are cut on iframes.
-* Segment size is 2 seconds or more, determined by GOP size. 
-* Segments are named seg1.ts seg2.ts etc...
+* Segments are __cut on iframes__.
+* __Segment size is 2 seconds or more, determined by GOP size__. 
+* Segments are named __seg1.ts seg2.ts etc...__
 
 ```smalltalk
 seg47.ts
-#EXTINF:2.12,
+#EXTINF:2.002,
 seg48.ts
-#EXTINF:2.12,
+#EXTINF:2.002,
 seg49.ts
-#EXTINF:2.12,
+#EXTINF:2.002,
 seg50.ts
 
 ```
 
-## Live
-
- * M3u8 Manifests are regenerated every time a segment is written.
- * Sliding Window for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
- * A `#EXT-X-SCTE35:CUE="..."` with a `CUE-OUT=CONT`  Added to First Segment in Manifest during an Ad Break.  
+## `Live`
+---
+ * __M3u8 Manifests are regenerated every time a segment is written__.
+ * __Sliding Window__ for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
+ * A `#EXT-X-SCTE35:CUE="..."` with a `CUE-OUT=CONT`  __Added to First Segment in Manifest during an Ad Break__.  
 
 ### Output
 
@@ -187,51 +192,53 @@ seg49.ts
 ```
 
 ## FAQ
+---
 #### Q.
-> How do I customize CUE-OUT and CUE-IN ad break events?
-#### A. Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods
-> A lot of companies mark ad breaks using different SCTE-35 attributes, such as a Time Signal with a Segmentation Descriptor and a Upid.
-> The X9K3 class has static methods is_cue_out(cue) and is_cue_in(cue). 
-* __Both methods accept one arg__ `cue`, a threefive.Cue instance
-* __Both return a boolean__.
+     How do I __Customize CUE-OUT and CUE-IN__ ad break events?
+#### A. 
+__Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
+
+
+
+ __The X9K3 class has three static methods you can Override and Customize __.
+
+|   @staticmethod                                                                                                     |  arg                                                        |return value|  details                                                              |
+|---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
+| [mk_cue_tag](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L47-52) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
+|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L54-64)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
+| [ is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L66-76)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True id the cue is a CUE-IN|
+
 
 #### Example
-* This is `X9K3.is_cue_out`
+---
 
-```smalltalk
-    @staticmethod
-    def is_cue_out(cue):
-        """
-        is_cue_out checks a Cue instance
-        to see if it is a cue_out event.
-        Returns True for a cue_out event.
-        """
-        if cue.command.command_type == 5:
-            if cue.command.out_of_network_indicator:
-                return True
-        return False
-```
-* To override, __define a function matching the interface__
+*  __Override__ the static method __X9K3.is_cue_out(cue)__ 
+      *     define a function that matches the interface.
+ 
 
     
 ```smalltalk
->>>> def my_cue_out(cue):
-....      if cue.command.command_type == 6: # time signal
-....         return True
-....      return False
-....
+def my_cue_out(cue):
+    """
+    my_cue_out returns True 
+    if the splice command is a time signal
+    """
+      if cue.command.command_type == 6: # time signal
+         return True
+    return False
+
 ```
 * __Create__ an __X9K3__ instance
 
 ```smalltalk
->>>> from x9k3 import X9K3
->>>> x9 = X9K3("vid.ts")
+from x9k3 import X9K3
+ x9 = X9K3("vid.ts")
 ```
 * __set is_cue_out to your custom function__
 
 ```smalltalk
->>>> x9.is_cue_out = my_cue_out
->>>> x9.decode()
+x9.is_cue_out = my_cue_out
+x9.decode()
 ```
 
 ![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
