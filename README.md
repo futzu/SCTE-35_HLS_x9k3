@@ -213,7 +213,7 @@ __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 ---
 
 *  __Override__ the static method __X9K3.is_cue_out(cue)__ 
-      *     define a function that matches the interface.
+*  __Define__ a function that Matches the Interface.
  
 
     
