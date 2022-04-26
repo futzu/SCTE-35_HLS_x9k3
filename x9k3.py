@@ -102,10 +102,13 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.cue = self._parse_scte35(pkt, pid)
             if self.cue:
+                print(f"{self.cue.command.name}")
                 self.active_data.write(f"# {self.cue.command.name}\n")
                 if self.cue.command.pts_time:
                     self.cue_time = self.cue.command.pts_time
-                    print(f"Preroll: {self.cue.command.pts_time- self.pid2pts(pid)} ")
+                    print(
+                        f"Preroll: {round(self.cue.command.pts_time- self.pid2pts(pid), 6)} "
+                    )
                 else:
                     self.cue_time = self.pid2pts(pid)
                     self.active_data.write("# Splice Immediate\n")
@@ -131,7 +134,7 @@ class X9K3(Stream):
 
         """
         self.cue_tag = self.mk_cue_tag(self.cue)
-        print(f"# Splice Point @ {self.cue_time}\n")
+        print(f"Splice Point {self.cue.command.name}@{self.cue_time}")
         self.active_data.write(f"# Splice Point @ {self.cue_time}\n")
         self.cue_out_cue_in()
         if self.cue_out is None:
@@ -139,31 +142,40 @@ class X9K3(Stream):
         self.active_data.write(self.cue_tag + "\n")
         self.cue_tag = None
 
+    def cue_out_continue(self):
+        """
+        cue_out_continue ensures that
+        if there is an active SCTE35 cue,
+        the live sliding window of segments
+        has a tag with CUE-OUT=CONT
+
+        """
+        if self.cue_out == "CONT":
+            self.media_slot += 1
+            if self.media_slot == MEDIA_SLOTS - 1:
+                self.media_slot = 0
+            if self.media_slot == 0:
+                self.cue_tag = self.mk_cue_tag(self.cue)
+                self.cue_tag += ",CUE-OUT=CONT"
+
     def _write_segment(self):
         if not self.start:
             return
         if self.seg_stop:
-            print(self.seg_start, self.seg_stop)
+            # print(self.seg_start, self.seg_stop)
             seg_file = f"seg{self.seg_num}.ts"
-            seg_time = round(self.seg_stop - self.seg_start, 6)
+            seg_time = round(self.seg_stop - self.seg_start, 3)
             if self.live:
-                # print("CUE in Slot", self.media_slot)
-                if self.cue_out == "CONT":
-                    self.media_slot += 1
-                    if self.media_slot == MEDIA_SLOTS - 1:
-                        self.media_slot = 0
-                    if self.media_slot == 0:
-                        self.cue_tag = self.mk_cue_tag(self.cue)
-                        self.cue_tag += ",CUE-OUT=CONT"
+                self.cue_out_continue()
             if self.cue_tag:
                 self.active_data.write(self.cue_tag + "\n")
-                print(self.cue_tag)
+                #     print(self.cue_tag)
                 self.cue_tag = None
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
             self.active_data.write(f"#EXTINF:{seg_time},\n")
             self.active_data.write(seg_file + "\n")
-            print(f"{seg_file}: {seg_time }")
+            print(f"{seg_file}\tduration: {seg_time:.3f}\tstart: {self.seg_start:.6f}")
             self.seg_start = self.seg_stop
             self.seg_stop += SECONDS
             self.seg_num += 1
@@ -173,6 +185,7 @@ class X9K3(Stream):
         if self.live:
             self.queue = self.queue[-(MEDIA_SLOTS):]
         with open("index.m3u8", "w+", encoding="utf-8") as mufu:
+            self.mk_header()
             mufu.write(self.header)
             self.mk_header()
             for i in self.queue:
@@ -198,30 +211,32 @@ class X9K3(Stream):
             self._write_segment()
             self._write_manifest()
 
+    @staticmethod
+    def _rai_flag(pkt):
+        return pkt[5] & 0x40
+
+    @staticmethod
+    def _ABC_flags(pkt):
+        """
+        0x80, 0x20, 0x8
+        """
+        return pkt[5] & 0xA8
+
     def _is_key(self, pkt):
         """
-        _is_key is fast and loose key frame detection.
+        _is_key is key frame detection.
 
         """
-        # standard nal idr
         if b"\x00\x00\x01\x65" in pkt:
             return True
         if not self._afc_flag(pkt):
             return False
         if self._pcr_flag(pkt):
-            if pkt[5] & 0x40:
+            if self._rai_flag(pkt):
                 return True
-        # ABC
-        if pkt[5] & 0xA8:
+        if self._ABC_flags(pkt):
             return True
         return False
-
-    @staticmethod
-    def as_90k(ticks):
-        """
-        as_90k returns ticks as 90k clock time
-        """
-        return round((ticks / 90000.0), 6)
 
     def _parse_pts(self, pkt, pid):
         """
@@ -239,37 +254,15 @@ class X9K3(Stream):
             pts |= payload[13] >> 1
             prgm = self.pid2prgm(pid)
             self._prgm_pts[prgm] = pts
-            if self.start:
-                if not self.seg_start:
-                    self.seg_start = self.as_90k(pts)
-                    self.seg_stop = self.seg_start + SECONDS
-
-    def pid2prgm(self, pid):
-        """
-        pid2prgm takes a pid,
-        returns the program
-        """
-        prgm = 1
-        if pid in self._pid_prgm:
-            prgm = self._pid_prgm[pid]
-        return prgm
-
-    def pid2pts(self, pid):
-        """
-        pid2pts takes a pid
-        return current pts
-        """
-        prgm = self.pid2prgm(pid)
-        if prgm not in self._prgm_pts:
-            return False
-        return self.as_90k(self._prgm_pts[prgm])
+            if not self.seg_start:
+                self.seg_start = self.as_90k(pts)
+                self.seg_stop = self.seg_start + SECONDS
 
     def _parse(self, pkt):
         """
         _parse parses mpegts and
         writes the packet to self.active_segment.
         """
-        self.mk_header()
         pid = self._parse_info(pkt)
         self._chk_cue(pkt, pid)
         if self._pusi_flag(pkt):
