@@ -9,7 +9,7 @@ import threefive
 
 class Segment:
     """
-    The Segment class represents a media segment
+    The Segment class represents a segment
     and associated data
 
     """
@@ -69,11 +69,23 @@ class Segment:
         self.start = self.pts
 
     def _extinf(self):
-        self.duration = round(float(self.tags["#EXTINF"]), 6)
+        if "#EXTINF" in self.tags:
+            self.duration = round(float(self.tags["#EXTINF"]), 6)
 
-    def _ext_x_scte35(self):
-        self.cue = self.tags["#EXT-X-SCTE35"]["CUE"]
-        self.do_cue()
+    def _scte35(self):
+        if "#EXT-X-SCTE35" in self.tags:
+            self.cue = self.tags["#EXT-X-SCTE35"]["CUE"]
+            self.do_cue()
+            return
+        if "#EXT-OATCLS-SCTE35" in self.tags:
+            self.cue = self.tags["#EXT-OATCLS-SCTE35"]
+            self.do_cue()
+            return
+        if "#EXT-X-CUE-OUT-CONT" in self.tags:
+            self.cue = self.tags["#EXT-X-CUE-OUT-CONT"]["SCTE35"]
+            self.do_cue()
+            return
+
 
     def parse_tags(self, line):
         """
@@ -88,13 +100,17 @@ class Segment:
             tail = tail[:-1]
         self.tags[tag] = {}
         while tail:
-            if "=" not in tail:
+            if "="  not in tail:
                 self.tags[tag] = tail
                 return
             if not tail.endswith('"'):
                 tail, value = tail.rsplit("=", 1)
             else:
-                tail, value = tail[:-1].rsplit('="', 1)
+                try:
+                    tail, value = tail[:-1].rsplit('="', 1)
+                except:
+                    self.tags[tag] = tail.replace('"','')
+                    return
             splitup = tail.rsplit(",", 1)
             if len(splitup) == 2:
                 tail, key = splitup
@@ -115,16 +131,13 @@ class Segment:
             tf = threefive.Cue(self.cue)
             tf.decode()
             self.cue_data = tf.get()
-            # tf.show()
 
     def decode(self):
         self.media = self.dot_dot(self.media)
         for line in self._lines:
             self.parse_tags(line)
-            if "#EXTINF" in self.tags:
-                self._extinf()
-            if "#EXT-X-SCTE35" in self.tags:
-                self._ext_x_scte35()
+            self._extinf()
+            self._scte35()
             if not self.start:
                 self._get_pts_start(self.media)
                 self.start = self.pts
@@ -199,8 +212,9 @@ class X9K3Parser:
                     if not line:
                         break
                     line = self._clean_line(line)
-                    if not line.startswith("#EXT-X-VERSION") or line.startswith(
-                        "#EXT-X-TARGETDURATION"
+                    if not (
+                        line.startswith("#EXT-X-VERSION")
+                        or line.startswith("#EXT-X-TARGETDURATION")
                     ):
                         if "ENDLIST" in line:
                             return False
