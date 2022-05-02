@@ -216,7 +216,7 @@ class X9K3(Stream):
         return pkt[5] & 0x40
 
     @staticmethod
-    def _ABC_flags(pkt):
+    def _abc_flags(pkt):
         """
         0x80, 0x20, 0x8
         """
@@ -234,7 +234,7 @@ class X9K3(Stream):
         if self._pcr_flag(pkt):
             if self._rai_flag(pkt):
                 return True
-        if self._ABC_flags(pkt):
+        if self._abc_flags(pkt):
             return True
         return False
 
@@ -283,6 +283,7 @@ def parse_args():
     parser.add_argument(
         "-i",
         "--input",
+        default=None,
         help=""" Input source, like "/home/a/vid.ts"
                                 or "udp://@235.35.3.5:3535"
                                 or "https://futzu.com/xaa.ts"
@@ -303,12 +304,11 @@ def parse_args():
 
 if __name__ == "__main__":
 
+    args = parse_args()
     if len(sys.argv) > 1:
-        args = parse_args()
         x9k3 = X9K3(args.input)
         x9k3.live = args.live
-        x9k3.decode()
-
     else:
         # for piping in video
-        X9K3(sys.stdin.buffer).decode()
+        x9k3 = X9K3(sys.stdin.buffer)
+    x9k3.decode()
