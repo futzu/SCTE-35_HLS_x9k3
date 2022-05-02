@@ -1,9 +1,9 @@
 
 [Install](#requires) |
-[Use](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#how-to-use) |
-[Help](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#be-cool) |
-[Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#faq) |
-[Live](https://github.com/futzu/scte35-hls-x9k3#live) |
+[Use](#how-to-use) |
+[Help](#be-cool) |
+[Customize](#faq) |
+[Live Events](#live) |
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
@@ -82,7 +82,7 @@ python3 x9k3.py -i video.mpegts
 ```smalltalk
 python3 x9k3.py --live -i udp://@235.35.3.5:3535
 ```
- (Try [`mudpie`](https://github.com/futzu/mudpie) to stream multicast to x9k3)
+ (Try [`gumd`](https://github.com/futzu/gumd) to stream multicast to x9k3)
 
 ```smalltalk
 cat video.ts | python3 x9k3.py
