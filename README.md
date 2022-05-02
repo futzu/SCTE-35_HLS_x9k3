@@ -5,7 +5,7 @@
 [Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#faq) |
 [Live](https://github.com/futzu/scte35-hls-x9k3#live) |
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
-[Feature Requests](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
+[Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
