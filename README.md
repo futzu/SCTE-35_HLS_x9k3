@@ -1,4 +1,11 @@
 
+[Install](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#requires) |
+[Use](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#how-to-use) |
+[Help](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#be-cool) |
+[Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#faq) |
+[Live](https://github.com/futzu/scte35-hls-x9k3#live) |
+[Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
+[Feature Requests](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
@@ -194,7 +201,7 @@ seg49.ts
 ## FAQ
 ---
 #### Q.
-     How do I __Customize CUE-OUT and CUE-IN__ ad break events?
+How do I __Customize__ __CUE-OUT__ and __CUE-IN__ ad break events?
 #### A. 
 __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 
