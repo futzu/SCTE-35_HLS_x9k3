@@ -1,8 +1,8 @@
 
-[Install](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#requires) |
-[Use](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#how-to-use) |
-[Help](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#be-cool) |
-[Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/edit/main/README.md#faq) |
+[Install](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#requires) |
+[Use](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#how-to-use) |
+[Help](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#be-cool) |
+[Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#faq) |
 [Live](https://github.com/futzu/scte35-hls-x9k3#live) |
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
