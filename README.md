@@ -1,5 +1,5 @@
 
-[Install](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#requires) |
+[Install](#requires) |
 [Use](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#how-to-use) |
 [Help](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#be-cool) |
 [Customize](https://github.com/futzu/scte35-hls-segmenter-x9k3/main/README.md#faq) |
