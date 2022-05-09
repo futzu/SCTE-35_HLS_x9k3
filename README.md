@@ -108,7 +108,7 @@ seg1.ts
 ```
 
 *  __SCTE-35 Cues are Added When Received__
-   * __All SCTE35 Cue Commands are added__ _(Bandwidth Reservation, Private Command, Splice Insert, Splice Null, Splice Schedule ,Time Signal) 
+   * __All SCTE35 Cue Commands are added__  (Bandwidth Reservation, Private Command, Splice Insert, Splice Null, Splice Schedule ,Time Signal) 
 
 
 ```smalltalk
