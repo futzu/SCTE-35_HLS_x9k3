@@ -30,6 +30,7 @@ class X9K3(Stream):
         super().__init__(tsdata, show_null)
         self.active_segment = io.BytesIO()
         self.active_data = io.StringIO()
+        self.start_seg_num = 0
         self.seg_num = 0
         self.seg_start = 0
         self.seg_stop = 0
@@ -75,15 +76,19 @@ class X9K3(Stream):
                 return True
         return False
 
-    def mk_header(self):
+    def _mk_header(self):
         """
         header generates the m3u8 header lines
         """
         m3u = "#EXTM3U"
         version = "#EXT-X-VERSION:3"
+        plt = "VOD"
+        if self.live:
+            plt = "EVENT"
+        play_type = f"#EXT-X-PLAYLIST-TYPE:{plt}"
         target = f"#EXT-X-TARGETDURATION:{SECONDS+SECONDS}"
-        #  seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg_num}"
-        self.header = "\n".join((m3u, version, target, ""))
+        seq = f"#EXT-X-MEDIA-SEQUENCE:{self.start_seg_num}"
+        self.header = "\n".join((m3u, version, play_type, target, seq, ""))
 
     def decode(self, func=None):
         """
@@ -150,13 +155,12 @@ class X9K3(Stream):
         has a tag with CUE-OUT=CONT
 
         """
-        if self.cue_out == "CONT":
-            self.media_slot += 1
-            if self.media_slot == MEDIA_SLOTS - 1:
-                self.media_slot = 0
-            if self.media_slot == 0:
-                self.cue_tag = self.mk_cue_tag(self.cue)
-                self.cue_tag += ",CUE-OUT=CONT"
+        if self.media_slot > MEDIA_SLOTS:
+            self.media_slot = 0
+        if self.cue_out == "CONT" and self.media_slot == 0:
+            self.cue_tag = self.mk_cue_tag(self.cue)
+            self.cue_tag += ",CUE-OUT=CONT"
+        self.media_slot += 1
 
     def _write_segment(self):
         if not self.start:
@@ -175,21 +179,24 @@ class X9K3(Stream):
                 seg.write(self.active_segment.getbuffer())
             self.active_data.write(f"#EXTINF:{seg_time},\n")
             self.active_data.write(seg_file + "\n")
-            print(f"{seg_file}\tduration: {seg_time:.3f}\tstart: {self.seg_start:.6f}")
+            print(
+                f"{seg_file}  \tstart: {self.seg_start:.6f}\tduration: {seg_time:.3f}"
+            )
             self.seg_start = self.seg_stop
             self.seg_stop += SECONDS
+            self.queue.append((self.seg_num, self.active_data.getvalue()))
             self.seg_num += 1
-            self.queue.append(self.active_data.getvalue())
 
     def _write_manifest(self):
         if self.live:
             self.queue = self.queue[-(MEDIA_SLOTS):]
+        self.start_seg_num = self.queue[0][0]
         with open("index.m3u8", "w+", encoding="utf-8") as mufu:
-            self.mk_header()
+            self._mk_header()
             mufu.write(self.header)
-            self.mk_header()
+            # self._mk_header()
             for i in self.queue:
-                mufu.write(i)
+                mufu.write(i[1])
             if not self.live:
                 mufu.write("#EXT-X-ENDLIST")
         self.active_data = io.StringIO()
@@ -275,9 +282,9 @@ class X9K3(Stream):
             self.active_segment.write(pkt)
 
 
-def parse_args():
+def _parse_args():
     """
-    parse_args parse command line args
+    _parse_args parse command line args
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -304,7 +311,7 @@ def parse_args():
 
 if __name__ == "__main__":
 
-    args = parse_args()
+    args = _parse_args()
     if len(sys.argv) > 1:
         x9k3 = X9K3(args.input)
         x9k3.live = args.live
