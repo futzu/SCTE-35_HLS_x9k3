@@ -71,13 +71,13 @@ optional arguments:
                         Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
   -l, --live            Flag for a live event.(enables sliding window m3u8)
 ```
-### [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3#live)
 
 
 ```smalltalk
 python3 x9k3.py -i video.mpegts
 ```
 
+* [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3#live)
 
 ```smalltalk
 python3 x9k3.py --live -i udp://@235.35.3.5:3535
@@ -108,6 +108,7 @@ seg1.ts
 ```
 
 *  __SCTE-35 Cues are Added When Received__
+   * __All SCTE35 Cue Commands are added__ _(Bandwidth Reservation, Private Command, Splice Insert, Splice Null, Splice Schedule ,Time Signal) 
 
 
 ```smalltalk
