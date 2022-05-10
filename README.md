@@ -212,12 +212,11 @@ __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 
 #### Example
 ---
-
 *  __Override__ the static method __X9K3.is_cue_out(cue)__ 
 *  Require 
-   *  a Splice Command of type `6`, __Time Signal__ 
-   *  Require a Splice Descriptor tag of type `2`, __Segmentation Descriptor__   
-   *  Require a Segmentation Type Id of `0x22`, __"Break Start"__
+   * a Splice Command of type `6`, __Time Signal__ 
+   * a Splice Descriptor tag of type `2`, __Segmentation Descriptor__   
+   * a Segmentation Type Id of `0x22`, __"Break Start"__
     
 ```smalltalk
 def my_cue_out(cue):
@@ -225,12 +224,13 @@ def my_cue_out(cue):
     my_cue_out returns True 
     if the splice command is a time signal
     """
-      if cue.command.command_type == 6: # time signal
-         for d in cue.descriptors:      # cue.descriptors is always list
-             if d.tag ==2:              # Segmentation Descriptor
-              if d.segmentation_type_id == 0x22:  
-               return True
+    if cue.command.command_type == 6: # time signal
+        for d in cue.descriptors:      # cue.descriptors is always list
+            if d.tag ==2:              # Segmentation Descriptor tag
+                if d.segmentation_type_id == 0x22:  # Break Start
+                    return True
     return False
+
 
 ```
 * __Create__ an __X9K3__ instance
