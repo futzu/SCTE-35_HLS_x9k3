@@ -205,8 +205,8 @@ __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 
 |   @staticmethod                                                                                                     |  arg                                                        |return value|  details                                                              |
 |---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
-| [mk_cue_tag](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L47-52) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
-|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L54-64)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
+| [mk_cue_tag](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L47-L52) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
+|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L54-L64)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
 | [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L66-76)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
