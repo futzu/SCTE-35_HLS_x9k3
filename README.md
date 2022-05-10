@@ -207,16 +207,17 @@ __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 |---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
 | [mk_cue_tag](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L47-52) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
 |  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L54-64)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
-| [ is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L66-76)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True id the cue is a CUE-IN|
+| [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L66-76)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True id the cue is a CUE-IN|
 
 
 #### Example
 ---
 
 *  __Override__ the static method __X9K3.is_cue_out(cue)__ 
-*  __Define__ a function that Matches the Interface.
- 
-
+*  Require 
+   *  a Splice Command of type `6`, __Time Signal__ 
+   *  Require a Splice Descriptor tag of type `2`, __Segmentation Descriptor__   
+   *  Require a Segmentation Type Id of `0x22`, __"Break Start"__
     
 ```smalltalk
 def my_cue_out(cue):
@@ -225,7 +226,10 @@ def my_cue_out(cue):
     if the splice command is a time signal
     """
       if cue.command.command_type == 6: # time signal
-         return True
+         for d in cue.descriptors:
+             if d.tag ==2:
+              if d.segmentation_type_id == 0x22:
+               return True
     return False
 
 ```
