@@ -1,4 +1,4 @@
-
+[Details](#details) |
 [Install](#requires) |
 [Use](#how-to-use) |
 [Help](#be-cool) |
@@ -20,19 +20,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
-# Clean Code.
-* This code is cleaner than your dishes.
- 
-```smalltalk
-a@fumatica:~/x9k3$ pylint x9k3.py 
-
-************* Module x9k3
-x9k3.py:20:0: R0902: Too many instance attributes (15/7) (too-many-instance-attributes)
-
-------------------------------------------------------------------
-Your code has been rated at 9.95/10 (previous run: 9.95/10, +0.00)
-
-```
+![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
 
 
 # Heads Up.
@@ -40,14 +28,12 @@ Your code has been rated at 9.95/10 (previous run: 9.95/10, +0.00)
 > This is not yet stable.`Expect changes. 
 # Be Cool.
 ---
-  * __Write Code__, if you do that or want to learn.
-  * __Write Docs__, if code is not your thing.
-  * __Break Stuff__ and tell me what happened.
-  
+* If you have a question, ask it. 
 
- If you have a patch or idea or suggestion, Open an issue, I want to hear it. 
- I reply to everybody that takes the time to contact me.
- If I dont use your idea, I'll tell you why .
+* If you have something to say, say it. 
+
+* If you have a patch or idea or suggestion, 
+Open an issue, I want to hear it. 
   
  
 # Requires 
@@ -71,45 +57,33 @@ optional arguments:
                         Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
   -l, --live            Flag for a live event.(enables sliding window m3u8)
 ```
-
+* Example Usage
 
 ```smalltalk
 python3 x9k3.py -i video.mpegts
 ```
 
-* [`the --live flag`](https://github.com/futzu/scte35-hls-x9k3#live)
-
 ```smalltalk
 python3 x9k3.py --live -i udp://@235.35.3.5:3535
 ```
- (Try [`gumd`](https://github.com/futzu/gumd) to stream multicast to x9k3)
 
 ```smalltalk
 cat video.ts | python3 x9k3.py
+
 ```
-## `VOD` 
 ---
-### Output
 
-* index.m3u8
+# Details 
+---
 
-```smalltalk
-#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-PLAYLIST-TYPE:VOD
-#EXT-X-TARGETDURATION:4
-#EXT-X-MEDIA-SEQUENCE:0
-#EXTINF:2.119,
-seg0.ts
-#EXTINF:2.102,
-seg1.ts
-#EXTINF:2.102,
+* Segments are cut on iframes.
 
-```
+* Segment size is 2 seconds or more, determined by GOP size. 
+* Segments are named seg1.ts seg2.ts etc...
 
-*  __SCTE-35 Cues are Added When Received__
-   * __All SCTE35 Cue Commands are added__  (Bandwidth Reservation, Private Command, Splice Insert, Splice Null, Splice Schedule ,Time Signal) 
+*  SCTE-35 Cues are added When received.
 
+*  All SCTE35 Cue commands are added.
 
 ```smalltalk
 # Time Signal
@@ -117,22 +91,25 @@ seg1.ts
 #EXTINF:2.085422,
 seg1.ts
 ```
+---
 
+*  Video segments are cut at the the first iframe >=  the splice point pts.
+*  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
 
-*  Video Segments are __cut at the the first iframe >=  the splice point pts__.
-* __SCTE-35 Cues with a preroll__ are __Inserted Again__ at the __splice point__.
+---
+
+* SCTE-35 cues with a preroll are inserted again at the splice point.
 
 ```smalltalk
 # Splice Point @ 17129.086244
 #EXT-X-SCTE35:CUE="/DC+AAAAAAAAAP/wBQb+W+M4YgCoAiBDVUVJCW3YD3+fARFEcmF3aW5nRlJJMTE1V0FCQzUBAQIZQ1VFSQlONI9/nwEKVEtSUjE2MDY3QREBAQIxQ1VFSQlw1HB/nwEiUENSMV8xMjEwMjExNDU2V0FCQ0dFTkVSQUxIT1NQSVRBTBABAQI2Q1VFSQlw1HF/3wAAFJlwASJQQ1IxXzEyMTAyMTE0NTZXQUJDR0VORVJBTEhPU1BJVEFMIAEBhgjtJQ==" 
 #EXTINF:0.867544,
 seg2.ts
-#EXTINF:2.235556,
-seg3.ts
 
 ```
+---
 
-* __CUE-OUT ans CUE-IN__ are added at __the splice point__.
+* CUE-OUT ans CUE-IN are added at the splice point.
 
 ```smalltalk
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
@@ -140,29 +117,20 @@ seg3.ts
 seg13.ts
 
 ```
+---
+## `VOD`
 
-* Segments are __cut on iframes__.
-* __Segment size is 2 seconds or more, determined by GOP size__. 
-* Segments are named __seg1.ts seg2.ts etc...__
-
-```smalltalk
-seg47.ts
-#EXTINF:2.002,
-seg48.ts
-#EXTINF:2.002,
-seg49.ts
-#EXTINF:2.002,
-seg50.ts
-
-```
-
+* x9k3 defaults to VOD style playlist generation.
+* All segment are listed in the m3u8 file. 
+---
 ## `Live`
 ---
- * __M3u8 Manifests are regenerated every time a segment is written__.
- * __Sliding Window__ for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
- * A `#EXT-X-SCTE35:CUE="..."` with a `CUE-OUT=CONT`  __Added to First Segment in Manifest during an Ad Break__.  
+ * Activated by the --live switch or by setting X9K3.live=True
 
-### Output
+ * Like VOD except:
+     * M3u8 manifests are regenerated every time a segment is written.
+     * Sliding Window for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L15)
+     * A cue out continue tag is added to first segment in manifest during an ad break.  
 
 ```smalltalk
 #EXTM3U
@@ -246,16 +214,6 @@ x9.is_cue_out = my_cue_out
 x9.decode()
 ```
 ---
-
-![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
-
-
-
-
-## Test
-```
-ffplay index.m3u8
-```
 
 # 2020 SCTE-35 Specification Regarding The HLS `#EXT-X-SCTE35` Tag
 
