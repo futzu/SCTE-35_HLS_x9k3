@@ -27,13 +27,15 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 ---
 > This is not yet stable.`Expect changes. 
 # Be Cool.
----
+
+* I'm cool, you be cool too.
+
 * If you have a question, ask it. 
 
 * If you have something to say, say it. 
 
 * If you have a patch or idea or suggestion, 
-Open an issue, I want to hear it. 
+Open an issue, and tell me about it.  
   
  
 # Requires 
