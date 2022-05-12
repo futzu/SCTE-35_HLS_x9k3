@@ -86,9 +86,9 @@ cat video.ts | python3 x9k3.py
 *  For SCTE-35, Video segments are cut at the the first iframe >=  the splice point pts.
 *  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
 
-*  SCTE-35 Cues are added When received.
+*  SCTE-35 cues are added when received.
 
-*  All SCTE35 Cue commands are added.
+*  All SCTE35 cue commands are added.
 
 ```smalltalk
 # Time Signal
