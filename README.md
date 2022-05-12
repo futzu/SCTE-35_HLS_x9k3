@@ -1,11 +1,11 @@
 [Details](#details) |
 [Install](#requires) |
 [Use](#how-to-use) |
-[Help](#be-cool) |
 [Customize](#faq) |
 [Live Events](#live) |
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
-[Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
+[Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
+[Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md)
 
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
