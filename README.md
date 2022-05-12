@@ -83,6 +83,9 @@ cat video.ts | python3 x9k3.py
 * Segment size is 2 seconds or more, determined by GOP size. 
 * Segments are named seg1.ts seg2.ts etc...
 
+*  For SCTE-35, Video segments are cut at the the first iframe >=  the splice point pts.
+*  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
+
 *  SCTE-35 Cues are added When received.
 
 *  All SCTE35 Cue commands are added.
@@ -95,10 +98,6 @@ seg1.ts
 ```
 ---
 
-*  Video segments are cut at the the first iframe >=  the splice point pts.
-*  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
-
----
 
 * SCTE-35 cues with a preroll are inserted again at the splice point.
 
