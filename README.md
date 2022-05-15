@@ -20,8 +20,6 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
-![image](https://user-images.githubusercontent.com/52701496/164541045-5f1ac01d-23e0-4dc7-89cf-b2507dcdfa41.png)
-
 
 # Heads Up.
 ---
@@ -216,11 +214,6 @@ x9.decode()
 ```
 ---
 
-# 2020 SCTE-35 Specification Regarding The HLS `#EXT-X-SCTE35` Tag
-
-![image](https://user-images.githubusercontent.com/52701496/160178288-fc75bcfc-b408-43f0-a7ec-83ecdfb10e8b.png)
-![image](https://user-images.githubusercontent.com/52701496/160177961-aa7f1706-2f49-4144-a3e3-36efb458037d.png)
-![image](https://user-images.githubusercontent.com/52701496/160178082-a978772d-d650-4093-a442-2aeb907bba19.png)
 
 ![image](https://user-images.githubusercontent.com/52701496/167934615-a74b952b-56cc-4777-b0dc-a4dc764b4b5a.png)
 
