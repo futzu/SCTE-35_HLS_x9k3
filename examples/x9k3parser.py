@@ -29,7 +29,7 @@ class Segment:
         return str(self.__dict__)
 
     @staticmethod
-    def dot_dot(media_uri):
+    def _dot_dot(media_uri):
         """
         dot dot resolves '..' in  urls
         """
@@ -41,9 +41,9 @@ class Segment:
         media_uri = "/".join(ssu)
         return media_uri
 
-    def kv_clean(self):
+    def _kv_clean(self):
         """
-        kv_clean removes items from a dict if the value is None
+        _kv_clean removes items from a dict if the value is None
         """
 
         def b2l(val):
@@ -75,21 +75,23 @@ class Segment:
     def _scte35(self):
         if "#EXT-X-SCTE35" in self.tags:
             self.cue = self.tags["#EXT-X-SCTE35"]["CUE"]
-            self.do_cue()
+            self._do_cue()
             return
         if "#EXT-OATCLS-SCTE35" in self.tags:
             self.cue = self.tags["#EXT-OATCLS-SCTE35"]
-            self.do_cue()
+            self._do_cue()
             return
         if "#EXT-X-CUE-OUT-CONT" in self.tags:
-            self.cue = self.tags["#EXT-X-CUE-OUT-CONT"]["SCTE35"]
-            self.do_cue()
-            return
+            try:
+                self.cue = self.tags["#EXT-X-CUE-OUT-CONT"]["SCTE35"]
+            finally:
+            #self._do_cue()
+                return
 
 
-    def parse_tags(self, line):
+    def _parse_tags(self, line):
         """
-        parse_tags parses tags and
+        _parse_tags parses tags and
         associated attributes
         """
         line = line.replace(" ", "")
@@ -120,11 +122,14 @@ class Segment:
             self.tags[tag][key] = value
 
     def show(self):
-        print(json.dumps(self.kv_clean(), indent=4))
-
-    def do_cue(self):
         """
-        do_cue parses a SCTE-35 encoded string
+        show prints the segment data as json
+        """
+        print(json.dumps(self._kv_clean(), indent=4))
+
+    def _do_cue(self):
+        """
+        _do_cue parses a SCTE-35 encoded string
         via the threefive.Cue class
         """
         if self.cue:
@@ -133,9 +138,9 @@ class Segment:
             self.cue_data = tf.get()
 
     def decode(self):
-        self.media = self.dot_dot(self.media)
+        self.media = self._dot_dot(self.media)
         for line in self._lines:
-            self.parse_tags(line)
+            self._parse_tags(line)
             self._extinf()
             self._scte35()
             if not self.start:
@@ -178,12 +183,12 @@ class X9K3Parser:
             line = line.replace("\n", "").replace("\r", "")
         return line
 
-    def is_master(self, line):
+    def _is_master(self, line):
         if "STREAM-INF" in line:
             self.master = True
             self.reload = False
 
-    def do_media(self, line):
+    def _do_media(self, line):
         media = line
         if self.master and "URI" in line:
             media = line.split('URI="')[1].split('"')[0]
@@ -215,16 +220,18 @@ class X9K3Parser:
                     if not (
                         line.startswith("#EXT-X-VERSION")
                         or line.startswith("#EXT-X-TARGETDURATION")
+                        or line.startswith("#EXT-X-PLAYLIST-TYPE")
+                        or line.startswith("#EXT-X-MEDIA-SEQUENCE")
                     ):
                         if "ENDLIST" in line:
                             return False
-                        self.is_master(line)
+                        self._is_master(line)
                         self.chunk.append(line)
                         if not line.startswith("#") or line.startswith(
                             "#EXT-X-I-FRAME-STREAM-INF"
                         ):
                             if len(line):
-                                self.do_media(line)
+                                self._do_media(line)
 
 
 if __name__ == "__main__":
