@@ -21,8 +21,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
 
-## Heads Up.
-### ` This is not yet stable. Expect changes.` 
+##  `This is not yet stable. Expect changes.` 
 
 
 ## Be Cool.
