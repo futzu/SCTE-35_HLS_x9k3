@@ -2,14 +2,13 @@
 
 import setuptools
 import x9k3
-import version
 
 with open("README.md", "r") as fh:
     readme = fh.read()
 
 setuptools.setup(
     name="x9k3",
-    version=version.version(),
+    version=x9k3.version(),
     author="Adrian",
     author_email="spam@iodisco.com",
     description="HLS Segmenter with SCTE-35 Support",
