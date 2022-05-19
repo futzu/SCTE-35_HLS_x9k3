@@ -24,6 +24,7 @@ class X9K3(Stream):
 
     def __init__(self, tsdata, show_null=False):
         """
+        __init__ for X9K3
         tsdata is an file or http/https url or multicast url
         set show_null=False to exclude Splice Nulls
         """
@@ -244,6 +245,26 @@ class X9K3(Stream):
         if self._abc_flags(pkt):
             return True
         return False
+
+    def pid2prgm(self, pid):
+        """
+        pid2prgm takes a pid,
+        returns the program
+        """
+        prgm = 1
+        if pid in self._pid_prgm:
+            prgm = self._pid_prgm[pid]
+        return prgm
+
+    def pid2pts(self, pid):
+        """
+        pid2pts takes a pid
+        returns the current pts
+        """
+        prgm = self.pid2prgm(pid)
+        if prgm not in self._prgm_pts:
+            return False
+        return self.as_90k(self._prgm_pts[prgm])
 
     def _parse_pts(self, pkt, pid):
         """
