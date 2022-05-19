@@ -21,10 +21,11 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
 
-# Heads Up.
----
-> This is not yet stable.`Expect changes. 
-# Be Cool.
+## Heads Up.
+### ` This is not yet stable. Expect changes.` 
+
+
+## Be Cool.
 
 * I'm cool, you be cool too.
 
@@ -36,7 +37,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 Open an issue, and tell me about it.  
   
  
-# Requires 
+## Requires 
 ---
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
@@ -44,7 +45,7 @@ Open an issue, and tell me about it.
 pip3 install threefive
 ```
 
-# How to Use
+## How to Use
 ---
 
 ```smalltalk
@@ -73,7 +74,7 @@ cat video.ts | python3 x9k3.py
 ```
 ---
 
-# Details 
+## Details 
 ---
 
 * Segments are cut on iframes.
@@ -117,12 +118,12 @@ seg13.ts
 
 ```
 ---
-## `VOD`
+### `VOD`
 
 * x9k3 defaults to VOD style playlist generation.
 * All segment are listed in the m3u8 file. 
 ---
-## `Live`
+### `Live`
 ---
  * Activated by the --live switch or by setting X9K3.live=True
 
@@ -159,7 +160,7 @@ seg49.ts
 
 ```
 
-## FAQ
+### FAQ
 ---
 #### Q.
 How do I __Customize__ __CUE-OUT__ and __CUE-IN__ ad break events?
@@ -177,7 +178,7 @@ __Override__ the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
 | [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/6218928792b12221aa8d1208dbcced391980dc1d/x9k3.py#L66-76)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
-#### Example
+##### Example
 ---
 *  __Override__ the static method __X9K3.is_cue_out(cue)__ 
 *  Require 
