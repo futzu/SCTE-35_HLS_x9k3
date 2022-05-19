@@ -16,6 +16,9 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/futzu/x9k3",
     packages=setuptools.find_packages(),
+    install_requires=[
+          'threefive',
+      ],
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
