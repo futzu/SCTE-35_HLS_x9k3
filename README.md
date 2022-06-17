@@ -13,7 +13,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 
 
 ### Heads Up.
-* Please upgrade to threefive to  2.3.33 , I fixed a weird bug in the threefive.Stream class.
+* Please upgrade  threefive to version 2.3.33 , I fixed a weird bug in the threefive.Stream class.
 ```lua
 python3 -mpip install --upgrade threefive
 
