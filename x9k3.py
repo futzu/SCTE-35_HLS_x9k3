@@ -260,6 +260,15 @@ class X9K3(Stream):
         """
         return pkt[5] & 0xA8
 
+    def _is_sps(self, pkt):
+        sps_start = b"\x00\x00\x01\x67"
+        if sps_start in pkt:
+            # print(list(pkt.split(sps_start)[1]))
+            sps_idx = pkt.index(sps_start)
+            profile = pkt[sps_idx + 4]
+            level = pkt[sps_idx + 6]
+            # print(f"Profile {profile} Level {level}")
+
     def _is_key(self, pkt):
         """
         _is_key is key frame detection.
@@ -316,6 +325,13 @@ class X9K3(Stream):
                 self.seg_start = self.as_90k(pts)
                 self.seg_stop = self.seg_start + SECONDS
 
+    @staticmethod
+    def as_90k(ticks):
+        """
+        as_90k returns ticks as 90k clock time
+        """
+        return round((ticks / 90000.0), 6)
+
     def _parse(self, pkt):
         """
         _parse parses mpegts and
@@ -323,6 +339,7 @@ class X9K3(Stream):
         """
         pid = self._parse_info(pkt)
         self._chk_cue(pkt, pid)
+        self._is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
             if self._is_key(pkt):
