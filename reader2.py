@@ -59,7 +59,7 @@ def _read_stream(sock):
 
 def _udp_sock_opts(sock):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 425984)
-    self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if hasattr(socket, "SO_REUSEPORT"):
         self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     return sock
