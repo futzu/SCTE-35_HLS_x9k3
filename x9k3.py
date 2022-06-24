@@ -7,6 +7,7 @@ X9K3
 import argparse
 import io
 import sys
+import threading, queue
 from base64 import b64encode
 from functools import partial
 from threefive import Stream
@@ -22,7 +23,7 @@ version you have installed.
 
 MAJOR = "0"
 MINOR = "0"
-MAINTAINENCE = "92"
+MAINTAINENCE = "93"
 
 
 def version():
@@ -68,13 +69,14 @@ class X9K3(Stream):
         self.start = False
         self.scte35 = None
         self.queue = []
-        self.live = False
         self.media_slot = 0
         self.header = None
         self.cue = None
         self.cue_out = None
         self.cue_tag = None
         self.cue_time = None
+        self.live = False
+        self.output_dir = None
 
     @staticmethod
     def mk_cue_tag(cue):
@@ -120,14 +122,6 @@ class X9K3(Stream):
         target = f"#EXT-X-TARGETDURATION:{SECONDS+SECONDS}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.start_seg_num}"
         self.header = "\n".join((m3u, version, play_type, target, seq, ""))
-
-    def decode(self, func=None):
-        """
-        decode reads self.tsdata to cut hls segments.
-        """
-        if self._find_start():
-            for chunk in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
-                self._parse(chunk)
 
     def _chk_cue(self, pkt, pid):
         """
@@ -208,6 +202,8 @@ class X9K3(Stream):
                 self.cue_tag = None
             with open(seg_file, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
+                seg.flush()
+                seg.close()
             self.active_data.write(f"#EXTINF:{seg_time},\n")
             self.active_data.write(seg_file + "\n")
             print(
@@ -221,7 +217,7 @@ class X9K3(Stream):
     def _write_manifest(self):
         if self.live:
             self.queue = self.queue[-(MEDIA_SLOTS):]
-        self.start_seg_num = self.queue[0][0]
+            self.start_seg_num = self.queue[0][0]
         with open("index.m3u8", "w+", encoding="utf-8") as mufu:
             self._mk_header()
             mufu.write(self.header)
@@ -278,9 +274,9 @@ class X9K3(Stream):
             return True
         if not self._afc_flag(pkt):
             return False
-        if self._pcr_flag(pkt):
-            if self._rai_flag(pkt):
-                return True
+        # if self._pcr_flag(pkt):
+        if self._rai_flag(pkt):
+            return True
         if self._abc_flags(pkt):
             return True
         return False
@@ -339,7 +335,8 @@ class X9K3(Stream):
         """
         pid = self._parse_info(pkt)
         self._chk_cue(pkt, pid)
-        self._is_sps(pkt)
+        # self._is_sps(pkt)
+        self._parse_cc(pkt, pid)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
             if self._is_key(pkt):
@@ -348,6 +345,44 @@ class X9K3(Stream):
                     self.start = True
         if self.start:
             self.active_segment.write(pkt)
+
+    def exp(self):
+        """
+        X9K3.exp is an replacement for X9K3.decode
+        with a dedicated thread to process a queue of packets.
+        UDP works signifigantly better this way.
+        """
+        q = queue.Queue()
+
+        def worker():
+            while True:
+                item = q.get()
+                print("hey")
+                cues = [
+                    self._parse(item[i : i + self._PACKET_SIZE])
+                    for i in range(0, len(item), self._PACKET_SIZE)
+                ]
+                _ = [cue.show() for cue in cues if cue]
+                q.task_done()
+
+        def readr():  # 340425  ~64MB
+            if not self._find_start():
+                return
+            for chunk in iter(
+                partial(self._tsdata.read, self._PACKET_SIZE * 57425), b""
+            ):
+                if not chunk:
+                    sys.exit()
+                    break
+                q.put(chunk)
+
+        # turn-on the worker thread
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        readr()
+        q.join()
+        print("All work completed")
+        sys.exit()
 
 
 def _parse_args():
@@ -363,6 +398,13 @@ def _parse_args():
                                 or "udp://@235.35.3.5:3535"
                                 or "https://futzu.com/xaa.ts"
                                 """,
+    )
+
+    parser.add_argument(
+        "-d",
+        "--output_dir",
+        default=".",
+        help="directory for segments and index.m3u8",
     )
 
     parser.add_argument(
@@ -383,7 +425,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         x9k3 = X9K3(args.input)
         x9k3.live = args.live
+        x9k3.output_dir = args.output_dir
     else:
         # for piping in video
         x9k3 = X9K3(sys.stdin.buffer)
-    x9k3.decode()
+    x9k3.exp()
