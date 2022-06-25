@@ -52,7 +52,8 @@ class X9K3(Stream):
     """
     X9K3 class
     """
-
+    _CHUNK_SIZE=57425 # Number of packets in a chunk when reading mpegts. 
+    
     def __init__(self, tsdata, show_null=False):
         """
         __init__ for X9K3
@@ -76,7 +77,7 @@ class X9K3(Stream):
         self.cue_tag = None
         self.cue_time = None
         self.live = False
-        self.output_dir = None
+        self.output_dir = None # not yet implemented
 
     @staticmethod
     def mk_cue_tag(cue):
@@ -221,7 +222,6 @@ class X9K3(Stream):
         with open("index.m3u8", "w+", encoding="utf-8") as mufu:
             self._mk_header()
             mufu.write(self.header)
-            # self._mk_header()
             for i in self.queue:
                 mufu.write(i[1])
             if not self.live:
@@ -263,7 +263,7 @@ class X9K3(Stream):
             sps_idx = pkt.index(sps_start)
             profile = pkt[sps_idx + 4]
             level = pkt[sps_idx + 6]
-            # print(f"Profile {profile} Level {level}")
+            print(f"Profile {profile} Level {level}")
 
     def _is_key(self, pkt):
         """
@@ -335,7 +335,7 @@ class X9K3(Stream):
         """
         pid = self._parse_info(pkt)
         self._chk_cue(pkt, pid)
-        # self._is_sps(pkt)
+        self._is_sps(pkt)
         self._parse_cc(pkt, pid)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
@@ -343,37 +343,36 @@ class X9K3(Stream):
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
-        if self.start:
-            self.active_segment.write(pkt)
+       # if self.start:
+        self.active_segment.write(pkt)
 
     def exp(self):
         """
         X9K3.exp is an replacement for X9K3.decode
         with a dedicated thread to process a queue of packets.
-        UDP works signifigantly better this way.
+        UDP works significantly better this way.
         """
         q = queue.Queue()
 
         def worker():
             while True:
                 item = q.get()
-                print("hey")
+               # print("hey")
                 cues = [
                     self._parse(item[i : i + self._PACKET_SIZE])
                     for i in range(0, len(item), self._PACKET_SIZE)
                 ]
-                _ = [cue.show() for cue in cues if cue]
+               # _ = [cue.show() for cue in cues if cue]
                 q.task_done()
 
         def readr():  # 340425  ~64MB
             if not self._find_start():
                 return
             for chunk in iter(
-                partial(self._tsdata.read, self._PACKET_SIZE * 57425), b""
+                partial(self._tsdata.read, self._PACKET_SIZE * self._CHUNK_SIZE), b""
             ):
                 if not chunk:
                     sys.exit()
-                    break
                 q.put(chunk)
 
         # turn-on the worker thread
@@ -381,7 +380,7 @@ class X9K3(Stream):
         t.start()
         readr()
         q.join()
-        print("All work completed")
+       # print("All work completed")
         sys.exit()
 
 
@@ -399,7 +398,7 @@ def _parse_args():
                                 or "https://futzu.com/xaa.ts"
                                 """,
     )
-
+    # Not yet implemented.
     parser.add_argument(
         "-d",
         "--output_dir",
