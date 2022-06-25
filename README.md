@@ -164,7 +164,7 @@ seg49.ts
 #### Q.
 How do I Customize CUE-OUT and CUE-IN ad break events?
 #### A. 
-Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods_
+Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods.
 
 
 
