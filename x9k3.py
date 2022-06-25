@@ -6,29 +6,30 @@ X9K3
 
 import argparse
 import io
+import queue
 import sys
-import threading, queue
+import threading
 from base64 import b64encode
 from functools import partial
 from threefive import Stream
 
-"""
-Odd number versions are releases.
-Even number versions are testing builds between releases.
-
-Used to set version in setup.py
-and as an easy way to check which
-version you have installed.
-"""
 
 MAJOR = "0"
 MINOR = "0"
-MAINTAINENCE = "93"
+MAINTAINENCE = "95"
 
 
 def version():
     """
     version prints threefives version as a string
+
+    Odd number versions are releases.
+    Even number versions are testing builds between releases.
+
+    Used to set version in setup.py
+    and as an easy way to check which
+    version you have installed.
+
     """
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
 
@@ -52,8 +53,9 @@ class X9K3(Stream):
     """
     X9K3 class
     """
-    _CHUNK_SIZE=57425 # Number of packets in a chunk when reading mpegts. 
-    
+
+    _NUM_PKTS = 57425  # Number of packets in a chunk when reading mpegts.
+
     def __init__(self, tsdata, show_null=False):
         """
         __init__ for X9K3
@@ -77,7 +79,20 @@ class X9K3(Stream):
         self.cue_tag = None
         self.cue_time = None
         self.live = False
-        self.output_dir = None # not yet implemented
+        self.output_dir = "."
+
+    @staticmethod
+    def mk_uri(head, tail):
+        """
+        mk_uri is used to create local filepaths
+        and resolve backslash or forwardslash seperators
+        """
+        sep = "/"
+        if len(head.split("\\")) > len(head.split("/")):
+            sep = "\\"
+        if not head.endswith(sep):
+            head = head + sep
+        return f"{head}{tail}"
 
     @staticmethod
     def mk_cue_tag(cue):
@@ -115,14 +130,14 @@ class X9K3(Stream):
         header generates the m3u8 header lines
         """
         m3u = "#EXTM3U"
-        version = "#EXT-X-VERSION:3"
+        m3u_version = "#EXT-X-VERSION:3"
         plt = "VOD"
         if self.live:
             plt = "EVENT"
         play_type = f"#EXT-X-PLAYLIST-TYPE:{plt}"
         target = f"#EXT-X-TARGETDURATION:{SECONDS+SECONDS}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.start_seg_num}"
-        self.header = "\n".join((m3u, version, play_type, target, seq, ""))
+        self.header = "\n".join((m3u, m3u_version, play_type, target, seq, ""))
 
     def _chk_cue(self, pkt, pid):
         """
@@ -192,16 +207,15 @@ class X9K3(Stream):
         if not self.start:
             return
         if self.seg_stop:
-            # print(self.seg_start, self.seg_stop)
             seg_file = f"seg{self.seg_num}.ts"
+            seg_uri = self.mk_uri(self.output_dir, seg_file)
             seg_time = round(self.seg_stop - self.seg_start, 3)
             if self.live:
                 self.cue_out_continue()
             if self.cue_tag:
                 self.active_data.write(self.cue_tag + "\n")
-                #     print(self.cue_tag)
                 self.cue_tag = None
-            with open(seg_file, "wb+") as seg:
+            with open(seg_uri, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
                 seg.flush()
                 seg.close()
@@ -219,7 +233,8 @@ class X9K3(Stream):
         if self.live:
             self.queue = self.queue[-(MEDIA_SLOTS):]
             self.start_seg_num = self.queue[0][0]
-        with open("index.m3u8", "w+", encoding="utf-8") as mufu:
+        m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
+        with open(m3u8_uri, "w+", encoding="utf-8") as mufu:
             self._mk_header()
             mufu.write(self.header)
             for i in self.queue:
@@ -236,7 +251,6 @@ class X9K3(Stream):
         if self.cue_time:
             if self.seg_start < self.cue_time < self.seg_stop:
                 self.seg_stop = self.cue_time
-                # print("self.seg_stop: ", self.seg_stop)
                 self._mk_cue_splice_point()
                 self.cue_time = None
         now = self.pid2pts(pid)
@@ -256,14 +270,14 @@ class X9K3(Stream):
         """
         return pkt[5] & 0xA8
 
-    def _is_sps(self, pkt):
+    @staticmethod
+    def _is_sps(pkt):
         sps_start = b"\x00\x00\x01\x67"
         if sps_start in pkt:
-            # print(list(pkt.split(sps_start)[1]))
             sps_idx = pkt.index(sps_start)
             profile = pkt[sps_idx + 4]
             level = pkt[sps_idx + 6]
-            print(f"Profile {profile} Level {level}")
+            #print(f"Profile {profile} Level {level}")
 
     def _is_key(self, pkt):
         """
@@ -343,8 +357,8 @@ class X9K3(Stream):
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
-       # if self.start:
         self.active_segment.write(pkt)
+        return self.cue
 
     def exp(self):
         """
@@ -352,35 +366,30 @@ class X9K3(Stream):
         with a dedicated thread to process a queue of packets.
         UDP works significantly better this way.
         """
-        q = queue.Queue()
+        work_queue= queue.Queue()
 
-        def worker():
+        def workr():
             while True:
-                item = q.get()
-               # print("hey")
-                cues = [
+                item = work_queue.get()
+                for i in range(0, len(item), self._PACKET_SIZE):
                     self._parse(item[i : i + self._PACKET_SIZE])
-                    for i in range(0, len(item), self._PACKET_SIZE)
-                ]
-               # _ = [cue.show() for cue in cues if cue]
-                q.task_done()
+                work_queue.task_done()
 
         def readr():  # 340425  ~64MB
             if not self._find_start():
                 return
             for chunk in iter(
-                partial(self._tsdata.read, self._PACKET_SIZE * self._CHUNK_SIZE), b""
+                partial(self._tsdata.read, self._PACKET_SIZE * self._NUM_PKTS), b""
             ):
                 if not chunk:
                     sys.exit()
-                q.put(chunk)
+                work_queue.put(chunk)
 
         # turn-on the worker thread
-        t = threading.Thread(target=worker, daemon=True)
-        t.start()
+        workin = threading.Thread(target=workr, daemon=True)
+        workin.start()
         readr()
-        q.join()
-       # print("All work completed")
+        work_queue.join()
         sys.exit()
 
 
