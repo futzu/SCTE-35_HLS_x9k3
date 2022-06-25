@@ -15,7 +15,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
 * Segments are __Split on SCTE-35 Cues__ as needed.
 * __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
-* Supports __h264__ and __h265__(hevc)
+* Supports __h264__ and __h265__ and __mpeg2__ video.
 * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
