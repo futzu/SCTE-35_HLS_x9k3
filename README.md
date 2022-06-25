@@ -12,15 +12,6 @@
 scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 
 
-### Heads Up.
-* Please upgrade  threefive to version 2.3.33 , I fixed a weird bug in the threefive.Stream class.
-```lua
-python3 -mpip install --upgrade threefive
-
-pypy3 -mpip install --upgrade threefive
-```
-
-
 * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
 * Segments are __Split on SCTE-35 Cues__ as needed.
 * __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
