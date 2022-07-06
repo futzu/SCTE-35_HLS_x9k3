@@ -14,7 +14,7 @@ from multiprocessing import Process, JoinableQueue as JQueue
 
 MAJOR = "0"
 MINOR = "0"
-MAINTAINENCE = "95"
+MAINTAINENCE = "97"
 
 
 def version():
@@ -373,6 +373,8 @@ class X9K3(Stream):
                 for i in range(0, len(item), self._PACKET_SIZE):
                     self._parse(item[i : i + self._PACKET_SIZE])
                 work_queue.task_done()
+                if work_queue.empty():
+                    break
 
         def readr():  # 340425  ~64MB
             if not self._find_start():
@@ -381,13 +383,15 @@ class X9K3(Stream):
                 partial(self._tsdata.read, self._PACKET_SIZE * self._NUM_PKTS), b""
             ):
                 work_queue.put(chunk)
+            return
 
-        # turn-on the worker thread
-        workin = Process(target=workr)
-        workin.start()
+        # start readin process first
         readin = Process(target=readr)
         readin.start()
-        work_queue.join()
+        # start workin process
+        workin = Process(target=workr, daemon=True)
+        workin.start()
+        workin.join()
 
 
 def _parse_args():
