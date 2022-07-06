@@ -6,13 +6,11 @@ X9K3
 
 import argparse
 import io
-import queue
 import sys
-import threading
 from base64 import b64encode
 from functools import partial
 from threefive import Stream
-
+from multiprocessing import Process, JoinableQueue as JQueue
 
 MAJOR = "0"
 MINOR = "0"
@@ -277,7 +275,7 @@ class X9K3(Stream):
             sps_idx = pkt.index(sps_start)
             profile = pkt[sps_idx + 4]
             level = pkt[sps_idx + 6]
-            #print(f"Profile {profile} Level {level}")
+            # print(f"Profile {profile} Level {level}")
 
     def _is_key(self, pkt):
         """
@@ -363,14 +361,15 @@ class X9K3(Stream):
     def exp(self):
         """
         X9K3.exp is an replacement for X9K3.decode
-        with a dedicated thread to process a queue of packets.
+        with a dedicated process to handle a queue of packets.
         UDP works significantly better this way.
         """
-        work_queue= queue.Queue()
+        work_queue = JQueue()
 
         def workr():
             while True:
                 item = work_queue.get()
+
                 for i in range(0, len(item), self._PACKET_SIZE):
                     self._parse(item[i : i + self._PACKET_SIZE])
                 work_queue.task_done()
@@ -381,16 +380,14 @@ class X9K3(Stream):
             for chunk in iter(
                 partial(self._tsdata.read, self._PACKET_SIZE * self._NUM_PKTS), b""
             ):
-                if not chunk:
-                    sys.exit()
                 work_queue.put(chunk)
 
         # turn-on the worker thread
-        workin = threading.Thread(target=workr, daemon=True)
+        workin = Process(target=workr)
         workin.start()
-        readr()
+        readin = Process(target=readr)
+        readin.start()
         work_queue.join()
-        sys.exit()
 
 
 def _parse_args():
