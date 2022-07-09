@@ -6,15 +6,17 @@ X9K3
 
 import argparse
 import io
+import os
+import queue
 import sys
+import threading
 from base64 import b64encode
 from functools import partial
 from threefive import Stream
-from multiprocessing import Process, JoinableQueue as JQueue
 
 MAJOR = "0"
 MINOR = "0"
-MAINTAINENCE = "97"
+MAINTAINENCE = "98"
 
 
 def version():
@@ -52,7 +54,7 @@ class X9K3(Stream):
     X9K3 class
     """
 
-    _NUM_PKTS = 57425  # Number of packets in a chunk when reading mpegts.
+    _NUM_PKTS = 1316 * 5  # was 57425
 
     def __init__(self, tsdata, show_null=False):
         """
@@ -78,6 +80,7 @@ class X9K3(Stream):
         self.cue_time = None
         self.live = False
         self.output_dir = "."
+        self.delete_segs = False
 
     @staticmethod
     def mk_uri(head, tail):
@@ -229,7 +232,14 @@ class X9K3(Stream):
 
     def _write_manifest(self):
         if self.live:
-            self.queue = self.queue[-(MEDIA_SLOTS):]
+            if len(self.queue) > MEDIA_SLOTS:
+                if self.delete_segs:
+                    drop = self.mk_uri(
+                        self.output_dir, self.queue[0][1].rsplit(",")[1].strip()
+                    )
+                    os.unlink(drop)
+                    print(f"deleting {drop}")
+                self.queue = self.queue[1:]
             self.start_seg_num = self.queue[0][0]
         m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
         with open(m3u8_uri, "w+", encoding="utf-8") as mufu:
@@ -361,20 +371,17 @@ class X9K3(Stream):
     def exp(self):
         """
         X9K3.exp is an replacement for X9K3.decode
-        with a dedicated process to handle a queue of packets.
+        with a dedicated thread to process a queue of packets.
         UDP works significantly better this way.
         """
-        work_queue = JQueue()
+        work_queue = queue.Queue()
 
         def workr():
             while True:
                 item = work_queue.get()
-
                 for i in range(0, len(item), self._PACKET_SIZE):
                     self._parse(item[i : i + self._PACKET_SIZE])
                 work_queue.task_done()
-                if work_queue.empty():
-                    break
 
         def readr():  # 340425  ~64MB
             if not self._find_start():
@@ -382,16 +389,16 @@ class X9K3(Stream):
             for chunk in iter(
                 partial(self._tsdata.read, self._PACKET_SIZE * self._NUM_PKTS), b""
             ):
+                if not chunk:
+                    break
                 work_queue.put(chunk)
-            return
 
-        # start readin process first
-        readin = Process(target=readr)
-        readin.start()
-        # start workin process
-        workin = Process(target=workr, daemon=True)
+        # turn-on the worker thread
+        workin = threading.Thread(target=workr, daemon=True)
         workin.start()
-        workin.join()
+        readr()
+        work_queue.join()
+        sys.exit()
 
 
 def _parse_args():
@@ -425,6 +432,14 @@ def _parse_args():
         help="Flag for a live event.(enables sliding window m3u8)",
     )
 
+    parser.add_argument(
+        "--delete",
+        action="store_const",
+        default=False,
+        const=True,
+        help="delete segments when in live mode",
+    )
+
     return parser.parse_args()
 
 
@@ -435,6 +450,7 @@ if __name__ == "__main__":
         x9k3 = X9K3(args.input)
         x9k3.live = args.live
         x9k3.output_dir = args.output_dir
+        x9k3.delete_segs = args.delete
     else:
         # for piping in video
         x9k3 = X9K3(sys.stdin.buffer)
