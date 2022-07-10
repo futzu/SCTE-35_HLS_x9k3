@@ -66,17 +66,17 @@ optional arguments:
   -d, --delete          delete segments when in live mode ( requires --live )
 
 ```
-* Example Usage
+* __Example Usage__
     * local file as input
     ```smalltalk
     python3 x9k3.py -i video.mpegts
     ```
-    * multicast stream as input using sliding window   
+    * multicast stream as input, with a live sliding window   
    ```smalltalk
    python3 x9k3.py --live -i udp://@235.35.3.5:3535
    ```
 
-    * multicast stream as input using sliding window and deleting old segments.
+    * multicast stream as input, with a sliding window, and  expiring old segments.
     ```smalltalk
     python3 x9k3.py --live --delete -i udp://@235.35.3.5:3535
     ```
