@@ -66,24 +66,37 @@ optional arguments:
   -d, --delete          delete segments when in live mode ( requires --live )
 
 ```
-* __Example Usage__
-    * local file as input
-    ```smalltalk
+### __Example Usage__
+
+ * local file as input
+ ```smalltalk
     python3 x9k3.py -i video.mpegts
-    ```
-    * multicast stream as input, with a live sliding window   
+ ```
+  ---
+   * multicast stream as input
+      * with a live sliding window   
    ```smalltalk
    python3 x9k3.py --live -i udp://@235.35.3.5:3535
    ```
-
-    * multicast stream as input, with a sliding window, and  expiring old segments.
-    ```smalltalk
-    python3 x9k3.py --live --delete -i udp://@235.35.3.5:3535
-    ```
-   * https stream for input and writing segments to an output directory.
+ ---
+ 
+   * Use ffmpeg to read multicast stream as input
+   * Use x9k3 to segment 
+      * with a sliding window, 
+      * and  expiring old segments.
+      * --delete implies --live
+      
    ```smalltalk
-   pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
    ```
+ ---
+  * https stream for input
+  * and writing segments to an output directory.
+     * directory is created if it does not exist.
+  ```smalltalk
+   pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+  ```
+  ---
    * using stdin as input 
    ```smalltalk
    cat video.ts | python3 x9k3.py
@@ -145,7 +158,7 @@ seg13.ts
 
  * Like VOD except:
      * M3u8 manifests are regenerated every time a segment is written.
-     * Sliding Window for 10 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L45)
+     * Sliding Window for 25 [MEDIA_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L63)
      * A cue out continue tag is added to first segment in manifest during an ad break.  
 
 ```smalltalk
@@ -189,9 +202,9 @@ Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods.
 
 |   @staticmethod                                                                                                     |  arg                                                        |return value|  details                                                              |
 |---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
-| [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L79-L84) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
-|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L86-L96)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
-| [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L98-108)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
+| [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L99-L104) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
+|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L106-L116)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
+| [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118-128)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
 ##### Example
