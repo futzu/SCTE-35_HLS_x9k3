@@ -8,7 +8,6 @@ import argparse
 import io
 import os
 import sys
-import time
 from base64 import b64encode
 from functools import partial
 from threefive import Stream
@@ -215,7 +214,7 @@ class X9K3(Stream):
         if self.seg.seg_stop:
             seg_file = f"seg{self.seg.seg_num}.ts"
             seg_uri = self.mk_uri(self.output_dir, seg_file)
-            seg_time = round(self.seg.seg_stop - self.seg.seg_start, 3)
+            seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
             if self.live:
                 self.cue_out_continue()
             if self.seg.cue_tag:
@@ -228,7 +227,7 @@ class X9K3(Stream):
             self.active_data.write(f"#EXTINF:{seg_time},\n")
             self.active_data.write(seg_file + "\n")
             print(
-                f"{time.ctime()} -> {seg_file}  \tstart: {self.seg.seg_start:.6f}\tduration: {seg_time:.3f}"
+                f"{seg_file}  \tstart: {self.seg.seg_start:.6f}  \tduration: {seg_time:.6f}"
             )
             self.seg.seg_start = self.seg.seg_stop
             self.seg.seg_stop += self.SECONDS
@@ -367,6 +366,7 @@ def _parse_args():
         "--output_dir",
         default=".",
         help="""Directory for segments and index.m3u8
+
                 Directory is created if it does not exist""",
     )
 
