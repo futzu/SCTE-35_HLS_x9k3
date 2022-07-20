@@ -21,21 +21,15 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
 
-##  `This is not yet stable. Expect changes.` 
-
+*  This is not yet stable. Expect changes. 
 
 ## Be Cool.
-
 * I'm cool, you be cool too.
-
 * If you have a question, ask it. 
-
 * If you have something to say, say it. 
-
 * If you have a patch or idea or suggestion, 
 Open an issue, and tell me about it.  
   
- 
 ## Requires 
 ---
 * python 3.6+ or pypy3
