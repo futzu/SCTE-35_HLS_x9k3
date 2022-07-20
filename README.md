@@ -194,7 +194,7 @@ Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static method
 |---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
 | [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L69,L74) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
 |  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L76,L86)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
-| [ is_cue_in]([https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118,128](https://github.com/futzu/x9k3/blob/main/x9k3.py#L88,L98))|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
+| [ is_cue_in](https://github.com/futzu/x9k3/blob/main/x9k3.py#L88,L98)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
 ##### Example
