@@ -194,7 +194,7 @@ seg49.ts
 #### Q.
 How do I Customize CUE-OUT and CUE-IN ad break events?
 #### A. 
-Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods.
+Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static methods.
 
 
 
@@ -202,14 +202,14 @@ Override the `X9K3.is_cue_out` and  `X9K3.is_cue_in` static methods.
 
 |   @staticmethod                                                                                                     |  arg                                                        |return value|  details                                                              |
 |---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
-| [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L99,L104) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
-|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L106,L116)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
-| [ is_cue_in](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118,128)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
+| [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L69,L74) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
+|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L76,L86)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
+| [ is_cue_in]([https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118,128](https://github.com/futzu/x9k3/blob/main/x9k3.py#L88,L98))|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
 ##### Example
 ---
-*  __Override__ the static method __X9K3.is_cue_out(cue)__ 
+*  __Override__ the static method __X9K3.scte35.is_cue_out(cue)__ 
 *  Require 
    * a Splice Command of type `6`, __Time Signal__ 
    * a Splice Descriptor tag of type `2`, __Segmentation Descriptor__   
@@ -234,12 +234,12 @@ def my_cue_out(cue):
 
 ```smalltalk
 from x9k3 import X9K3
- x9 = X9K3("vid.ts")
+x9 = X9K3("vid.ts")
 ```
 * __set is_cue_out to your custom function__
 
 ```smalltalk
-x9.is_cue_out = my_cue_out
+x9.scte35.is_cue_out = my_cue_out
 x9.decode()
 ```
 ---
