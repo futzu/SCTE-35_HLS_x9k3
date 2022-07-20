@@ -9,12 +9,11 @@ import io
 import os
 import sys
 from base64 import b64encode
-from functools import partial
 from threefive import Stream
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "00"
+MAINTAINENCE = "01"
 
 
 def version():
@@ -97,6 +96,18 @@ class SCTE35:
                 return True
         return False
 
+    def cue_out_cue_in(self):
+        """
+        cue_out_cue_in adds CUE-OUT
+        and CUE-IN attributes to hls scte35 tags
+        """
+        if self.is_cue_out(self.cue):
+            self.cue_tag += ",CUE-OUT=YES"
+            self.cue_out = "CONT"
+        if self.is_cue_in(self.cue):
+            self.cue_tag += ",CUE-IN=YES"
+            self.cue_out = None
+
 
 class X9K3(Stream):
     """
@@ -104,7 +115,7 @@ class X9K3(Stream):
     """
 
     # sliding window size
-    MEDIA_SLOTS = 25
+    WINDOW_SLOTS = 25
     # target segment time.
     SECONDS = 2
 
@@ -119,8 +130,8 @@ class X9K3(Stream):
         self.active_data = io.StringIO()
         self.start = False
         self.scte35 = SCTE35()
-        self.media_slots = []
-        self.media_slot = 0
+        self.window = []
+        self.window_slot = 0
         self.header = None
         self.live = False
         self.output_dir = "."
@@ -166,7 +177,7 @@ class X9K3(Stream):
         if pid in self._pids["scte35"]:
             self.scte35.cue = self._parse_scte35(pkt, pid)
             if self.scte35.cue:
-                self.scte35.cue.show()
+                # self.scte35.cue.show()
                 print(f"{self.scte35.cue.command.name}")
                 self.active_data.write(f"# {self.scte35.cue.command.name}\n")
                 if self.scte35.cue.command.pts_time:
@@ -180,28 +191,15 @@ class X9K3(Stream):
                 self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
                 self.scte35.cue_out = None
 
-    def cue_out_cue_in(self):
-        """
-        cue_out_cue_in adds CUE-OUT
-        and CUE-IN attributes to hls scte35 tags
-        """
-        if self.scte35.is_cue_out(self.scte35.cue):
-            self.scte35.cue_tag += ",CUE-OUT=YES"
-            self.scte35.cue_out = "CONT"
-        if self.scte35.is_cue_in(self.scte35.cue):
-            self.scte35.cue_tag += ",CUE-IN=YES"
-            self.scte35.cue_out = None
-
     def _mk_cue_splice_point(self):
         """
         _mk_cue_splice_point inserts a tag
         at the time specified in the cue.
-
         """
         self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
         print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
         self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
-        self.cue_out_cue_in()
+        self.scte35.cue_out_cue_in()
         if self.scte35.cue_out is None:
             self.scte35.cue_time = None
         self.active_data.write(self.scte35.cue_tag + "\n")
@@ -215,14 +213,18 @@ class X9K3(Stream):
         has a tag with CUE-OUT=CONT
 
         """
-        if self.media_slot > self.MEDIA_SLOTS:
-            self.media_slot = 0
-        if self.scte35.cue_out == "CONT" and self.media_slot == 0:
+        if self.window_slot > self.WINDOW_SLOTS:
+            self.window_slot = 0
+        if self.scte35.cue_out == "CONT" and self.window_slot == 0:
             self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
             self.scte35.cue_tag += ",CUE-OUT=CONT"
-        self.media_slot += 1
+        self.window_slot += 1
 
     def _write_segment(self):
+        """
+        _write_segment creates segment file,
+        writes segment meta data to self.active_data
+        """
         if not self.start:
             return
         if self.seg.seg_stop:
@@ -245,7 +247,7 @@ class X9K3(Stream):
             )
             self.seg.seg_start = self.seg.seg_stop
             self.seg.seg_stop += self.SECONDS
-            self.media_slots.append((self.seg.seg_num, self.active_data.getvalue()))
+            self.window.append((self.seg.seg_num, self.active_data.getvalue()))
             self.seg.seg_num += 1
 
     def _open_m3u8(self):
@@ -253,20 +255,24 @@ class X9K3(Stream):
         return open(m3u8_uri, "w+", encoding="utf-8")
 
     def _write_manifest(self):
+        """
+        _write_manifest writes segment meta data from
+        self.window to an m3u8 file
+        """
         if self.live:
-            if len(self.media_slots) > self.MEDIA_SLOTS:
+            if len(self.window) > self.WINDOW_SLOTS:
                 if self.delete_segs:
                     drop = self.mk_uri(
-                        self.output_dir, self.media_slots[0][1].rsplit(",")[1].strip()
+                        self.output_dir, self.window[0][1].rsplit(",")[1].strip()
                     )
                     os.unlink(drop)
                     print(f"deleting {drop}")
-                self.media_slots = self.media_slots[1:]
-            self.seg.start_seg_num = self.media_slots[0][0]
+                self.window = self.window[1:]
+            self.seg.start_seg_num = self.window[0][0]
         with self._open_m3u8() as m3u8:
             self._mk_header()
             m3u8.write(self.header)
-            for i in self.media_slots:
+            for i in self.window:
                 m3u8.write(i[1])
             if not self.live:
                 m3u8.write("#EXT-X-ENDLIST")
@@ -320,6 +326,9 @@ class X9K3(Stream):
 
     @staticmethod
     def _is_sps(pkt):
+        """
+        _is_sps parses h264 for profile and level
+        """
         sps_start = b"\x00\x00\x01\x67"
         if sps_start in pkt:
             sps_idx = pkt.index(sps_start)
@@ -384,8 +393,7 @@ def _parse_args():
         "--output_dir",
         default=".",
         help="""Directory for segments and index.m3u8
-
-                Directory is created if it does not exist""",
+                ( created if it does not exist ) """,
     )
 
     parser.add_argument(
@@ -394,7 +402,7 @@ def _parse_args():
         action="store_const",
         default=False,
         const=True,
-        help="Flag for a live event.(enables sliding window m3u8)",
+        help="Flag for a live event ( enables sliding window m3u8 )",
     )
 
     parser.add_argument(
@@ -403,7 +411,7 @@ def _parse_args():
         action="store_const",
         default=False,
         const=True,
-        help="delete segments (implies live mode)",
+        help="delete segments ( enables live mode )",
     )
 
     return parser.parse_args()
