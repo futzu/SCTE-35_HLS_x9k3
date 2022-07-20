@@ -13,8 +13,8 @@ from functools import partial
 from threefive import Stream
 
 MAJOR = "0"
-MINOR = "0"
-MAINTAINENCE = "99"
+MINOR = "1"
+MAINTAINENCE = "00"
 
 
 def version():
@@ -42,58 +42,29 @@ def version_number():
 
 
 class SegData:
+    """
+    A SegData instance is used to keep hold
+    segment data by X9K3.
+    """
+
     def __init__(self):
         self.start_seg_num = 0
         self.seg_num = 0
         self.seg_start = 0
         self.seg_stop = 0
+
+
+class SCTE35:
+    """
+    A SCTE35 instance is used to hold
+    SCTE35 cue data by X9K3.
+    """
+
+    def __init__(self):
         self.cue = None
         self.cue_out = None
         self.cue_tag = None
         self.cue_time = None
-
-
-class X9K3(Stream):
-    """
-    X9K3 class
-    """
-
-    # sliding window size
-    MEDIA_SLOTS = 25
-    # target segment time.
-    SECONDS = 2
-
-    def __init__(self, tsdata, show_null=False):
-        """
-        __init__ for X9K3
-        tsdata is an file or http/https url or multicast url
-        set show_null=False to exclude Splice Nulls
-        """
-        super().__init__(tsdata, show_null)
-        self.active_segment = io.BytesIO()
-        self.active_data = io.StringIO()
-        self.start = False
-        self.scte35 = None
-        self.media_slots = []
-        self.media_slot = 0
-        self.header = None
-        self.live = False
-        self.output_dir = "."
-        self.delete_segs = False
-        self.seg = SegData()
-
-    @staticmethod
-    def mk_uri(head, tail):
-        """
-        mk_uri is used to create local filepaths
-        and resolve backslash or forwardslash seperators
-        """
-        sep = "/"
-        if len(head.split("\\")) > len(head.split("/")):
-            sep = "\\"
-        if not head.endswith(sep):
-            head = head + sep
-        return f"{head}{tail}"
 
     @staticmethod
     def mk_cue_tag(cue):
@@ -126,6 +97,49 @@ class X9K3(Stream):
                 return True
         return False
 
+
+class X9K3(Stream):
+    """
+    X9K3 class
+    """
+
+    # sliding window size
+    MEDIA_SLOTS = 25
+    # target segment time.
+    SECONDS = 2
+
+    def __init__(self, tsdata, show_null=False):
+        """
+        __init__ for X9K3
+        tsdata is an file or http/https url or multicast url
+        set show_null=False to exclude Splice Nulls
+        """
+        super().__init__(tsdata, show_null)
+        self.active_segment = io.BytesIO()
+        self.active_data = io.StringIO()
+        self.start = False
+        self.scte35 = SCTE35()
+        self.media_slots = []
+        self.media_slot = 0
+        self.header = None
+        self.live = False
+        self.output_dir = "."
+        self.delete_segs = False
+        self.seg = SegData()
+
+    @staticmethod
+    def mk_uri(head, tail):
+        """
+        mk_uri is used to create local filepaths
+        and resolve backslash or forwardslash seperators
+        """
+        sep = "/"
+        if len(head.split("\\")) > len(head.split("/")):
+            sep = "\\"
+        if not head.endswith(sep):
+            head = head + sep
+        return f"{head}{tail}"
+
     def _mk_header(self):
         """
         header generates the m3u8 header lines
@@ -150,33 +164,33 @@ class X9K3(Stream):
         the cue is received.
         """
         if pid in self._pids["scte35"]:
-            self.seg.cue = self._parse_scte35(pkt, pid)
-            if self.seg.cue:
-                self.seg.cue.show()
-                print(f"{self.seg.cue.command.name}")
-                self.active_data.write(f"# {self.seg.cue.command.name}\n")
-                if self.seg.cue.command.pts_time:
-                    self.seg.cue_time = self.seg.cue.command.pts_time
+            self.scte35.cue = self._parse_scte35(pkt, pid)
+            if self.scte35.cue:
+                self.scte35.cue.show()
+                print(f"{self.scte35.cue.command.name}")
+                self.active_data.write(f"# {self.scte35.cue.command.name}\n")
+                if self.scte35.cue.command.pts_time:
+                    self.scte35.cue_time = self.scte35.cue.command.pts_time
                     print(
-                        f"Preroll: {round(self.seg.cue.command.pts_time- self.pid2pts(pid), 6)} "
+                        f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
                     )
                 else:
-                    self.seg.cue_time = self.pid2pts(pid)
+                    self.scte35.cue_time = self.pid2pts(pid)
                     self.active_data.write("# Splice Immediate\n")
-                self.seg.cue_tag = self.mk_cue_tag(self.seg.cue)
-                self.seg.cue_out = None
+                self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+                self.scte35.cue_out = None
 
     def cue_out_cue_in(self):
         """
         cue_out_cue_in adds CUE-OUT
         and CUE-IN attributes to hls scte35 tags
         """
-        if self.is_cue_out(self.seg.cue):
-            self.seg.cue_tag += ",CUE-OUT=YES"
-            self.seg.cue_out = "CONT"
-        if self.is_cue_in(self.seg.cue):
-            self.seg.cue_tag += ",CUE-IN=YES"
-            self.seg.cue_out = None
+        if self.scte35.is_cue_out(self.scte35.cue):
+            self.scte35.cue_tag += ",CUE-OUT=YES"
+            self.scte35.cue_out = "CONT"
+        if self.scte35.is_cue_in(self.scte35.cue):
+            self.scte35.cue_tag += ",CUE-IN=YES"
+            self.scte35.cue_out = None
 
     def _mk_cue_splice_point(self):
         """
@@ -184,14 +198,14 @@ class X9K3(Stream):
         at the time specified in the cue.
 
         """
-        self.seg.cue_tag = self.mk_cue_tag(self.seg.cue)
-        print(f"Splice Point {self.seg.cue.command.name}@{self.seg.cue_time}")
-        self.active_data.write(f"# Splice Point @ {self.seg.cue_time}\n")
+        self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+        print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
+        self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
         self.cue_out_cue_in()
-        if self.seg.cue_out is None:
-            self.seg.cue_time = None
-        self.active_data.write(self.seg.cue_tag + "\n")
-        self.seg.cue_tag = None
+        if self.scte35.cue_out is None:
+            self.scte35.cue_time = None
+        self.active_data.write(self.scte35.cue_tag + "\n")
+        self.scte35.cue_tag = None
 
     def cue_out_continue(self):
         """
@@ -203,9 +217,9 @@ class X9K3(Stream):
         """
         if self.media_slot > self.MEDIA_SLOTS:
             self.media_slot = 0
-        if self.seg.cue_out == "CONT" and self.media_slot == 0:
-            self.seg.cue_tag = self.mk_cue_tag(self.seg.cue)
-            self.seg.cue_tag += ",CUE-OUT=CONT"
+        if self.scte35.cue_out == "CONT" and self.media_slot == 0:
+            self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+            self.scte35.cue_tag += ",CUE-OUT=CONT"
         self.media_slot += 1
 
     def _write_segment(self):
@@ -217,9 +231,9 @@ class X9K3(Stream):
             seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
             if self.live:
                 self.cue_out_continue()
-            if self.seg.cue_tag:
-                self.active_data.write(self.seg.cue_tag + "\n")
-                self.seg.cue_tag = None
+            if self.scte35.cue_tag:
+                self.active_data.write(self.scte35.cue_tag + "\n")
+                self.scte35.cue_tag = None
             with open(seg_uri, "wb+") as seg:
                 seg.write(self.active_segment.getbuffer())
                 seg.flush()
@@ -263,27 +277,46 @@ class X9K3(Stream):
         """
         _mk_segment cuts hls segments
         """
-        if self.seg.cue_time:
-            if self.seg.seg_start < self.seg.cue_time < self.seg.seg_stop:
-                self.seg.seg_stop = self.seg.cue_time
+        if self.scte35.cue_time:
+            if self.seg.seg_start < self.scte35.cue_time < self.seg.seg_stop:
+                self.seg.seg_stop = self.scte35.cue_time
                 self._mk_cue_splice_point()
-                self.seg.cue_time = None
+                self.scte35.cue_time = None
         now = self.pid2pts(pid)
         if now >= self.seg.seg_stop:
             self.seg.seg_stop = now
             self._write_segment()
             self._write_manifest()
 
-    @staticmethod
-    def _rai_flag(pkt):
-        return pkt[5] & 0x40
+    def _is_key(self, pkt):
+        """
+        _is_key is key frame detection.
+        """
 
-    @staticmethod
-    def _abc_flags(pkt):
-        """
-        0x80, 0x20, 0x8
-        """
-        return pkt[5] & 0xA8
+        def _rai_flag(pkt):
+            """
+            random access indicator
+            """
+            return pkt[5] & 0x40
+
+        def _abc_flags(pkt):
+            """
+            0x80, 0x20, 0x8
+            """
+            return pkt[5] & 0xA8
+
+        def _nal(pkt):
+            """
+            \x65
+            """
+            return b"\x00\x00\x01\x65" in pkt
+
+        if _nal(pkt):
+            return True
+        if self._afc_flag(pkt):
+            if _rai_flag(pkt) or _abc_flags(pkt):
+                return True
+        return False
 
     @staticmethod
     def _is_sps(pkt):
@@ -293,21 +326,6 @@ class X9K3(Stream):
             profile = pkt[sps_idx + 4]
             level = pkt[sps_idx + 6]
             print(f"Profile {profile} Level {level}")
-
-    def _is_key(self, pkt):
-        """
-        _is_key is key frame detection.
-
-        """
-        if b"\x00\x00\x01\x65" in pkt:
-            return True
-        if not self._afc_flag(pkt):
-            return False
-        if self._rai_flag(pkt):
-            return True
-        if self._abc_flags(pkt):
-            return True
-        return False
 
     def _parse_pts(self, pkt, pid):
         """
