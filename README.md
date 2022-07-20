@@ -48,22 +48,25 @@ pip3 install threefive
 ---
 
 ```smalltalk
-a@debian:~/x9k3$ pypy3 x9k3.py -h
+$ pypy3 x9k3.py -h
+
 usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-l] [-d]
 
 optional arguments:
+
   -h, --help            show this help message and exit
 
   -i INPUT, --input INPUT
                         Input source, like "/home/a/vid.ts" or
                         "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
-
+                        
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        directory for segments and index.m3u8
-  
+                        Directory for segments and index.m3u8 Directory is
+                        created if it does not exist
+                        
   -l, --live            Flag for a live event.(enables sliding window m3u8)
   
-  -d, --delete          delete segments when in live mode ( requires --live )
+  -d, --delete          delete segments (implies live mode)
 
 ```
 ### __Example Usage__
