@@ -8,12 +8,13 @@ import argparse
 import io
 import os
 import sys
+import time
 from base64 import b64encode
 from threefive import Stream
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "01"
+MAINTAINENCE = "03"
 
 
 def version():
@@ -49,8 +50,11 @@ class SegData:
     def __init__(self):
         self.start_seg_num = 0
         self.seg_num = 0
-        self.seg_start = 0
-        self.seg_stop = 0
+        self.seg_start = None
+        self.seg_stop = None
+        self.seg_time = None
+        self.init_time = time.time()
+        self.seg_uri = None
 
 
 class SCTE35:
@@ -115,7 +119,7 @@ class X9K3(Stream):
     """
 
     # sliding window size
-    WINDOW_SLOTS = 25
+    WINDOW_SLOTS = 5
     # target segment time.
     SECONDS = 2
 
@@ -158,15 +162,17 @@ class X9K3(Stream):
         m3u = "#EXTM3U"
         m3u_version = "#EXT-X-VERSION:3"
         m3u_cache = "#EXT-X-ALLOW-CACHE:YES"
-        plt = "VOD"
-        if self.live:
-            plt = "EVENT"
-        play_type = f"#EXT-X-PLAYLIST-TYPE:{plt}"
+        headers = [m3u, m3u_version, m3u_cache]
+        if not self.live:
+            play_type = f"#EXT-X-PLAYLIST-TYPE:VOD"
+            headers.append(play_type)
         target = f"#EXT-X-TARGETDURATION:{self.SECONDS+self.SECONDS}"
+        headers.append(target)
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
-        self.header = "\n".join(
-            (m3u, m3u_version, m3u_cache, play_type, target, seq, "")
-        )
+        headers.append(seq)
+        bumper = ""
+        headers.append(bumper)
+        self.header = "\n".join(headers)
 
     def _chk_cue(self, pkt, pid):
         """
@@ -174,22 +180,21 @@ class X9K3(Stream):
         and inserts a tag at the time
         the cue is received.
         """
-        if pid in self._pids["scte35"]:
-            self.scte35.cue = self._parse_scte35(pkt, pid)
-            if self.scte35.cue:
-                # self.scte35.cue.show()
-                print(f"{self.scte35.cue.command.name}")
-                self.active_data.write(f"# {self.scte35.cue.command.name}\n")
-                if self.scte35.cue.command.pts_time:
-                    self.scte35.cue_time = self.scte35.cue.command.pts_time
-                    print(
-                        f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
-                    )
-                else:
-                    self.scte35.cue_time = self.pid2pts(pid)
-                    self.active_data.write("# Splice Immediate\n")
-                self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
-                self.scte35.cue_out = None
+        self.scte35.cue = self._parse_scte35(pkt, pid)
+        if self.scte35.cue:
+            # self.scte35.cue.show()
+            print(f"{self.scte35.cue.command.name}")
+            self.active_data.write(f"# {self.scte35.cue.command.name}\n")
+            if self.scte35.cue.command.pts_time:
+                self.scte35.cue_time = self.scte35.cue.command.pts_time
+                print(
+                    f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
+                )
+            else:
+                self.scte35.cue_time = self.pid2pts(pid)
+                self.active_data.write("# Splice Immediate\n")
+            self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+            self.scte35.cue_out = None
 
     def _mk_cue_splice_point(self):
         """
@@ -229,25 +234,27 @@ class X9K3(Stream):
             return
         if self.seg.seg_stop:
             seg_file = f"seg{self.seg.seg_num}.ts"
-            seg_uri = self.mk_uri(self.output_dir, seg_file)
-            seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
+            self.seg.seg_uri = self.mk_uri(self.output_dir, seg_file)
+            self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
             if self.live:
                 self.cue_out_continue()
             if self.scte35.cue_tag:
                 self.active_data.write(self.scte35.cue_tag + "\n")
                 self.scte35.cue_tag = None
-            with open(seg_uri, "wb+") as seg:
-                seg.write(self.active_segment.getbuffer())
-                seg.flush()
+            with open(self.seg.seg_uri, "wb+") as a_seg:
+                a_seg.write(self.active_segment.getbuffer())
+                a_seg.flush()
             del self.active_segment
-            self.active_data.write(f"#EXTINF:{seg_time},\n")
+            self.active_data.write(f"#EXTINF:{self.seg.seg_time},\n")
             self.active_data.write(seg_file + "\n")
             print(
-                f"{seg_file}  \tstart: {self.seg.seg_start:.6f}  \tduration: {seg_time:.6f}"
+                f"{seg_file}  \tstart: {self.seg.seg_start:.6f}  \tduration: {self.seg.seg_time:.6f}"
             )
             self.seg.seg_start = self.seg.seg_stop
             self.seg.seg_stop += self.SECONDS
-            self.window.append((self.seg.seg_num, self.active_data.getvalue()))
+            self.window.append(
+                (self.seg.seg_num, self.seg.seg_uri, self.active_data.getvalue())
+            )
             self.seg.seg_num += 1
 
     def _open_m3u8(self):
@@ -259,21 +266,26 @@ class X9K3(Stream):
         _write_manifest writes segment meta data from
         self.window to an m3u8 file
         """
+        now = time.time()
+        gen_time = now - self.seg.init_time
+        diff = self.seg.seg_time - gen_time
+        print("diff", diff)
+        self.seg.init_time = now
         if self.live:
+            if diff > 0:
+                time.sleep(self.SECONDS * 2)
             if len(self.window) > self.WINDOW_SLOTS:
                 if self.delete_segs:
-                    drop = self.mk_uri(
-                        self.output_dir, self.window[0][1].rsplit(",")[1].strip()
-                    )
-                    os.unlink(drop)
+                    drop = self.window[0][1]
                     print(f"deleting {drop}")
+                    os.unlink(drop)
                 self.window = self.window[1:]
             self.seg.start_seg_num = self.window[0][0]
         with self._open_m3u8() as m3u8:
             self._mk_header()
             m3u8.write(self.header)
             for i in self.window:
-                m3u8.write(i[1])
+                m3u8.write(i[2])
             if not self.live:
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_data = io.StringIO()
@@ -320,7 +332,9 @@ class X9K3(Stream):
         if _nal(pkt):
             return True
         if self._afc_flag(pkt):
-            if _rai_flag(pkt) or _abc_flags(pkt):
+            if _rai_flag(pkt):
+                return True
+            if _abc_flags(pkt):
                 return True
         return False
 
@@ -362,7 +376,8 @@ class X9K3(Stream):
         writes the packet to self.active_segment.
         """
         pid = self._parse_info(pkt)
-        self._chk_cue(pkt, pid)
+        if pid in self._pids["scte35"]:
+            self._chk_cue(pkt, pid)
         # self._is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
