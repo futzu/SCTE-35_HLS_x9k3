@@ -6,7 +6,7 @@
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md) |
-[Stream Diff](#streamdiff)
+[Stream Diff](#stream-diff)
 
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
