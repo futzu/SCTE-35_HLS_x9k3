@@ -182,12 +182,12 @@ seg49.ts
 
 ### Stream Diff
 ---
-#### Live stream non-live stuff
 * stream diff is the difference between the playback time of the stream and generation of segments by x9k3.
 
- *  A segment with a 2 second duration that takes 0.5 seconds to generate would have a stream diff of 1.5.
+*  A segment with a 2 second duration that takes 0.5 seconds to generate would have a stream diff of 1.5.
  
- * In the default mode, stream_diff is a good way to benchmark segmenting performance.
+
+* __In the default mode, stream_diff is a benchmark of playlist generation.__
  
  ```lua
  a@debian:~/x9k3$ time pypy3 x9k3.py  -i local-vid.ts 
@@ -209,8 +209,10 @@ user	0m0.334s
 sys	0m0.128s
 
 ```
+* __Live stream non-live stuff__
    
 * stream_diff with `--live` or `--delete`
+
    * stream_diff automatically throttles non-live streams for realtime playback . 
    * stream_diff keeps segmentation and the sliding window in sync.
  
