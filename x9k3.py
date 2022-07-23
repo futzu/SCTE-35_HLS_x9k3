@@ -14,7 +14,7 @@ from threefive import Stream
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "03"
+MAINTAINENCE = "05"
 
 
 def version():
@@ -55,6 +55,7 @@ class SegData:
         self.seg_time = None
         self.init_time = time.time()
         self.seg_uri = None
+        self.diff_total = 0
 
 
 class SCTE35:
@@ -164,7 +165,7 @@ class X9K3(Stream):
         m3u_cache = "#EXT-X-ALLOW-CACHE:YES"
         headers = [m3u, m3u_version, m3u_cache]
         if not self.live:
-            play_type = f"#EXT-X-PLAYLIST-TYPE:VOD"
+            play_type = "#EXT-X-PLAYLIST-TYPE:VOD"
             headers.append(play_type)
         target = f"#EXT-X-TARGETDURATION:{self.SECONDS+self.SECONDS}"
         headers.append(target)
@@ -232,9 +233,10 @@ class X9K3(Stream):
         """
         if not self.start:
             return
+        seg_file = f"seg{self.seg.seg_num}.ts"
+        self.seg.seg_uri = self.mk_uri(self.output_dir, seg_file)
         if self.seg.seg_stop:
-            seg_file = f"seg{self.seg.seg_num}.ts"
-            self.seg.seg_uri = self.mk_uri(self.output_dir, seg_file)
+
             self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
             if self.live:
                 self.cue_out_continue()
@@ -247,9 +249,6 @@ class X9K3(Stream):
             del self.active_segment
             self.active_data.write(f"#EXTINF:{self.seg.seg_time},\n")
             self.active_data.write(seg_file + "\n")
-            print(
-                f"{seg_file}  \tstart: {self.seg.seg_start:.6f}  \tduration: {self.seg.seg_time:.6f}"
-            )
             self.seg.seg_start = self.seg.seg_stop
             self.seg.seg_stop += self.SECONDS
             self.window.append(
@@ -261,25 +260,56 @@ class X9K3(Stream):
         m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
         return open(m3u8_uri, "w+", encoding="utf-8")
 
+    def stream_diff(self):
+        """
+        stream diff is the difference
+        between the playback time of the stream
+        and generation of segments by x9k3.
+
+        a segment with a 2 second duration that takes
+        0.5 seconds to generate would have a stream diff of 1.5.
+
+        a negative stream_diff when the stream source is read over a netowork,
+        is a good indication that your network is too slow
+        for the bitrate of the stream.
+
+        In live mode, the stream_diff is used to throttle non-live
+        streams so they stay in sync with the sliding window of the m3u8.
+        """
+        rev = "\033[7m \033[1m"
+        res = "\033[00m"
+        now = time.time()
+        gen_time = now - self.seg.init_time
+        if not self.seg.seg_time:
+            self.seg.seg_time = self.SECONDS
+        diff = self.seg.seg_time - gen_time
+        self.seg.diff_total += diff
+        furi = f"{rev}{self.seg.seg_uri}{res}"
+        fstart = f"\tstart: {rev}{self.seg.seg_start:.6f}{res}"
+        fdur = f"\tduration: {rev}{self.seg.seg_time:.6f}{res}"
+        fdiff = f"\tstream diff: {rev}{round(self.seg.diff_total,6)}{res}"
+        print(f"{furi}{fstart}{fdur}{fdiff}")
+        self.seg.init_time = now
+        if self.live:
+            if self.seg.diff_total > 0:
+                time.sleep(self.seg.seg_time)
+
+    def _pop_segment(self):
+        if len(self.window) > self.WINDOW_SLOTS:
+            if self.delete_segs:
+                drop = self.window[0][1]
+                print(f"deleting {drop}")
+                os.unlink(drop)
+            self.window = self.window[1:]
+
     def _write_manifest(self):
         """
         _write_manifest writes segment meta data from
         self.window to an m3u8 file
         """
-        now = time.time()
-        gen_time = now - self.seg.init_time
-        diff = self.seg.seg_time - gen_time
-        print("diff", diff)
-        self.seg.init_time = now
+        self.stream_diff()
         if self.live:
-            if diff > 0:
-                time.sleep(self.SECONDS * 2)
-            if len(self.window) > self.WINDOW_SLOTS:
-                if self.delete_segs:
-                    drop = self.window[0][1]
-                    print(f"deleting {drop}")
-                    os.unlink(drop)
-                self.window = self.window[1:]
+            self._pop_segment()
             self.seg.start_seg_num = self.window[0][0]
         with self._open_m3u8() as m3u8:
             self._mk_header()
@@ -336,6 +366,7 @@ class X9K3(Stream):
                 return True
             if _abc_flags(pkt):
                 return True
+
         return False
 
     @staticmethod
@@ -448,3 +479,4 @@ if __name__ == "__main__":
     x9k3.output_dir = args.output_dir
     x9k3.delete_segs = args.delete
     x9k3.decode()
+
