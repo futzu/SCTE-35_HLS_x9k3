@@ -21,6 +21,18 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
 
+### Heads Up, New Features Coming This Week.
+
+* SCTE-35 Cue Playlist Injection via Sidecar File.
+* Re-segmentation of Existing Playlists.
+> x9k3 will be able to read SCTE-35 Cues from a sidecar text file and inject them into the m3u8 playlist.
+> x9k3 will be able to take an m3u8 playlist as input and read the SCTE-35 Cues from the existing segments or a sidecar file,
+> and adjusst segments to match SCTE-35 Cue Outs. I have it all working, I just want to smooth out the wrinkles. This is super cool. 
+
+---
+
+
+
 
 *  This is not yet stable. Expect changes. 
 
