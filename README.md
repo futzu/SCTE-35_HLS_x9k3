@@ -99,7 +99,7 @@ optional arguments:
    ```
    ---
 ### `load scte35 cues from a text file`
-     * format: pts, cue
+     * line format for text file : pts, cue
        * pts is the insert time for the cue
        * cue can be base64,hex, int, or bytes
      * example:  `89981.451333, /DAqAAAAAAAAAP///wUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAABuMzIe`
