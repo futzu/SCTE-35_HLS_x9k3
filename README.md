@@ -79,16 +79,15 @@ optional arguments:
  ---
  
  ### `Use ffmpeg to read multicast stream as input and x9k3 to segment`
-      * with a sliding window, 
-      * and  expiring old segments.
-      * --delete implies --live
+      with a sliding window, and  expiring old segments.
+       --delete implies --live
       
    ```smalltalk
     ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
    ```
  ---
 ### `https stream for input, and writing segments to an output directory`
-     * directory is created if it does not exist.
+      directory will be created if it does not exist.
   ```smalltalk
    pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
   ```
@@ -99,11 +98,15 @@ optional arguments:
    ```
    ---
 ### `load scte35 cues from a text file`
-     * Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
-     * line format for text file : pts, cue
-       * pts is the insert time for the cue, A four second preroll is standard. 
-       * cue can be base64,hex, int, or bytes
-    * Example sidecar file
+    
+    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
+    
+    line format for text file : pts, cue
+    
+    pts is the insert time for the cue, A four second preroll is standard. 
+    
+    cue can be base64,hex, int, or bytes
+     
   ```smalltalk
   a@debian:~/x9k3$ cat sidecar.txt
   
@@ -115,7 +118,6 @@ optional arguments:
       23688.363756, /DAqAAAAAAAA///wDwVAAAT3f0/+fx6j+QABDP8ACgAIQ1VFSQAAAAwz88FN 
       
 ```
-* x9k3 will insert the SCTE35 Cue to the m3u8 at the PTS 
   ```smalltalk
   pypy3 x9k3.py -i  noscte35.ts  -s sidecar.txt 
   ```
