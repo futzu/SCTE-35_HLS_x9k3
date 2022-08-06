@@ -20,14 +20,8 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
+*  __SCTE-35 Cues Can Now Load from a Sidecar File__.
 
-### Heads Up, New Features Coming This Week.
-
-* SCTE-35 Cue Playlist Injection via Sidecar File.
-* Re-segmentation of Existing Playlists.
-> x9k3 will be able to read SCTE-35 Cues from a sidecar text file and inject them into the m3u8 playlist.
-> x9k3 will be able to take an m3u8 playlist as input and read the SCTE-35 Cues from the existing segments or a sidecar file,
-> and adjusst segments to match SCTE-35 Cue Outs. I have it all working, I just want to smooth out the wrinkles. This is super cool. 
 
 ---
 
@@ -48,43 +42,45 @@ pip3 install threefive
 ---
 
 ```smalltalk
-$ pypy3 x9k3.py -h
+a@debian:~/x9k3$ pypy3 x9k3.py -h
 
-usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-l] [-d]
+usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d]
 
 optional arguments:
 
   -h, --help            show this help message and exit
 
   -i INPUT, --input INPUT
-                        Input source, like "/home/a/vid.ts" or
-                        "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
-                        
+                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or
+                        "https://futzu.com/xaa.ts"
+
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Directory for segments and index.m3u8 Directory is
-                        created if it does not exist
-                        
-  -l, --live            Flag for a live event.(enables sliding window m3u8)
+                        Directory for segments and index.m3u8 ( created if it does not exist )
   
-  -d, --delete          delete segments (implies live mode)
+  -s SIDECAR, --sidecar SIDECAR
+                        sidecar file of scte35 cues. each line contains (PTS, CueString) Example:
+                        89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=
+  
+  -l, --live            Flag for a live event ( enables sliding window m3u8 )
+  
+  -d, --delete          delete segments ( enables live mode )
+
 
 ```
-### __Example Usage__
+## __Example Usage__
 
- * local file as input
+ ### `local file as input`
  ```smalltalk
     python3 x9k3.py -i video.mpegts
  ```
   ---
-   * multicast stream as input
-      * with a live sliding window   
+ ### `multicast stream as input with a live sliding window`   
    ```smalltalk
    python3 x9k3.py --live -i udp://@235.35.3.5:3535
    ```
  ---
  
-   * Use ffmpeg to read multicast stream as input
-   * Use x9k3 to segment 
+ ### `Use ffmpeg to read multicast stream as input and x9k3 to segment`
       * with a sliding window, 
       * and  expiring old segments.
       * --delete implies --live
@@ -93,20 +89,28 @@ optional arguments:
     ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
    ```
  ---
-  * https stream for input
-  * and writing segments to an output directory.
+### `https stream for input, and writing segments to an output directory`
      * directory is created if it does not exist.
   ```smalltalk
    pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
   ```
   ---
-   * using stdin as input 
+### `using stdin as input`
    ```smalltalk
    cat video.ts | python3 x9k3.py
    ```
+   ---
+### `load scte35 cues from a text file`
+     * format: pts, cue
+       * pts is the insert time for the cue
+       * cue can be base64,hex, int, or bytes
+     * example:  `89981.451333, /DAqAAAAAAAAAP///wUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAABuMzIe`
+  ```smalltalk
+  pypy3 x9k3.py -i  noscte35.ts  -s sidecar.txt 
+  ```
 ---
 
-## Details 
+# Details 
 ---
 
 * Segments are cut on iframes.
