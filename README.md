@@ -6,7 +6,9 @@
 [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
 [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md) |
-[Stream Diff](#stream-diff)
+[Stream Diff](#stream-diff) |
+[Sidecar SCTE35](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)
+
 
 # x9k3
 ##  __HLS Segmenter__ with __SCTE-35__ baked in.
@@ -20,7 +22,7 @@ scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
 * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
 * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
 * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
-*  __SCTE-35 Cues Can Now Load from a Sidecar File__.
+*  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
 
 
 ---
