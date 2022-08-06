@@ -99,10 +99,23 @@ optional arguments:
    ```
    ---
 ### `load scte35 cues from a text file`
+     * Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
      * line format for text file : pts, cue
-       * pts is the insert time for the cue
+       * pts is the insert time for the cue, A four second preroll is standard. 
        * cue can be base64,hex, int, or bytes
-     * example:  `89981.451333, /DAqAAAAAAAAAP///wUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAABuMzIe`
+  ```smalltalk
+  a@debian:~/x9k3$ cat sidecar.txt
+  
+  
+      21940.651167, /DAvAAAAAAAA///wFAUAAAASf+/+dcFLSn4AZv8wAAES/wAKAAhDVUVJAAAAEuqoRz8= 
+      22510.424778,/DAvAAAAAAAA///wFAVAAAT2f+/+eMpEWX4A9zFAAAEL/wAKAAhDVUVJAAAACwRZmfY= 
+      22953.875478,/DAqAAAAAAAA///wDwUAAAAYf0/+eys+EgABCP8ACgAIQ1VFSQAAAAjUl9qC 
+      23508.356467, /DAvAAAAAAAA///wFAVAAAT3f+/+fidyuX4A9zFAAAEM/wAKAAhDVUVJAAAADPhcyp0= 
+      23688.363756, /DAqAAAAAAAA///wDwVAAAT3f0/+fx6j+QABDP8ACgAIQ1VFSQAAAAwz88FN 
+      
+```
+* x9k3 will insert the SCTE35 Cue to the m3u8 at the PTS 
+* Example:  /DAvAAAAAAAA///wFAUAAAASf+/+dcFLSn4AZv8wAAES/wAKAAhDVUVJAAAAEuqoRz8=  will be inserted at 21946.651167
   ```smalltalk
   pypy3 x9k3.py -i  noscte35.ts  -s sidecar.txt 
   ```
