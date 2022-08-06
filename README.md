@@ -103,6 +103,7 @@ optional arguments:
      * line format for text file : pts, cue
        * pts is the insert time for the cue, A four second preroll is standard. 
        * cue can be base64,hex, int, or bytes
+    * Example sidecar file
   ```smalltalk
   a@debian:~/x9k3$ cat sidecar.txt
   
@@ -115,7 +116,6 @@ optional arguments:
       
 ```
 * x9k3 will insert the SCTE35 Cue to the m3u8 at the PTS 
-* Example:  /DAvAAAAAAAA///wFAUAAAASf+/+dcFLSn4AZv8wAAES/wAKAAhDVUVJAAAAEuqoRz8=  will be inserted at 21946.651167
   ```smalltalk
   pypy3 x9k3.py -i  noscte35.ts  -s sidecar.txt 
   ```
