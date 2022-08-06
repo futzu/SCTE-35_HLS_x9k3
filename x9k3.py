@@ -10,11 +10,13 @@ import os
 import sys
 import time
 from base64 import b64encode
-from threefive import Stream
+from collections import deque
+from new_reader import reader
+from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "05"
+MAINTAINENCE = "07"
 
 
 def version():
@@ -142,6 +144,7 @@ class X9K3(Stream):
         self.output_dir = "."
         self.delete_segs = False
         self.seg = SegData()
+        self.sidecar = None
 
     @staticmethod
     def mk_uri(head, tail):
@@ -175,27 +178,27 @@ class X9K3(Stream):
         headers.append(bumper)
         self.header = "\n".join(headers)
 
-    def _chk_cue(self, pkt, pid):
+    def _chk_cue(self, pid):
         """
         _chk_cue checks for SCTE-35 cues
         and inserts a tag at the time
         the cue is received.
         """
-        self.scte35.cue = self._parse_scte35(pkt, pid)
-        if self.scte35.cue:
-            # self.scte35.cue.show()
-            print(f"{self.scte35.cue.command.name}")
-            self.active_data.write(f"# {self.scte35.cue.command.name}\n")
-            if self.scte35.cue.command.pts_time:
-                self.scte35.cue_time = self.scte35.cue.command.pts_time
-                print(
-                    f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
-                )
-            else:
-                self.scte35.cue_time = self.pid2pts(pid)
-                self.active_data.write("# Splice Immediate\n")
-            self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
-            self.scte35.cue_out = None
+        # self.scte35.cue = self._parse_scte35(pkt, pid)
+        # if self.scte35.cue:
+        self.scte35.cue.show()
+        print(f"{self.scte35.cue.command.name}")
+        self.active_data.write(f"# {self.scte35.cue.command.name}\n")
+        if "pts_time" in self.scte35.cue.command.get():
+            self.scte35.cue_time = self.scte35.cue.command.pts_time
+            print(
+                f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
+            )
+        else:
+            self.scte35.cue_time = self.pid2pts(pid)
+            self.active_data.write("# Splice Immediate\n")
+        self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+        self.scte35.cue_out = None
 
     def _mk_cue_splice_point(self):
         """
@@ -236,7 +239,6 @@ class X9K3(Stream):
         seg_file = f"seg{self.seg.seg_num}.ts"
         self.seg.seg_uri = self.mk_uri(self.output_dir, seg_file)
         if self.seg.seg_stop:
-
             self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
             if self.live:
                 self.cue_out_continue()
@@ -285,7 +287,7 @@ class X9K3(Stream):
         diff = self.seg.seg_time - gen_time
         self.seg.diff_total += diff
         furi = f"{rev}{self.seg.seg_uri}{res}"
-        fstart = f"\tstart: {rev}{self.seg.seg_start:.6f}{res}"
+        fstart = f"\tstart: {rev}{self.seg.seg_start- self.seg.seg_time:.6f}{res}"
         fdur = f"\tduration: {rev}{self.seg.seg_time:.6f}{res}"
         fdiff = f"\tstream diff: {rev}{round(self.seg.diff_total,6)}{res}"
         print(f"{furi}{fstart}{fdur}{fdiff}")
@@ -401,14 +403,37 @@ class X9K3(Stream):
                 self.seg.seg_start = self.as_90k(pts)
                 self.seg.seg_stop = self.seg.seg_start + self.SECONDS
 
+    def chk_sidecar_cues(self, pid):
+        """
+        chk_sidecar_cues checks the insert pts time
+        for the next sidecar cue and inserts the cue if needed.
+        """
+        if self.sidecar[0][0] < self.pid2pts(pid):
+            raw = self.sidecar.popleft()[1]
+            self.scte35.cue = Cue(raw)
+            self.scte35.cue.decode()
+            self._chk_cue(pid)
+
+    def chk_stream_cues(self, pkt, pid):
+        """
+        chk_stream_cues checks scte35 packets
+        and inserts the cue.
+        """
+        self.scte35.cue = self._parse_scte35(pkt, pid)
+        if self.scte35.cue:
+            self._chk_cue(pid)
+
     def _parse(self, pkt):
         """
         _parse parses mpegts and
         writes the packet to self.active_segment.
         """
         pid = self._parse_info(pkt)
-        if pid in self._pids["scte35"]:
-            self._chk_cue(pkt, pid)
+        if self.sidecar:
+            self.chk_sidecar_cues(pid)
+        else:
+            if pid in self._pids["scte35"]:
+                self.chk_stream_cues(pkt, pid)
         # self._is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
@@ -416,7 +441,19 @@ class X9K3(Stream):
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
-        self.active_segment.write(pkt)
+        if self.start:
+            self.active_segment.write(pkt)
+
+    def load_sidecar(self, file):
+        """
+        load_sidecar reads (pts, cue) pairs from
+        the sidecar file and loads them into X9K3.sidecar
+        """
+        self.sidecar = deque()
+        with reader(file) as sidefile:
+            for line in sidefile:
+                pts, cue = line.decode().strip().split(",", 1)
+                self.sidecar.append([float(pts), cue])
 
 
 def _parse_args():
@@ -443,6 +480,14 @@ def _parse_args():
     )
 
     parser.add_argument(
+        "-s",
+        "--sidecar",
+        default=None,
+        help="""sidecar file of scte35 cues. each line contains  (PTS, CueString)
+                    Example:  89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=""",
+    )
+
+    parser.add_argument(
         "-l",
         "--live",
         action="store_const",
@@ -460,6 +505,7 @@ def _parse_args():
         help="delete segments ( enables live mode )",
     )
 
+ 
     return parser.parse_args()
 
 
@@ -478,5 +524,6 @@ if __name__ == "__main__":
         os.mkdir(args.output_dir)
     x9k3.output_dir = args.output_dir
     x9k3.delete_segs = args.delete
+    if args.sidecar:
+        x9k3.load_sidecar(args.sidecar)
     x9k3.decode()
-
