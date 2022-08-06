@@ -1,5 +1,6 @@
 # x9k3parser.py
 An example parser. 
+Check out [m3ufu](https://guthub.com/futzu/m3ufu), a more complete and robust m3u8 parser.
 
 # Use
 * Segment with x9k3.py
