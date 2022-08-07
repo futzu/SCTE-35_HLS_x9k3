@@ -16,7 +16,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "09"
+MAINTAINENCE = "11"
 
 
 def version():
@@ -265,8 +265,10 @@ class X9K3(Stream):
         self.sidecar = deque()
         with reader(file) as sidefile:
             for line in sidefile:
-                pts, cue = line.decode().strip().split(",", 1)
-                self.sidecar.append([float(pts), cue])
+                line = line.decode().strip().split("#",1)[0]
+                if len(line):
+                    pts, cue = line.split(",", 1)
+                    self.sidecar.append([float(pts), cue])
 
     def chk_sidecar_cues(self, pid):
         """
@@ -297,7 +299,7 @@ class X9K3(Stream):
         """
         self.scte35.cue.show()
         print(f"{self.scte35.cue.command.name}")
-        self.active_data.write(f"# {self.scte35.cue.command.name}\n")
+        self.active_data.write(f"# {self.scte35.cue.command.name} @ {self.scte35.cue.command.pts_time}\n")
         if "pts_time" in self.scte35.cue.command.get():
             self.scte35.cue_time = self.scte35.cue.command.pts_time
             print(
