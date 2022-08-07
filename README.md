@@ -60,18 +60,18 @@ optional arguments:
 ```
 ## `Example Usage`
 
- ### `local file as input`
+ #### `local file as input`
  ```smalltalk
     python3 x9k3.py -i video.mpegts
  ```
   
- ### `multicast stream as input with a live sliding window`   
+ #### `multicast stream as input with a live sliding window`   
    ```smalltalk
    python3 x9k3.py --live -i udp://@235.35.3.5:3535
    ```
  
  
- ### `use ffmpeg to read multicast stream as input and x9k3 to segment`
+ #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
       with a sliding window, and  expiring old segments.
        --delete implies --live
       
@@ -79,18 +79,18 @@ optional arguments:
     ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
    ```
  
-### `https stream for input, and writing segments to an output directory`
+#### `https stream for input, and writing segments to an output directory`
       directory will be created if it does not exist.
   ```smalltalk
    pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
   ```
   
-### `using stdin as input`
+#### `using stdin as input`
    ```smalltalk
    cat video.ts | python3 x9k3.py
    ```
    
-### `load scte35 cues from a text file`
+#### `load scte35 cues from a text file`
     
     Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
     
@@ -255,9 +255,9 @@ sys	0m0.169s
 
 ## `FAQ`
 
-#### Q.
+#### `Q.`
 How do I Customize CUE-OUT and CUE-IN ad break events?
-#### A. 
+#### `A.` 
 Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static methods.
 
 
@@ -271,7 +271,7 @@ Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static method
 | [ is_cue_in](https://github.com/futzu/x9k3/blob/main/x9k3.py#L93)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
-##### `Example`
+#### `Example`
 ---
 *  __Override__ the static method __X9K3.scte35.is_cue_out(cue)__ 
 *  Require 
@@ -306,7 +306,7 @@ x9 = X9K3("vid.ts")
 x9.scte35.is_cue_out = my_cue_out
 x9.decode()
 ```
----
+
 
 
 
