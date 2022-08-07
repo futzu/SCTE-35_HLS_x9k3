@@ -233,25 +233,36 @@ sys	0m0.128s
  
  ```lua
  a@debian:~/x9k3$ time pypy3 x9k3.py  -i local-vid.ts --live
- ./seg0.ts	start:  3.545000	duration:  2.112000	stream diff:  2.093996
- ./seg1.ts	start:  5.593000	duration:  2.048000	stream diff:  2.012526
- ./seg2.ts	start:  7.598333	duration:  2.005333	stream diff:  1.95753
- ./seg3.ts	start:  9.625000	duration:  2.026667	stream diff:  1.96211
- ./seg4.ts	start:  11.673000	duration:  2.048000	stream diff:  1.973159
- ./seg5.ts	start:  13.785000	duration:  2.112000	stream diff:  2.018733
- ./seg6.ts	start:  15.833000	duration:  2.048000	stream diff:  1.945783
+ ./seg0.ts	start:  1.433000	duration:  2.112000	stream diff:  1.749682
+ ./seg1.ts	start:  3.545000	duration:  2.048000	stream diff:  1.664505
+ ./seg2.ts	start:  5.593000	duration:  2.005333	stream diff:  1.604484
+ ./seg3.ts	start:  7.598333	duration:  2.026667	stream diff:  1.608694
+ ./seg4.ts	start:  9.625000	duration:  2.048000	stream diff:  1.614071
+ ./seg5.ts	start:  11.673000	duration:  2.112000	stream diff:  1.660427
+ ./seg6.ts	start:  13.785000	duration:  2.048000	stream diff:  1.570947
+ ./seg7.ts
  
  ...
- ./seg77.ts	start:  163.011667	duration:  2.176000	stream diff:  1.378177
- ./seg78.ts	start:  165.187667	duration:  2.176000	stream diff:  1.373616  <-- small stream diff
+ ./seg65.ts	start:  136.025000	duration:  2.005333	stream diff:  0.197508
+ ./seg66.ts	start:  138.030333	duration:  2.069334	stream diff:  0.227942
+ ./seg67.ts	start:  140.099667	duration:  2.112000	stream diff:  0.240508
+ ./seg68.ts	start:  142.211667	duration:  2.026666	stream diff:  0.132231
+ ./seg69.ts	start:  144.238333	duration:  2.026667	stream diff:  0.111408
+ ./seg70.ts	start:  146.265000	duration:  2.005333	stream diff:  0.064351
+ ./seg71.ts	start:  148.270333	duration:  2.026667	stream diff:  0.063869
+ ./seg72.ts	start:  150.297000	duration:  2.112000	stream diff:  0.129556
+ ./seg73.ts	start:  152.409000	duration:  2.005333	stream diff:  0.004607
+ ./seg74.ts	start:  154.414333	duration:  2.133334	stream diff:  0.112022
+ ./seg75.ts	start:  156.547667	duration:  2.069333	stream diff:  0.018838
+ ./seg76.ts	start:  158.617000	duration:  2.218667	stream diff:  0.151273
+ ./seg77.ts	start:  160.835667	duration:  2.176000	stream diff:  0.101823
+ ./seg78.ts	start:  163.011667	duration:  2.176000	stream diff:  0.100369  <-- small stream diff
 
 real	2m44.775s   <-- real time segmenting to sync live stream sliding window
 user	0m0.678s
 sys	0m0.169s
 ```
  
- 
-
 
 ## `FAQ`
 
