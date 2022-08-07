@@ -160,7 +160,7 @@ seg13.ts
 
 ## `Live`
 
- * Activated by the --live switch or by setting X9K3.live=True
+ * Activated by the `--live` switch or by setting `X9K3.live=True`
 
  * Like VOD except:
      * M3u8 manifests are regenerated every time a segment is written.
