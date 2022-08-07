@@ -16,7 +16,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "07"
+MAINTAINENCE = "09"
 
 
 def version():
@@ -126,7 +126,7 @@ class X9K3(Stream):
     # target segment time.
     SECONDS = 2
 
-    def __init__(self, tsdata, show_null=False):
+    def __init__(self, tsdata=None, show_null=False):
         """
         __init__ for X9K3
         tsdata is an file or http/https url or multicast url
@@ -142,9 +142,88 @@ class X9K3(Stream):
         self.header = None
         self.live = False
         self.output_dir = "."
-        self.delete_segs = False
+        self.delete = False
         self.seg = SegData()
         self.sidecar = None
+        self._parse_args()
+
+    def _parse_args(self):
+        """
+        _parse_args parse command line args
+        """
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "-i",
+            "--input",
+            default=None,
+            help=""" Input source, like "/home/a/vid.ts"
+                                    or "udp://@235.35.3.5:3535"
+                                    or "https://futzu.com/xaa.ts"
+                                    """,
+        )
+
+        parser.add_argument(
+            "-o",
+            "--output_dir",
+            default=".",
+            help="""Directory for segments and index.m3u8
+                    ( created if it does not exist ) """,
+        )
+
+        parser.add_argument(
+            "-s",
+            "--sidecar",
+            default=None,
+            help="""sidecar file of scte35 cues. each line contains  (PTS, CueString)
+                        Example:  89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=""",
+        )
+
+        parser.add_argument(
+            "-l",
+            "--live",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag for a live event ( enables sliding window m3u8 )",
+        )
+
+        parser.add_argument(
+            "-d",
+            "--delete",
+            action="store_const",
+            default=False,
+            const=True,
+            help="delete segments ( enables live mode )",
+        )
+
+        args = parser.parse_args()
+        self._apply_args(args)
+
+
+    def _apply_args(self,args):
+        """
+        _apply_args  uses command line args
+        to set X9K3 instance vars
+        """
+        if args.input:
+            self._tsdata = args.input
+        else:
+            self._tsdata = sys.stdin.buffer
+
+        self.output_dir = args.output_dir
+        if not os.path.isdir(args.output_dir):
+            os.mkdir(args.output_dir)
+
+        self.live = args.live
+
+        self.delete = args.delete
+        if args.delete:
+            self.live = True
+
+        if args.sidecar:
+            self.load_sidecar(args.sidecar)
+        if isinstance(self._tsdata, str):
+            self._tsdata = reader(self._tsdata)
 
     @staticmethod
     def mk_uri(head, tail):
@@ -178,14 +257,44 @@ class X9K3(Stream):
         headers.append(bumper)
         self.header = "\n".join(headers)
 
+    def load_sidecar(self, file):
+        """
+        load_sidecar reads (pts, cue) pairs from
+        the sidecar file and loads them into X9K3.sidecar
+        """
+        self.sidecar = deque()
+        with reader(file) as sidefile:
+            for line in sidefile:
+                pts, cue = line.decode().strip().split(",", 1)
+                self.sidecar.append([float(pts), cue])
+
+    def chk_sidecar_cues(self, pid):
+        """
+        chk_sidecar_cues checks the insert pts time
+        for the next sidecar cue and inserts the cue if needed.
+        """
+        if self.sidecar:
+            if self.sidecar[0][0] < self.pid2pts(pid):
+                raw = self.sidecar.popleft()[1]
+                self.scte35.cue = Cue(raw)
+                self.scte35.cue.decode()
+                self._chk_cue(pid)
+
+    def chk_stream_cues(self, pkt, pid):
+        """
+        chk_stream_cues checks scte35 packets
+        and inserts the cue.
+        """
+        self.scte35.cue = self._parse_scte35(pkt, pid)
+        if self.scte35.cue:
+            self._chk_cue(pid)
+
     def _chk_cue(self, pid):
         """
         _chk_cue checks for SCTE-35 cues
         and inserts a tag at the time
         the cue is received.
         """
-        # self.scte35.cue = self._parse_scte35(pkt, pid)
-        # if self.scte35.cue:
         self.scte35.cue.show()
         print(f"{self.scte35.cue.command.name}")
         self.active_data.write(f"# {self.scte35.cue.command.name}\n")
@@ -229,6 +338,21 @@ class X9K3(Stream):
             self.scte35.cue_tag += ",CUE-OUT=CONT"
         self.window_slot += 1
 
+    def _mk_segment(self, pid):
+        """
+        _mk_segment cuts hls segments
+        """
+        if self.scte35.cue_time:
+            if self.seg.seg_start < self.scte35.cue_time < self.seg.seg_stop:
+                self.seg.seg_stop = self.scte35.cue_time
+                self._mk_cue_splice_point()
+                self.scte35.cue_time = None
+        now = self.pid2pts(pid)
+        if now >= self.seg.seg_stop:
+            self.seg.seg_stop = now
+            self._write_segment()
+            self._write_manifest()
+
     def _write_segment(self):
         """
         _write_segment creates segment file,
@@ -258,9 +382,36 @@ class X9K3(Stream):
             )
             self.seg.seg_num += 1
 
+    def _pop_segment(self):
+        if len(self.window) > self.WINDOW_SLOTS:
+            if self.delete:
+                drop = self.window[0][1]
+                print(f"deleting {drop}")
+                os.unlink(drop)
+            self.window = self.window[1:]
+
     def _open_m3u8(self):
         m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
         return open(m3u8_uri, "w+", encoding="utf-8")
+
+    def _write_manifest(self):
+        """
+        _write_manifest writes segment meta data from
+        self.window to an m3u8 file
+        """
+        self.stream_diff()
+        if self.live:
+            self._pop_segment()
+            self.seg.start_seg_num = self.window[0][0]
+        with self._open_m3u8() as m3u8:
+            self._mk_header()
+            m3u8.write(self.header)
+            for i in self.window:
+                m3u8.write(i[2])
+            if not self.live:
+                m3u8.write("#EXT-X-ENDLIST")
+        self.active_data = io.StringIO()
+        self.active_segment = io.BytesIO()
 
     def stream_diff(self):
         """
@@ -295,48 +446,6 @@ class X9K3(Stream):
         if self.live:
             if self.seg.diff_total > 0:
                 time.sleep(self.seg.seg_time)
-
-    def _pop_segment(self):
-        if len(self.window) > self.WINDOW_SLOTS:
-            if self.delete_segs:
-                drop = self.window[0][1]
-                print(f"deleting {drop}")
-                os.unlink(drop)
-            self.window = self.window[1:]
-
-    def _write_manifest(self):
-        """
-        _write_manifest writes segment meta data from
-        self.window to an m3u8 file
-        """
-        self.stream_diff()
-        if self.live:
-            self._pop_segment()
-            self.seg.start_seg_num = self.window[0][0]
-        with self._open_m3u8() as m3u8:
-            self._mk_header()
-            m3u8.write(self.header)
-            for i in self.window:
-                m3u8.write(i[2])
-            if not self.live:
-                m3u8.write("#EXT-X-ENDLIST")
-        self.active_data = io.StringIO()
-        self.active_segment = io.BytesIO()
-
-    def _mk_segment(self, pid):
-        """
-        _mk_segment cuts hls segments
-        """
-        if self.scte35.cue_time:
-            if self.seg.seg_start < self.scte35.cue_time < self.seg.seg_stop:
-                self.seg.seg_stop = self.scte35.cue_time
-                self._mk_cue_splice_point()
-                self.scte35.cue_time = None
-        now = self.pid2pts(pid)
-        if now >= self.seg.seg_stop:
-            self.seg.seg_stop = now
-            self._write_segment()
-            self._write_manifest()
 
     def _is_key(self, pkt):
         """
@@ -403,37 +512,15 @@ class X9K3(Stream):
                 self.seg.seg_start = self.as_90k(pts)
                 self.seg.seg_stop = self.seg.seg_start + self.SECONDS
 
-    def chk_sidecar_cues(self, pid):
-        """
-        chk_sidecar_cues checks the insert pts time
-        for the next sidecar cue and inserts the cue if needed.
-        """
-        if self.sidecar[0][0] < self.pid2pts(pid):
-            raw = self.sidecar.popleft()[1]
-            self.scte35.cue = Cue(raw)
-            self.scte35.cue.decode()
-            self._chk_cue(pid)
-
-    def chk_stream_cues(self, pkt, pid):
-        """
-        chk_stream_cues checks scte35 packets
-        and inserts the cue.
-        """
-        self.scte35.cue = self._parse_scte35(pkt, pid)
-        if self.scte35.cue:
-            self._chk_cue(pid)
-
     def _parse(self, pkt):
         """
         _parse parses mpegts and
         writes the packet to self.active_segment.
         """
         pid = self._parse_info(pkt)
-        if self.sidecar:
-            self.chk_sidecar_cues(pid)
-        else:
-            if pid in self._pids["scte35"]:
-                self.chk_stream_cues(pkt, pid)
+        self.chk_sidecar_cues(pid)
+        if pid in self._pids["scte35"]:
+            self.chk_stream_cues(pkt, pid)
         # self._is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
@@ -444,86 +531,8 @@ class X9K3(Stream):
         if self.start:
             self.active_segment.write(pkt)
 
-    def load_sidecar(self, file):
-        """
-        load_sidecar reads (pts, cue) pairs from
-        the sidecar file and loads them into X9K3.sidecar
-        """
-        self.sidecar = deque()
-        with reader(file) as sidefile:
-            for line in sidefile:
-                pts, cue = line.decode().strip().split(",", 1)
-                self.sidecar.append([float(pts), cue])
-
-
-def _parse_args():
-    """
-    _parse_args parse command line args
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i",
-        "--input",
-        default=None,
-        help=""" Input source, like "/home/a/vid.ts"
-                                or "udp://@235.35.3.5:3535"
-                                or "https://futzu.com/xaa.ts"
-                                """,
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=".",
-        help="""Directory for segments and index.m3u8
-                ( created if it does not exist ) """,
-    )
-
-    parser.add_argument(
-        "-s",
-        "--sidecar",
-        default=None,
-        help="""sidecar file of scte35 cues. each line contains  (PTS, CueString)
-                    Example:  89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=""",
-    )
-
-    parser.add_argument(
-        "-l",
-        "--live",
-        action="store_const",
-        default=False,
-        const=True,
-        help="Flag for a live event ( enables sliding window m3u8 )",
-    )
-
-    parser.add_argument(
-        "-d",
-        "--delete",
-        action="store_const",
-        default=False,
-        const=True,
-        help="delete segments ( enables live mode )",
-    )
-
- 
-    return parser.parse_args()
-
 
 if __name__ == "__main__":
 
-    args = _parse_args()
-    if args.input:
-        x9k3 = X9K3(args.input)
-    else:
-        # for piping in video
-        x9k3 = X9K3(sys.stdin.buffer)
-    if args.delete:
-        args.live = True
-    x9k3.live = args.live
-    if not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
-    x9k3.output_dir = args.output_dir
-    x9k3.delete_segs = args.delete
-    if args.sidecar:
-        x9k3.load_sidecar(args.sidecar)
+    x9k3 = X9K3()
     x9k3.decode()
