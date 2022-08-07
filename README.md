@@ -1,34 +1,29 @@
-[Details](#details) |
-[Install](#requires) |
-[Use](#how-to-use) |
-[Customize](#faq) |
-[Live Events](#live) |
-[Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
-[Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
-[Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md) |
-[Stream Diff](#stream-diff) |
-[Sidecar SCTE35](#load-scte35-cues-from-a-text-file)
+[Details](#details)  |
+ [Install](#requires) |
+ [Use](#how-to-use) |
+ [Customize](#faq)  |
+ [Live Events](#live)  |
+ [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
+ [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
+ [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md)  |
+ [Stream Diff](#stream-diff)  |
+ [Sidecar SCTE35](#load-scte35-cues-from-a-text-file)
 
 
-# x9k3
-##  __HLS Segmenter__ with __SCTE-35__ baked in.
-scte-35 by  [__threefive__. ](https://github.com/futzu/scte35-threefive)
-
-
-* __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
-* Segments are __Split on SCTE-35 Cues__ as needed.
-* __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
-* Supports __h264__ and __h265__ and __mpeg2__ video.
-* __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
-* Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
-* [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
-*  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
-
-* __Heads Up__.  This is not yet stable. __Expect changes__.
+# `x9k3`
+##  `HLS Segmenter with SCTE-35 Baked In`
+   * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
+   * Segments are __Split on SCTE-35 Cues__ as needed.
+   * __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
+   * Supports __h264__ and __h265__ and __mpeg2__ video.
+   * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
+   * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
+   * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
+   *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
 ___
 
 
-## Requires 
+## `Requires` 
 ---
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
@@ -36,8 +31,7 @@ ___
 pip3 install threefive
 ```
 
-## How to Use
----
+## `How to Use`
 
 ```smalltalk
 a@debian:~/x9k3$ pypy3 x9k3.py -h
@@ -65,7 +59,7 @@ optional arguments:
 
 
 ```
-## __Example Usage__
+## `Example Usage`
 
  ### `local file as input`
  ```smalltalk
@@ -78,7 +72,7 @@ optional arguments:
    ```
  ---
  
- ### `Use ffmpeg to read multicast stream as input and x9k3 to segment`
+ ### `use ffmpeg to read multicast stream as input and x9k3 to segment`
       with a sliding window, and  expiring old segments.
        --delete implies --live
       
@@ -120,7 +114,7 @@ optional arguments:
   ```
 ---
 
-# Details 
+## `Details` 
 ---
 
 * Segments are cut on iframes.
@@ -164,12 +158,12 @@ seg13.ts
 
 ```
 ---
-### `VOD`
+## `VOD`
 
 * x9k3 defaults to VOD style playlist generation.
 * All segment are listed in the m3u8 file. 
 ---
-### `Live`
+## `Live`
 ---
  * Activated by the --live switch or by setting X9K3.live=True
 
@@ -206,7 +200,7 @@ seg49.ts
 ....
 ```
 
-### Stream Diff
+## `Stream Diff`
 ---
 * stream diff is the difference between the playback time of the stream and generation of segments by x9k3.
 
@@ -262,10 +256,9 @@ sys	0m0.169s
 ```
  
  
-![image](https://user-images.githubusercontent.com/52701496/180592124-7ef7004b-41ac-4499-b63a-d88856c9e988.png)
 
 
-### FAQ
+## `FAQ`
 ---
 #### Q.
 How do I Customize CUE-OUT and CUE-IN ad break events?
@@ -283,7 +276,7 @@ Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static method
 | [ is_cue_in](https://github.com/futzu/x9k3/blob/main/x9k3.py#L93)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
 
 
-##### Example
+##### `Example`
 ---
 *  __Override__ the static method __X9K3.scte35.is_cue_out(cue)__ 
 *  Require 
@@ -321,7 +314,6 @@ x9.decode()
 ---
 
 
-![image](https://user-images.githubusercontent.com/52701496/180024811-02a3e3b1-6986-4c11-9e04-20c1051b08c1.png)
 
 
 
