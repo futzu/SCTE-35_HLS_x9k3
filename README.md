@@ -20,11 +20,10 @@
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
    *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
-___
+
 
 
 ## `Requires` 
----
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
 ```smalltalk
@@ -65,12 +64,12 @@ optional arguments:
  ```smalltalk
     python3 x9k3.py -i video.mpegts
  ```
-  ---
+  
  ### `multicast stream as input with a live sliding window`   
    ```smalltalk
    python3 x9k3.py --live -i udp://@235.35.3.5:3535
    ```
- ---
+ 
  
  ### `use ffmpeg to read multicast stream as input and x9k3 to segment`
       with a sliding window, and  expiring old segments.
@@ -79,18 +78,18 @@ optional arguments:
    ```smalltalk
     ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
    ```
- ---
+ 
 ### `https stream for input, and writing segments to an output directory`
       directory will be created if it does not exist.
   ```smalltalk
    pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
   ```
-  ---
+  
 ### `using stdin as input`
    ```smalltalk
    cat video.ts | python3 x9k3.py
    ```
-   ---
+   
 ### `load scte35 cues from a text file`
     
     Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
@@ -115,7 +114,6 @@ optional arguments:
 ---
 
 ## `Details` 
----
 
 * Segments are cut on iframes.
 
@@ -135,10 +133,8 @@ optional arguments:
 #EXTINF:2.085422,
 seg1.ts
 ```
----
 
-
-* SCTE-35 cues with a preroll are inserted again at the splice point.
+#### `SCTE-35 cues with a preroll are inserted again at the splice point`
 
 ```smalltalk
 # Splice Point @ 17129.086244
@@ -147,9 +143,8 @@ seg1.ts
 seg2.ts
 
 ```
----
 
-* CUE-OUT ans CUE-IN are added at the splice point.
+####  `CUE-OUT ans CUE-IN are added at the splice point`
 
 ```smalltalk
 #EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
@@ -157,14 +152,14 @@ seg2.ts
 seg13.ts
 
 ```
----
+
 ## `VOD`
 
 * x9k3 defaults to VOD style playlist generation.
 * All segment are listed in the m3u8 file. 
----
+
 ## `Live`
----
+
  * Activated by the --live switch or by setting X9K3.live=True
 
  * Like VOD except:
@@ -201,7 +196,7 @@ seg49.ts
 ```
 
 ## `Stream Diff`
----
+
 * stream diff is the difference between the playback time of the stream and generation of segments by x9k3.
 
 *  A segment with a 2 second duration that takes 0.5 seconds to generate would have a stream diff of 1.5.
@@ -229,7 +224,7 @@ user	0m0.334s
 sys	0m0.128s
 
 ```
-* __Live stream non-live stuff__
+#### `Live stream non-live stuff`
    
 * stream_diff with `--live` or `--delete`
 
@@ -259,7 +254,7 @@ sys	0m0.169s
 
 
 ## `FAQ`
----
+
 #### Q.
 How do I Customize CUE-OUT and CUE-IN ad break events?
 #### A. 
