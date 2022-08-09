@@ -15,7 +15,8 @@ setuptools.setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/futzu/x9k3",
-    packages=setuptools.find_packages(),
+    py_modules=["x9k3"],
+    platforms="all",    
     install_requires=[
           'threefive',
           'new_reader',
