@@ -16,7 +16,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "11"
+MAINTAINENCE = "13"
 
 
 def version():
@@ -534,7 +534,35 @@ class X9K3(Stream):
             self.active_segment.write(pkt)
 
 
-if __name__ == "__main__":
+def cli():
+    """
+    cli provides one function call
+    for running X9K3  with command line args
 
+      -h, --help            show this help message and exit
+      -i INPUT, --input INPUT
+                        Input source, like "/home/a/vid.ts" or
+                        "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+      -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory for segments and index.m3u8 ( created if it
+                        does not exist )
+      -s SIDECAR, --sidecar SIDECAR
+                        sidecar file of scte35 cues. each line contains (PTS,
+                        CueString) Example: 89718.451333,
+                        /DARAAAAAAAAAP/wAAAAAHpPv/8=
+      -l, --live            Flag for a live event ( enables sliding window m3u8 )
+      -d, --delete          delete segments ( enables live mode )
+
+    Two lines of code gives you a full X9K3 command line tool.
+
+     from X9K3 import cli
+     cli()
+
+    """
     x9k3 = X9K3()
     x9k3.decode()
+
+
+
+if __name__ == "__main__":
+    cli()
