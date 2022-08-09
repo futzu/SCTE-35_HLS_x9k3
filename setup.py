@@ -9,15 +9,16 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="x9k3",
     version=x9k3.version(),
-    author="Adrian",
+    author="Adrian of DOOM",
     author_email="spam@iodisco.com",
-    description="HLS Segmenter with SCTE-35 Support",
+    description="HLS Segmenter with SCTE-35",
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/futzu/x9k3",
     packages=setuptools.find_packages(),
     install_requires=[
           'threefive',
+          'new_reader',
       ],
     classifiers=[
         "License :: OSI Approved :: MIT License",
