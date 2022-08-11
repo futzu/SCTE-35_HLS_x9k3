@@ -1,5 +1,5 @@
 [Details](#details)  |
- [Install](#requires) |
+ [Install](#install) |
  [Use](#how-to-use) |
  [Customize](#faq)  |
  [Live Events](#live)  |
@@ -26,16 +26,29 @@
 ## `Requires` 
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
-```smalltalk
-pip3 install threefive
+* [new_reader](https://github.com/futzu/new_reader)
+
+## `Install`
+* Use pip to install the the x9k3 lib and  executable script x9k3
+```
+# python3
+
+python3 -mpip install x9k3
+
+# pypy3 
+
+pypy3 -mpip install x9k3
+
 ```
 
 ## `How to Use`
 
-```smalltalk
-a@debian:~/x9k3$ pypy3 x9k3.py -h
 
-usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d]
+
+```smalltalk
+a@debian:~/x9k3$ x9k3 -h
+
+usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d]
 
 optional arguments:
 
@@ -62,12 +75,12 @@ optional arguments:
 
  #### `local file as input`
  ```smalltalk
-    python3 x9k3.py -i video.mpegts
+    x9k3 -i video.mpegts
  ```
   
  #### `multicast stream as input with a live sliding window`   
    ```smalltalk
-   python3 x9k3.py --live -i udp://@235.35.3.5:3535
+   x9k3 --live -i udp://@235.35.3.5:3535
    ```
  
  
@@ -76,18 +89,18 @@ optional arguments:
        --delete implies --live
       
    ```smalltalk
-    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | python3 x9k3.py --delete
+    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
    ```
  
 #### `https stream for input, and writing segments to an output directory`
       directory will be created if it does not exist.
   ```smalltalk
-   pypy3 x9k3.py -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
   ```
   
 #### `using stdin as input`
    ```smalltalk
-   cat video.ts | python3 x9k3.py
+   cat video.ts | x9k3
    ```
    
 #### `load scte35 cues from a text file`
@@ -109,7 +122,7 @@ optional arguments:
       
 ```
   ```smalltalk
-  pypy3 x9k3.py -i  noscte35.ts  -s sidecar.txt 
+  x9k3 -i  noscte35.ts  -s sidecar.txt 
   ```
 ---
 
@@ -205,7 +218,7 @@ seg49.ts
 * __In the default mode, stream_diff is a benchmark of playlist generation.__
  
  ```lua
- a@debian:~/x9k3$ time pypy3 x9k3.py  -i local-vid.ts 
+ a@debian:~/x9k3$ time x9k3  -i local-vid.ts 
  ./seg0.ts	start:  3.545000	duration:  2.112000	stream diff:  2.094049
  ./seg1.ts	start:  5.593000	duration:  2.048000	stream diff:  4.133058
  ./seg2.ts	start:  7.598333	duration:  2.005333	stream diff:  6.133111
@@ -232,7 +245,7 @@ sys	0m0.128s
    * stream_diff keeps segmentation and the sliding window in sync.
  
  ```lua
- a@debian:~/x9k3$ time pypy3 x9k3.py  -i local-vid.ts --live
+ a@debian:~/x9k3$ time x9k3 -i local-vid.ts --live
  ./seg0.ts	start:  1.433000	duration:  2.112000	stream diff:  1.749682
  ./seg1.ts	start:  3.545000	duration:  2.048000	stream diff:  1.664505
  ./seg2.ts	start:  5.593000	duration:  2.005333	stream diff:  1.604484
