@@ -11,12 +11,13 @@ import sys
 import time
 from base64 import b64encode
 from collections import deque
+from functools import partial
 from new_reader import reader
 from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "21"
+MAINTAINENCE = "23"
 
 
 def version():
@@ -146,7 +147,9 @@ class X9K3(Stream):
         self.seg = SegData()
         self.sidecar = None
         self.iframes_only = False
+        self.loop = False
         self._parse_args()
+
 
     def _parse_args(self):
         """
@@ -175,8 +178,7 @@ class X9K3(Stream):
             "-s",
             "--sidecar",
             default=None,
-            help="""sidecar file of scte35 cues. each line contains  (PTS, CueString)
-                        Example:  89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=""",
+            help="""sidecar file of scte35 cues. each line contains  PTS, Cue""",
         )
 
         parser.add_argument(
@@ -194,8 +196,27 @@ class X9K3(Stream):
             action="store_const",
             default=False,
             const=True,
-            help="delete segments ( enables live mode )",
+            help="delete segments ( enables --live )",
         )
+
+        parser.add_argument(
+            "-r",
+            "--replay",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag for replay (looping) ( enables --live and --delete )",
+        )
+
+        parser.add_argument(
+            "-v",
+            "--version",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Show version",
+        )
+
         args = parser.parse_args()
         self._apply_args(args)
 
@@ -204,6 +225,10 @@ class X9K3(Stream):
         _apply_args  uses command line args
         to set X9K3 instance vars
         """
+        if args.version:
+            print(version())
+            sys.exit()
+
         if args.input:
             self._tsdata = args.input
         else:
@@ -222,6 +247,13 @@ class X9K3(Stream):
             self.load_sidecar(args.sidecar)
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
+
+        if args.replay:
+            self.live=True
+            self.delete =True
+            self.loop =True
+
+
 
     @staticmethod
     def mk_uri(head, tail):
@@ -291,6 +323,8 @@ class X9K3(Stream):
 
     def _add_discontinuity(self):
         self.active_data.write("#EXT-X-DISCONTINUITY\n")
+        self.seg.seg_start=None
+        self.seg.seg_stop=None
 
     def _chk_cue(self, pid):
         """
@@ -355,10 +389,11 @@ class X9K3(Stream):
                 self._mk_cue_splice_point()
                 self.scte35.cue_time = None
         now = self.pid2pts(pid)
-        if now >= self.seg.seg_stop:
-            self.seg.seg_stop = now
-            self._write_segment()
-            self._write_manifest()
+        if  self.seg.seg_stop:
+            if now >= self.seg.seg_stop:
+                self.seg.seg_stop = now
+                self._write_segment()
+                self._write_manifest()
 
     def _write_segment(self):
         """
@@ -538,25 +573,48 @@ class X9K3(Stream):
         if self.start:
             self.active_segment.write(pkt)
 
+    def replay(self):
+        """
+        Stream.decode reads self.tsdata to find SCTE35 packets.
+        func can be set to a custom function that accepts
+        a threefive.Cue instance as it's only argument.
+        """
+        if not self._find_start():
+            return False
+        for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
+            self._parse(pkt)
+        self._add_discontinuity()
+        self._tsdata.seek(0)
+        self.replay()
+
+    def run(self):
+        """
+        run calls replay() if loop is set
+        or else it calls decode()
+        """
+        if self.loop:
+            self.replay()
+        else:
+            self.decode()
 
 def cli():
     """
     cli provides one function call
     for running X9K3  with command line args
+    usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d] [-r] [-v]
 
+    optional arguments:
       -h, --help            show this help message and exit
       -i INPUT, --input INPUT
-                        Input source, like "/home/a/vid.ts" or
-                        "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+                            Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
       -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Directory for segments and index.m3u8 ( created if it
-                        does not exist )
+                            Directory for segments and index.m3u8 ( created if it does not exist )
       -s SIDECAR, --sidecar SIDECAR
-                        sidecar file of scte35 cues. each line contains (PTS,
-                        CueString) Example: 89718.451333,
-                        /DARAAAAAAAAAP/wAAAAAHpPv/8=
+                            sidecar file of scte35 cues. each line contains PTS, Cue
       -l, --live            Flag for a live event ( enables sliding window m3u8 )
-      -d, --delete          delete segments ( enables live mode )
+      -d, --delete          delete segments ( enables --live )
+      -r, --replay          Flag for replay (looping) ( enables --live and --delete )
+      -v, --version         Show version
 
     Two lines of code gives you a full X9K3 command line tool.
 
@@ -564,9 +622,13 @@ def cli():
      cli()
 
     """
-    x9k3 = X9K3()
-    x9k3.decode()
+    x9= X9K3()
+    x9.run()
+
+
+
 
 
 if __name__ == "__main__":
-    cli()
+    x9k= X9K3()
+    x9k.run()
