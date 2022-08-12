@@ -16,7 +16,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "19"
+MAINTAINENCE = "21"
 
 
 def version():
@@ -145,6 +145,7 @@ class X9K3(Stream):
         self.delete = False
         self.seg = SegData()
         self.sidecar = None
+        self.iframes_only = False
         self._parse_args()
 
     def _parse_args(self):
@@ -195,12 +196,10 @@ class X9K3(Stream):
             const=True,
             help="delete segments ( enables live mode )",
         )
-
         args = parser.parse_args()
         self._apply_args(args)
 
-
-    def _apply_args(self,args):
+    def _apply_args(self, args):
         """
         _apply_args  uses command line args
         to set X9K3 instance vars
@@ -215,7 +214,6 @@ class X9K3(Stream):
             os.mkdir(args.output_dir)
 
         self.live = args.live
-
         self.delete = args.delete
         if args.delete:
             self.live = True
@@ -265,7 +263,7 @@ class X9K3(Stream):
         self.sidecar = deque()
         with reader(file) as sidefile:
             for line in sidefile:
-                line = line.decode().strip().split("#",1)[0]
+                line = line.decode().strip().split("#", 1)[0]
                 if len(line):
                     pts, cue = line.split(",", 1)
                     self.sidecar.append([float(pts), cue])
@@ -291,6 +289,9 @@ class X9K3(Stream):
         if self.scte35.cue:
             self._chk_cue(pid)
 
+    def _add_discontinuity(self):
+        self.active_data.write("#EXT-X-DISCONTINUITY\n")
+
     def _chk_cue(self, pid):
         """
         _chk_cue checks for SCTE-35 cues
@@ -299,7 +300,9 @@ class X9K3(Stream):
         """
         self.scte35.cue.show()
         print(f"{self.scte35.cue.command.name}")
-        self.active_data.write(f"# {self.scte35.cue.command.name} @ {self.scte35.cue.command.pts_time}\n")
+        self.active_data.write(
+            f"# {self.scte35.cue.command.name} @ {self.scte35.cue.command.pts_time}\n"
+        )
         if "pts_time" in self.scte35.cue.command.get():
             self.scte35.cue_time = self.scte35.cue.command.pts_time
             print(
@@ -307,6 +310,7 @@ class X9K3(Stream):
             )
         else:
             self.scte35.cue_time = self.pid2pts(pid)
+            self._add_discontinuity()
             self.active_data.write("# Splice Immediate\n")
         self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
         self.scte35.cue_out = None
@@ -317,6 +321,7 @@ class X9K3(Stream):
         at the time specified in the cue.
         """
         self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+        self._add_discontinuity()
         print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
         self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
         self.scte35.cue_out_cue_in()
@@ -561,7 +566,6 @@ def cli():
     """
     x9k3 = X9K3()
     x9k3.decode()
-
 
 
 if __name__ == "__main__":
