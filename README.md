@@ -165,41 +165,23 @@ seg13.ts
 * All segment are listed in the m3u8 file. 
 
 ## `Live`
+* Activated by the `--live`, `--delete`, or `--replay` switch or by setting `X9K3.live=True`
 
- * Activated by the `--live` switch or by setting `X9K3.live=True`
-
- * Like VOD except:
-     * M3u8 manifests are regenerated every time a segment is written.
-     * Segments are generated to realtime, even if the stream isn't live. ( like ffmpeg's "-re" ) 
+### `--live`
+   * Like VOD except:
+     * M3u8 manifests are regenerated every time a segment is written
+     * Segment creation is throttled when using non-live sources to simulate live streaming. ( like ffmpeg's "-re" )
      * Sliding Window for 5 [WINDOW_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118)
-     * A cue out continue tag is added to first segment in manifest during an ad break.  
+     * A cue out continue tag is added to first segment in manifest during an ad break.
+###  `--delete`
+  * implies `--live`
+  * deletes segments when they move out of the sliding window of the m3u8.
+### `--replay`
+  * implies `--live`
+  * implies `--delete`
+  * loops a video file and throttles segment creation to fake a live stream.
 
-```smalltalk
-#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:3
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==",CUE-OUT=CONT
-#EXTINF:2.002,
-seg43.ts
-#EXTINF:2.002,
-seg44.ts
-#EXTINF:2.002,
-seg45.ts
-# Splice Insert
-#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0="
-#EXTINF:2.168834,
-seg46.ts
-# Splice Point @ 38203.125478
-#EXT-X-SCTE35:CUE="/DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0=",CUE-IN=YES
-#EXTINF:1.001,
-seg47.ts
-#EXTINF:2.836166,
-seg48.ts
-#EXTINF:2.002,
-seg49.ts
-#EXTINF:2.002,
-....
-```
+
 
 ## `Stream Diff`
 
