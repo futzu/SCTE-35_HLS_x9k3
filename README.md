@@ -48,27 +48,20 @@ pypy3 -mpip install x9k3
 ```smalltalk
 a@debian:~/x9k3$ x9k3 -h
 
-usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d]
+usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d] [-r] [-v]
 
 optional arguments:
-
   -h, --help            show this help message and exit
-
   -i INPUT, --input INPUT
-                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or
-                        "https://futzu.com/xaa.ts"
-
+                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
                         Directory for segments and index.m3u8 ( created if it does not exist )
-  
   -s SIDECAR, --sidecar SIDECAR
-                        sidecar file of scte35 cues. each line contains (PTS, CueString) Example:
-                        89718.451333, /DARAAAAAAAAAP/wAAAAAHpPv/8=
-  
+                        sidecar file of scte35 cues. each line contains PTS, Cue
   -l, --live            Flag for a live event ( enables sliding window m3u8 )
-  
-  -d, --delete          delete segments ( enables live mode )
-
+  -d, --delete          delete segments ( enables --live )
+  -r, --replay          Flag for replay (looping) ( enables --live and --delete )
+  -v, --version         Show version
 
 ```
 ## `Example Usage`
