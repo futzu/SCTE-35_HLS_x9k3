@@ -17,7 +17,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "23"
+MAINTAINENCE = "25"
 
 
 def version():
@@ -146,10 +146,8 @@ class X9K3(Stream):
         self.delete = False
         self.seg = SegData()
         self.sidecar = None
-        self.iframes_only = False
-        self.loop = False
+        self.replay = False
         self._parse_args()
-
 
     def _parse_args(self):
         """
@@ -238,22 +236,18 @@ class X9K3(Stream):
         if not os.path.isdir(args.output_dir):
             os.mkdir(args.output_dir)
 
-        self.live = args.live
-        self.delete = args.delete
-        if args.delete:
+        if args.live or args.delete or args.replay:
             self.live = True
+            if args.delete or args.replay:
+                self.delete = True
+                if args.replay:
+                    self.replay = True
 
         if args.sidecar:
             self.load_sidecar(args.sidecar)
+
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
-
-        if args.replay:
-            self.live=True
-            self.delete =True
-            self.loop =True
-
-
 
     @staticmethod
     def mk_uri(head, tail):
@@ -323,8 +317,8 @@ class X9K3(Stream):
 
     def _add_discontinuity(self):
         self.active_data.write("#EXT-X-DISCONTINUITY\n")
-        self.seg.seg_start=None
-        self.seg.seg_stop=None
+        self.seg.seg_start = None
+        self.seg.seg_stop = None
 
     def _chk_cue(self, pid):
         """
@@ -370,7 +364,6 @@ class X9K3(Stream):
         if there is an active SCTE35 cue,
         the live sliding window of segments
         has a tag with CUE-OUT=CONT
-
         """
         if self.window_slot > self.WINDOW_SLOTS:
             self.window_slot = 0
@@ -389,7 +382,7 @@ class X9K3(Stream):
                 self._mk_cue_splice_point()
                 self.scte35.cue_time = None
         now = self.pid2pts(pid)
-        if  self.seg.seg_stop:
+        if self.seg.seg_stop:
             if now >= self.seg.seg_stop:
                 self.seg.seg_stop = now
                 self._write_segment()
@@ -573,29 +566,29 @@ class X9K3(Stream):
         if self.start:
             self.active_segment.write(pkt)
 
-    def replay(self):
+    def loop(self):
         """
-        Stream.decode reads self.tsdata to find SCTE35 packets.
-        func can be set to a custom function that accepts
-        a threefive.Cue instance as it's only argument.
+        loop  loops a video in the hls manifest.
+        sliding window and throttled to simulate live playback,
+        segments are deleted when they fall out the sliding window.
         """
         if not self._find_start():
             return False
-        for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b""):
-            self._parse(pkt)
+        _ = [self._parse(pkt) for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")]
         self._add_discontinuity()
         self._tsdata.seek(0)
-        self.replay()
+        self.loop()
 
     def run(self):
         """
-        run calls replay() if loop is set
+        run calls replay() if replay is set
         or else it calls decode()
         """
-        if self.loop:
-            self.replay()
+        if self.replay:
+            self.loop()
         else:
             self.decode()
+
 
 def cli():
     """
@@ -622,13 +615,10 @@ def cli():
      cli()
 
     """
-    x9= X9K3()
+    x9 = X9K3()
     x9.run()
 
 
-
-
-
 if __name__ == "__main__":
-    x9k= X9K3()
+    x9k = X9K3()
     x9k.run()
