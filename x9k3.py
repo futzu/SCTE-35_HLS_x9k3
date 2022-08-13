@@ -218,24 +218,23 @@ class X9K3(Stream):
         args = parser.parse_args()
         self._apply_args(args)
 
-    def _apply_args(self, args):
-        """
-        _apply_args  uses command line args
-        to set X9K3 instance vars
-        """
-        if args.version:
+    def _args_version(self,args):
+         if args.version:
             print(version())
             sys.exit()
 
+    def _args_input(self,args):
         if args.input:
             self._tsdata = args.input
         else:
             self._tsdata = sys.stdin.buffer
 
+    def _args_output_dir(self,args):
         self.output_dir = args.output_dir
         if not os.path.isdir(args.output_dir):
             os.mkdir(args.output_dir)
 
+    def _args_flags(self,args):
         if args.live or args.delete or args.replay:
             self.live = True
             if args.delete or args.replay:
@@ -243,9 +242,20 @@ class X9K3(Stream):
                 if args.replay:
                     self.replay = True
 
+    def _args_sidecar(self,args):
         if args.sidecar:
             self.load_sidecar(args.sidecar)
 
+    def _apply_args(self, args):
+        """
+        _apply_args  uses command line args
+        to set X9K3 instance vars
+        """
+        self._args_version(args)
+        self._args_input(args)
+        self._args_output_dir(args)
+        self._args_flags(args)
+        self._args_sidecar(args)
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
