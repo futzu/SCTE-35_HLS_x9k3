@@ -517,12 +517,13 @@ class X9K3(Stream):
 
         if _nal(pkt):
             return True
-        if self._afc_flag(pkt):
+        if not self._afc_flag(pkt):
+            return False
+        if self._pcr_flag(pkt):
             if _rai_flag(pkt):
                 return True
-            if _abc_flags(pkt):
-                return True
-
+        if _abc_flags(pkt):
+            return True
         return False
 
     @staticmethod
