@@ -17,7 +17,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "25"
+MAINTAINENCE = "27"
 
 
 def version():
@@ -78,7 +78,8 @@ class SCTE35:
         """
         mk_cue_tag
         """
-        return f'#EXT-X-SCTE35:CUE="{b64encode(cue.bites).decode()}"'
+        if cue:
+            return f'#EXT-X-SCTE35:CUE="{b64encode(cue.bites).decode()}"'
 
     @staticmethod
     def is_cue_out(cue):
@@ -218,23 +219,23 @@ class X9K3(Stream):
         args = parser.parse_args()
         self._apply_args(args)
 
-    def _args_version(self,args):
-         if args.version:
+    def _args_version(self, args):
+        if args.version:
             print(version())
             sys.exit()
 
-    def _args_input(self,args):
+    def _args_input(self, args):
         if args.input:
             self._tsdata = args.input
         else:
             self._tsdata = sys.stdin.buffer
 
-    def _args_output_dir(self,args):
+    def _args_output_dir(self, args):
         self.output_dir = args.output_dir
         if not os.path.isdir(args.output_dir):
             os.mkdir(args.output_dir)
 
-    def _args_flags(self,args):
+    def _args_flags(self, args):
         if args.live or args.delete or args.replay:
             self.live = True
             if args.delete or args.replay:
@@ -242,7 +243,7 @@ class X9K3(Stream):
                 if args.replay:
                     self.replay = True
 
-    def _args_sidecar(self,args):
+    def _args_sidecar(self, args):
         if args.sidecar:
             self.load_sidecar(args.sidecar)
 
@@ -310,10 +311,11 @@ class X9K3(Stream):
         for the next sidecar cue and inserts the cue if needed.
         """
         if self.sidecar:
-            if self.sidecar[0][0] < self.pid2pts(pid):
+            if self.sidecar[0][0] <= self.pid2pts(pid):
                 raw = self.sidecar.popleft()[1]
                 self.scte35.cue = Cue(raw)
                 self.scte35.cue.decode()
+                self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
                 self._chk_cue(pid)
 
     def chk_stream_cues(self, pkt, pid):
@@ -321,8 +323,9 @@ class X9K3(Stream):
         chk_stream_cues checks scte35 packets
         and inserts the cue.
         """
-        self.scte35.cue = self._parse_scte35(pkt, pid)
-        if self.scte35.cue:
+        cue = self._parse_scte35(pkt, pid)
+        if cue:
+            self.scte35.cue = cue
             self._chk_cue(pid)
 
     def _add_discontinuity(self):
@@ -358,15 +361,16 @@ class X9K3(Stream):
         _mk_cue_splice_point inserts a tag
         at the time specified in the cue.
         """
-        self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
-        self._add_discontinuity()
-        print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
-        self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
-        self.scte35.cue_out_cue_in()
-        if self.scte35.cue_out is None:
-            self.scte35.cue_time = None
-        self.active_data.write(self.scte35.cue_tag + "\n")
-        self.scte35.cue_tag = None
+        if self.scte35.cue:
+            self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+            self._add_discontinuity()
+            print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
+            self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
+            self.scte35.cue_out_cue_in()
+            if self.scte35.cue_out is None:
+                self.scte35.cue_time = None
+            self.active_data.write(self.scte35.cue_tag + "\n")
+            self.scte35.cue_tag = None
 
     def cue_out_continue(self):
         """
@@ -386,12 +390,12 @@ class X9K3(Stream):
         """
         _mk_segment cuts hls segments
         """
+        now = self.pid2pts(pid)
         if self.scte35.cue_time:
-            if self.seg.seg_start < self.scte35.cue_time < self.seg.seg_stop:
+            if self.seg.seg_start < self.scte35.cue_time < now:
                 self.seg.seg_stop = self.scte35.cue_time
                 self._mk_cue_splice_point()
                 self.scte35.cue_time = None
-        now = self.pid2pts(pid)
         if self.seg.seg_stop:
             if now >= self.seg.seg_stop:
                 self.seg.seg_stop = now
@@ -585,7 +589,10 @@ class X9K3(Stream):
         """
         if not self._find_start():
             return False
-        _ = [self._parse(pkt) for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")]
+        _ = [
+            self._parse(pkt)
+            for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")
+        ]
         self._add_discontinuity()
         self._tsdata.seek(0)
         self.loop()
