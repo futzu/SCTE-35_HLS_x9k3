@@ -21,7 +21,8 @@
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
    *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
-   * [Fake live Stream with Video Looping Demo](https://slo.me/index.m3u8).
+   * Fake live Stream with Video Looping Demo. ` ffplay https://slo.me/index.m3u8 `
+   
 
 
 ## `Requires` 
