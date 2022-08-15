@@ -17,7 +17,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "29"
+MAINTAINENCE = "31"
 
 
 def version():
