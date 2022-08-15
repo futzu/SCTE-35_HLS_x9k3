@@ -17,7 +17,7 @@ from threefive import Stream, Cue
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "27"
+MAINTAINENCE = "29"
 
 
 def version():
@@ -595,7 +595,6 @@ class X9K3(Stream):
         ]
         self._add_discontinuity()
         self._tsdata.seek(0)
-        self.loop()
 
     def run(self):
         """
@@ -603,7 +602,8 @@ class X9K3(Stream):
         or else it calls decode()
         """
         if self.replay:
-            self.loop()
+            while True:
+                self.loop()
         else:
             self.decode()
 
