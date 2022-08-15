@@ -80,6 +80,7 @@ class SCTE35:
         """
         if cue:
             return f'#EXT-X-SCTE35:CUE="{b64encode(cue.bites).decode()}"'
+        return '# No Cue'
 
     @staticmethod
     def is_cue_out(cue):
@@ -219,7 +220,8 @@ class X9K3(Stream):
         args = parser.parse_args()
         self._apply_args(args)
 
-    def _args_version(self, args):
+    @staticmethod
+    def _args_version(args):
         if args.version:
             print(version())
             sys.exit()
@@ -595,6 +597,7 @@ class X9K3(Stream):
         ]
         self._add_discontinuity()
         self._tsdata.seek(0)
+        return True
 
     def run(self):
         """
@@ -614,27 +617,14 @@ def cli():
     for running X9K3  with command line args
     usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d] [-r] [-v]
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -i INPUT, --input INPUT
-                            Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
-      -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                            Directory for segments and index.m3u8 ( created if it does not exist )
-      -s SIDECAR, --sidecar SIDECAR
-                            sidecar file of scte35 cues. each line contains PTS, Cue
-      -l, --live            Flag for a live event ( enables sliding window m3u8 )
-      -d, --delete          delete segments ( enables --live )
-      -r, --replay          Flag for replay (looping) ( enables --live and --delete )
-      -v, --version         Show version
-
     Two lines of code gives you a full X9K3 command line tool.
 
      from X9K3 import cli
      cli()
 
     """
-    x9 = X9K3()
-    x9.run()
+    stuff= X9K3()
+    stuff.run()
 
 
 if __name__ == "__main__":
