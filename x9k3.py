@@ -14,10 +14,12 @@ from collections import deque
 from functools import partial
 from new_reader import reader
 from threefive import Stream, Cue
+from iframes import IFramer
+#from sps import is_sps
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "31"
+MAINTAINENCE = "33"
 
 
 def version():
@@ -126,8 +128,6 @@ class X9K3(Stream):
 
     # sliding window size
     WINDOW_SLOTS = 5
-    # target segment time.
-    SECONDS = 2
 
     def __init__(self, tsdata=None, show_null=False):
         """
@@ -148,8 +148,10 @@ class X9K3(Stream):
         self.delete = False
         self.seg = SegData()
         self.sidecar = None
+        self.seconds = 2
         self.replay = False
         self._parse_args()
+        self.iframer = IFramer()
 
     def _parse_args(self):
         """
@@ -178,7 +180,15 @@ class X9K3(Stream):
             "-s",
             "--sidecar",
             default=None,
-            help="""sidecar file of scte35 cues. each line contains  PTS, Cue""",
+            help="""Sidecar file of scte35 cues. each line contains  PTS, Cue""",
+        )
+
+        parser.add_argument(
+            "-t",
+            "--time",
+            default=2,
+            type=float,
+            help="Segment time in seconds ( default is 2)",
         )
 
         parser.add_argument(
@@ -189,6 +199,7 @@ class X9K3(Stream):
             const=True,
             help="Flag for a live event ( enables sliding window m3u8 )",
         )
+
 
         parser.add_argument(
             "-d",
@@ -249,6 +260,9 @@ class X9K3(Stream):
         if args.sidecar:
             self.load_sidecar(args.sidecar)
 
+    def _args_time(self,args):
+        self.seconds = args.time
+
     def _apply_args(self, args):
         """
         _apply_args  uses command line args
@@ -257,8 +271,9 @@ class X9K3(Stream):
         self._args_version(args)
         self._args_input(args)
         self._args_output_dir(args)
-        self._args_flags(args)
         self._args_sidecar(args)
+        self._args_time(args)
+        self._args_flags(args)
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
@@ -286,7 +301,7 @@ class X9K3(Stream):
         if not self.live:
             play_type = "#EXT-X-PLAYLIST-TYPE:VOD"
             headers.append(play_type)
-        target = f"#EXT-X-TARGETDURATION:{self.SECONDS+self.SECONDS}"
+        target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
         headers.append(target)
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
         headers.append(seq)
@@ -427,7 +442,7 @@ class X9K3(Stream):
             self.active_data.write(f"#EXTINF:{self.seg.seg_time},\n")
             self.active_data.write(seg_file + "\n")
             self.seg.seg_start = self.seg.seg_stop
-            self.seg.seg_stop += self.SECONDS
+            self.seg.seg_stop += self.seconds
             self.window.append(
                 (self.seg.seg_num, self.seg.seg_uri, self.active_data.getvalue())
             )
@@ -482,10 +497,11 @@ class X9K3(Stream):
         """
         rev = "\033[7m \033[1m"
         res = "\033[00m"
+        rev = res = ''
         now = time.time()
         gen_time = now - self.seg.init_time
         if not self.seg.seg_time:
-            self.seg.seg_time = self.SECONDS
+            self.seg.seg_time = self.seconds
         diff = self.seg.seg_time - gen_time
         self.seg.diff_total += diff
         furi = f"{rev}{self.seg.seg_uri}{res}"
@@ -497,52 +513,6 @@ class X9K3(Stream):
         if self.live:
             if self.seg.diff_total > 0:
                 time.sleep(self.seg.seg_time)
-
-    def _is_key(self, pkt):
-        """
-        _is_key is key frame detection.
-        """
-
-        def _rai_flag(pkt):
-            """
-            random access indicator
-            """
-            return pkt[5] & 0x40
-
-        def _abc_flags(pkt):
-            """
-            0x80, 0x20, 0x8
-            """
-            return pkt[5] & 0xA8
-
-        def _nal(pkt):
-            """
-            \x65
-            """
-            return b"\x00\x00\x01\x65" in pkt
-
-        if _nal(pkt):
-            return True
-        if not self._afc_flag(pkt):
-            return False
-        if self._pcr_flag(pkt):
-            if _rai_flag(pkt):
-                return True
-        if _abc_flags(pkt):
-            return True
-        return False
-
-    @staticmethod
-    def _is_sps(pkt):
-        """
-        _is_sps parses h264 for profile and level
-        """
-        sps_start = b"\x00\x00\x01\x67"
-        if sps_start in pkt:
-            sps_idx = pkt.index(sps_start)
-            profile = pkt[sps_idx + 4]
-            level = pkt[sps_idx + 6]
-            print(f"Profile {profile} Level {level}")
 
     def _parse_pts(self, pkt, pid):
         """
@@ -562,7 +532,7 @@ class X9K3(Stream):
             self._prgm_pts[prgm] = pts
             if not self.seg.seg_start:
                 self.seg.seg_start = self.as_90k(pts)
-                self.seg.seg_stop = self.seg.seg_start + self.SECONDS
+                self.seg.seg_stop = self.seg.seg_start + self.seconds
 
     def _parse(self, pkt):
         """
@@ -573,10 +543,10 @@ class X9K3(Stream):
         self.chk_sidecar_cues(pid)
         if pid in self._pids["scte35"]:
             self.chk_stream_cues(pkt, pid)
-        # self._is_sps(pkt)
+       # is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
-            if self._is_key(pkt):
+            if self.iframer.parse(pkt):
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
