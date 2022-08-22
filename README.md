@@ -11,8 +11,7 @@
 
 
 # `x9k3`
-![image](https://user-images.githubusercontent.com/52701496/185185569-3688de65-776b-4d3c-b7b6-a778e3d22441.png)
-
+![image](https://user-images.githubusercontent.com/52701496/185972911-70129518-7bb3-457d-9135-7d0bfd9b67ba.png)
 ##  `HLS Segmenter with SCTE-35 Baked In`
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * Segments are __Split on SCTE-35 Cues__ as needed.
@@ -103,6 +102,21 @@ pypy3 -mpip install x9k3
   ```smalltalk
   x9k3 -i  noscte35.ts  -s sidecar.txt 
   ```
+   `In Live Mode you can do dynamic cue injection`
+   ```smalltalk
+   touch sidecar.txt
+   
+   x9k3 -i vid.ts -s sidecar.txt -l 
+   
+   # Open another terminal and printf cues into sidecar.txt
+   
+   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
+   
+   ```
+   
+   
+   
+   
 ---
 
 ## `Details` 
