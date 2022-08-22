@@ -24,7 +24,7 @@ MAINTAINENCE = "37"
 
 def version():
     """
-    version prints threefives version as a string
+    version prints x9k3's version as a string
 
     Odd number versions are releases.
     Even number versions are testing builds between releases.
