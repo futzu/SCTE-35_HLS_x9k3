@@ -367,9 +367,6 @@ class X9K3(Stream):
         """
         self.scte35.cue.show()
         print(f"{self.scte35.cue.command.name}")
-        self.active_data.write(
-            f"# {self.scte35.cue.command.name} @ {self.scte35.cue.command.pts_time}\n"
-        )
         if "pts_time" in self.scte35.cue.command.get():
             self.scte35.cue_time = self.scte35.cue.command.pts_time
             print(
