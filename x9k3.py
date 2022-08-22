@@ -12,14 +12,14 @@ import time
 from base64 import b64encode
 from collections import deque
 from functools import partial
+from operator import itemgetter
 from new_reader import reader
 from threefive import Stream, Cue
 from iframes import IFramer
-#from sps import is_sps
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "33"
+MAINTAINENCE = "35"
 
 
 def version():
@@ -35,15 +35,6 @@ def version():
 
     """
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
-
-
-def version_number():
-    """
-    version_number returns version as an int.
-    if version() returns 2.3.01
-    version_number will return 2301
-    """
-    return int(f"{MAJOR}{MINOR}{MAINTAINENCE}")
 
 
 class SegData:
@@ -82,7 +73,7 @@ class SCTE35:
         """
         if cue:
             return f'#EXT-X-SCTE35:CUE="{b64encode(cue.bites).decode()}"'
-        return '# No Cue'
+        return "# No Cue"
 
     @staticmethod
     def is_cue_out(cue):
@@ -128,6 +119,18 @@ class X9K3(Stream):
 
     # sliding window size
     WINDOW_SLOTS = 5
+    __slots__ = [
+        "_tsdata",
+        "start",
+        "window_slot",
+        "header",
+        "live",
+        "output_dir",
+        "delete",
+        "sidecar",
+        "seconds",
+        "replay",
+    ]
 
     def __init__(self, tsdata=None, show_null=False):
         """
@@ -147,6 +150,7 @@ class X9K3(Stream):
         self.output_dir = "."
         self.delete = False
         self.seg = SegData()
+        self.sidecar_file = None
         self.sidecar = None
         self.seconds = 2
         self.replay = False
@@ -199,7 +203,6 @@ class X9K3(Stream):
             const=True,
             help="Flag for a live event ( enables sliding window m3u8 )",
         )
-
 
         parser.add_argument(
             "-d",
@@ -258,9 +261,10 @@ class X9K3(Stream):
 
     def _args_sidecar(self, args):
         if args.sidecar:
-            self.load_sidecar(args.sidecar)
+            self.sidecar = deque()
+            self.sidecar_file = args.sidecar
 
-    def _args_time(self,args):
+    def _args_time(self, args):
         self.seconds = args.time
 
     def _apply_args(self, args):
@@ -301,7 +305,7 @@ class X9K3(Stream):
         if not self.live:
             play_type = "#EXT-X-PLAYLIST-TYPE:VOD"
             headers.append(play_type)
-        target = f"#EXT-X-TARGETDURATION:{self.seconds+1}"
+        target = f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}"
         headers.append(target)
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
         headers.append(seq)
@@ -309,18 +313,23 @@ class X9K3(Stream):
         headers.append(bumper)
         self.header = "\n".join(headers)
 
-    def load_sidecar(self, file):
+    def load_sidecar(self, file, pid):
         """
         load_sidecar reads (pts, cue) pairs from
         the sidecar file and loads them into X9K3.sidecar
         """
-        self.sidecar = deque()
-        with reader(file) as sidefile:
-            for line in sidefile:
-                line = line.decode().strip().split("#", 1)[0]
-                if len(line):
-                    pts, cue = line.split(",", 1)
-                    self.sidecar.append([float(pts), cue])
+        if self.sidecar_file:
+            with reader(file) as sidefile:
+                for line in sidefile:
+                    line = line.decode().strip().split("#", 1)[0]
+                    if len(line):
+                        pts, cue = line.split(",", 1)
+                        if float(pts) >= self.pid2pts(pid):
+                            if [float(pts), cue] not in self.sidecar:
+                                self.sidecar.append([float(pts), cue])
+                                self.sidecar = deque(
+                                    sorted(self.sidecar, key=itemgetter(0))
+                                )
 
     def chk_sidecar_cues(self, pid):
         """
@@ -497,7 +506,7 @@ class X9K3(Stream):
         """
         rev = "\033[7m \033[1m"
         res = "\033[00m"
-        rev = res = ''
+        rev = res = ""
         now = time.time()
         gen_time = now - self.seg.init_time
         if not self.seg.seg_time:
@@ -539,14 +548,16 @@ class X9K3(Stream):
         _parse parses mpegts and
         writes the packet to self.active_segment.
         """
+
         pid = self._parse_info(pkt)
         self.chk_sidecar_cues(pid)
         if pid in self._pids["scte35"]:
             self.chk_stream_cues(pkt, pid)
-       # is_sps(pkt)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
             if self.iframer.parse(pkt):
+                #      self.sps.is_sps(pkt)
+                self.load_sidecar(self.sidecar_file, pid)
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
@@ -593,7 +604,7 @@ def cli():
      cli()
 
     """
-    stuff= X9K3()
+    stuff = X9K3()
     stuff.run()
 
 
