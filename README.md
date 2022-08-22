@@ -102,7 +102,7 @@ pypy3 -mpip install x9k3
   ```smalltalk
   x9k3 -i  noscte35.ts  -s sidecar.txt 
   ```
-   `In Live Mode you can do dynamic cue injection`
+####   `In Live Mode you can do dynamic cue injection`
    ```smalltalk
    touch sidecar.txt
    
