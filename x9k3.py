@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "35"
+MAINTAINENCE = "37"
 
 
 def version():
@@ -375,12 +375,13 @@ class X9K3(Stream):
             print(
                 f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
             )
+            self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
+            self.scte35.cue_out = None
+
         else:
             self.scte35.cue_time = self.pid2pts(pid)
-            self._add_discontinuity()
             self.active_data.write("# Splice Immediate\n")
-        self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
-        self.scte35.cue_out = None
+            self._mk_cue_splice_point()
 
     def _mk_cue_splice_point(self):
         """
