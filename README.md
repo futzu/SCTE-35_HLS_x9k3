@@ -23,101 +23,7 @@
    * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
    *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
    * Fake live Stream with Video Looping Demo. ` ffplay https://slo.me/index.m3u8 `
-   
 
-
-## `Requires` 
-* python 3.6+ or pypy3
-* [threefive](https://github.com/futzu/scte35-threefive)  
-* [new_reader](https://github.com/futzu/new_reader)
-
-## `Install`
-* Use pip to install the the x9k3 lib and  executable script x9k3
-```
-# python3
-
-python3 -mpip install x9k3
-
-# pypy3 
-
-pypy3 -mpip install x9k3
-
-```
-
-## `How to Use`
-
-
-![image](https://user-images.githubusercontent.com/52701496/185186249-4914256c-9884-4218-a9f2-e5cc86c803f7.png)
-
-
-## `Example Usage`
-
- #### `local file as input`
- ```smalltalk
-    x9k3 -i video.mpegts
- ```
-  
- #### `multicast stream as input with a live sliding window`   
-   ```smalltalk
-   x9k3 --live -i udp://@235.35.3.5:3535
-   ```
- 
- 
- #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
-      with a sliding window, and  expiring old segments.
-       --delete implies --live
-      
-   ```smalltalk
-    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
-   ```
- 
-#### `https stream for input, and writing segments to an output directory`
-      directory will be created if it does not exist.
-  ```smalltalk
-   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
-  ```
-  
-#### `using stdin as input`
-   ```smalltalk
-   cat video.ts | x9k3
-   ```
-   
-#### `load scte35 cues from a text file`
-    
-    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
-    
-    line format for text file : pts, cue
-    
-    pts is the insert time for the cue, A four second preroll is standard. 
-    
-    cue can be base64,hex, int, or bytes
-     
-  ```smalltalk
-  a@debian:~/x9k3$ cat sidecar.txt
-  
-  38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ== 
-  38199.918911, /DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0= 
-
-      
-```
-  ```smalltalk
-  x9k3 -i  noscte35.ts  -s sidecar.txt 
-  ```
-####   `In Live Mode you can do dynamic cue injection`
-   ```smalltalk
-   touch sidecar.txt
-   
-   x9k3 -i vid.ts -s sidecar.txt -l 
-   
-   # Open another terminal and printf cues into sidecar.txt
-   
-   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
-   
-   ```
-   
-   
-   
-   
 ---
 
 ## `Details` 
@@ -231,6 +137,101 @@ user	0m0.678s
 sys	0m0.169s
 ```
  
+
+
+
+## `Requires` 
+* python 3.6+ or pypy3
+* [threefive](https://github.com/futzu/scte35-threefive)  
+* [new_reader](https://github.com/futzu/new_reader)
+
+## `Install`
+* Use pip to install the the x9k3 lib and  executable script x9k3
+```
+# python3
+
+python3 -mpip install x9k3
+
+# pypy3 
+
+pypy3 -mpip install x9k3
+
+```
+
+## `How to Use`
+
+
+![image](https://user-images.githubusercontent.com/52701496/185186249-4914256c-9884-4218-a9f2-e5cc86c803f7.png)
+
+
+## `Example Usage`
+
+ #### `local file as input`
+ ```smalltalk
+    x9k3 -i video.mpegts
+ ```
+  
+ #### `multicast stream as input with a live sliding window`   
+   ```smalltalk
+   x9k3 --live -i udp://@235.35.3.5:3535
+   ```
+ 
+ 
+ #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
+      with a sliding window, and  expiring old segments.
+       --delete implies --live
+      
+   ```smalltalk
+    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
+   ```
+ 
+#### `https stream for input, and writing segments to an output directory`
+      directory will be created if it does not exist.
+  ```smalltalk
+   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+  ```
+  
+#### `using stdin as input`
+   ```smalltalk
+   cat video.ts | x9k3
+   ```
+   
+#### `load scte35 cues from a text file`
+    
+    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
+    
+    line format for text file : pts, cue
+    
+    pts is the insert time for the cue, A four second preroll is standard. 
+    
+    cue can be base64,hex, int, or bytes
+     
+  ```smalltalk
+  a@debian:~/x9k3$ cat sidecar.txt
+  
+  38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ== 
+  38199.918911, /DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0= 
+
+      
+```
+  ```smalltalk
+  x9k3 -i  noscte35.ts  -s sidecar.txt 
+  ```
+####   `In Live Mode you can do dynamic cue injection`
+   ```smalltalk
+   touch sidecar.txt
+   
+   x9k3 -i vid.ts -s sidecar.txt -l 
+   
+   # Open another terminal and printf cues into sidecar.txt
+   
+   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
+   
+   ```
+   
+   
+   
+   
 
 ## `FAQ`
 
