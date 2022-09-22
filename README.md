@@ -287,6 +287,7 @@ x9.scte35.is_cue_out = my_cue_out
 x9.decode()
 ```
 
+![image](https://user-images.githubusercontent.com/52701496/191659902-516b9ac7-8c71-427d-85a7-8bfa4f90d847.png)
 
 
 
