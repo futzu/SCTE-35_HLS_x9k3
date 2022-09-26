@@ -549,7 +549,7 @@ class X9K3(Stream):
 
         pid = self._parse_info(pkt)
         self.chk_sidecar_cues(pid)
-        if pid in self._pids["scte35"]:
+        if pid in self.pids.scte35:
             self.chk_stream_cues(pkt, pid)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
