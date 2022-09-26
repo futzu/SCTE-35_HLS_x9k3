@@ -19,7 +19,7 @@ setuptools.setup(
     scripts=['bin/x9k3'],
     platforms="all",
     install_requires=[
-          'threefive',
+          'threefive >= 2.3.49',
           'new_reader',
           'iframes',
       ],
