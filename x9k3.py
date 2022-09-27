@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "39"
+MAINTAINENCE = "41"
 
 
 def version():
@@ -28,10 +28,6 @@ def version():
 
     Odd number versions are releases.
     Even number versions are testing builds between releases.
-
-    Used to set version in setup.py
-    and as an easy way to check which
-    version you have installed.
 
     """
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
@@ -515,7 +511,7 @@ class X9K3(Stream):
         fstart = f"\tstart: {rev}{self.seg.seg_start- self.seg.seg_time:.6f}{res}"
         fdur = f"\tduration: {rev}{self.seg.seg_time:.6f}{res}"
         fdiff = f"\tstream diff: {rev}{round(self.seg.diff_total,6)}{res}"
-        print(f"{furi}{fstart}{fdur}{fdiff}")
+        print(f"{furi}{fstart}{fdur}{fdiff}", end='\r')
         self.seg.init_time = now
         if self.live:
             if self.seg.diff_total > 0:
@@ -536,7 +532,7 @@ class X9K3(Stream):
             pts |= payload[12] << 7
             pts |= payload[13] >> 1
             prgm = self.pid2prgm(pid)
-            self._prgm_pts[prgm] = pts
+            self.maps.prgm_pts[prgm] = pts
             if not self.seg.seg_start:
                 self.seg.seg_start = self.as_90k(pts)
                 self.seg.seg_stop = self.seg.seg_start + self.seconds
@@ -607,5 +603,4 @@ def cli():
 
 
 if __name__ == "__main__":
-    x9k = X9K3()
-    x9k.run()
+    x9=cli()
