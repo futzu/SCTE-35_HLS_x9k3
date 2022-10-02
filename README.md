@@ -7,7 +7,8 @@
  [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
  [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md)  |
  [Stream Diff](#stream-diff)  |
- [Sidecar SCTE35](#load-scte35-cues-from-a-text-file)
+ [Sidecar SCTE35](#load-scte35-cues-from-a-text-file)  |
+ [Super Kabuki](https://github.com/futzu/threefive/blob/master/superkabuki.md)
 
 
 # `x9k3`
