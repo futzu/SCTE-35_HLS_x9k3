@@ -27,7 +27,7 @@
 ![image](https://user-images.githubusercontent.com/52701496/192445687-b5d22647-95b0-47d4-94c4-404fa3435fec.png)
 
 ## `Details` 
-
+* Im going to switch to #EXT-X-DATERANGE, everybody keeps yelling at me about the #EXT-X-SCTE35.
 * Segments are cut on iframes.
 
 * Segment size is 2 seconds or more, determined by GOP size. 
