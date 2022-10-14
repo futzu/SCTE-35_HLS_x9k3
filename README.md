@@ -47,7 +47,7 @@
 seg1.ts
 ```
 
-#### `SCTE-35 cues with a preroll are inserted again at the splice point`
+#### `SCTE-35 cues with a preroll are inserted at the splice point`
 
 ```smalltalk
 # Splice Point @ 17129.086244
