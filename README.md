@@ -1,22 +1,22 @@
 [Details](#details)  |
  [Install](#install) |
  [Use](#how-to-use) |
- [Customize](#faq)  |
  [Live Events](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
  [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
  [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md)  |
  [Stream Diff](#stream-diff)  |
  [Sidecar SCTE35](#load-scte35-cues-from-a-text-file)  |
- [Super Kabuki](https://github.com/futzu/threefive/blob/master/superkabuki.md)
 
 
 # `x9k3`
 
+### Latest is `v.0.1.45`
+
 ##  `HLS Segmenter with SCTE-35 Baked In`
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
+   *  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated.
    * Segments are __Split on SCTE-35 Cues__ as needed.
-   * __M3U8__ Manifests are created with __SCTE-35 HLS tags__.
    * Supports __h264__ and __h265__ and __mpeg2__ video.
    * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
@@ -24,10 +24,11 @@
    *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
 
 ---
-![image](https://user-images.githubusercontent.com/52701496/192445687-b5d22647-95b0-47d4-94c4-404fa3435fec.png)
 
 ## `Details` 
-* Im going to switch to #EXT-X-DATERANGE, everybody keeps yelling at me about the #EXT-X-SCTE35.
+
+*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the --hls_tag switch.
+
 * Segments are cut on iframes.
 
 * Segment size is 2 seconds or more, determined by GOP size. 
@@ -36,9 +37,6 @@
 *  For SCTE-35, Video segments are cut at the the first iframe >=  the splice point pts.
 *  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
 
-*  SCTE-35 cues are added when received.
-
-*  All SCTE35 cue commands are added.
 
 ```smalltalk
 # Time Signal
@@ -57,12 +55,192 @@ seg2.ts
 
 ```
 
-####  `CUE-OUT ans CUE-IN are added at the splice point`
 
+## `Requires` 
+* python 3.6+ or pypy3
+* [threefive](https://github.com/futzu/scte35-threefive)  
+* [new_reader](https://github.com/futzu/new_reader)
+
+## `Install`
+* Use pip to install the the x9k3 lib and  executable script x9k3
+```
+# python3
+
+python3 -mpip install x9k3
+
+# pypy3 
+
+pypy3 -mpip install x9k3
+```
+
+## `How to Use`
 ```smalltalk
-#EXT-X-SCTE35:CUE="/DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==" CUE-OUT=YES
-#EXTINF:1.668334,
-seg13.ts
+x9k3 -h
+usage: x9k3.py [-h] [-i INPUT] [--hls_tag HLS_TAG] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME] [-l] [-d] [-r] [-v]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+  --hls_tag HLS_TAG     hls tag can be x_scte35, x_cue, x_daterange, or x_splicepoint
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory for segments and index.m3u8 ( created if it does not exist )
+  -s SIDECAR, --sidecar SIDECAR
+                        Sidecar file of scte35 cues. each line contains PTS, Cue
+  -t TIME, --time TIME  Segment time in seconds ( default is 2)
+  -l, --live            Flag for a live event ( enables sliding window m3u8 )
+  -d, --delete          delete segments ( enables --live )
+  -r, --replay          Flag for replay (looping) ( enables --live and --delete )
+  -v, --version         Show version
+a@debian:~/x9k3$ 
+
+```
+
+## `Example Usage`
+
+ #### `local file as input`
+ ```smalltalk
+    x9k3 -i video.mpegts
+ ```
+  
+ #### `multicast stream as input with a live sliding window`   
+   ```smalltalk
+   x9k3 --live -i udp://@235.35.3.5:3535
+   ```
+ 
+ 
+ #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
+      with a sliding window, and  expiring old segments.
+       --delete implies --live
+      
+   ```smalltalk
+    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
+   ```
+ 
+#### `https stream for input, and writing segments to an output directory`
+      directory will be created if it does not exist.
+  ```smalltalk
+   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+  ```
+  
+#### `using stdin as input`
+   ```smalltalk
+   cat video.ts | x9k3
+   ```
+   
+#### `load scte35 cues from a text file`
+    
+    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
+    
+    line format for text file : pts, cue
+    
+    pts is the insert time for the cue, A four second preroll is standard. 
+    
+    cue can be base64,hex, int, or bytes
+     
+  ```smalltalk
+  a@debian:~/x9k3$ cat sidecar.txt
+  
+  38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ== 
+  38199.918911, /DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0= 
+
+      
+```
+  ```smalltalk
+  x9k3 -i  noscte35.ts  -s sidecar.txt 
+  ```
+####   `In Live Mode you can do dynamic cue injection`
+   ```smalltalk
+   touch sidecar.txt
+   
+   x9k3 -i vid.ts -s sidecar.txt -l 
+   
+   # Open another terminal and printf cues into sidecar.txt
+   
+   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
+   
+   ```
+## `HLS  Tags`
+####  `x_cue`
+```lua
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89742.161689
+#EXT-X-CUE-OUT:242.0
+#PTS 89739.505522
+#EXTINF:4.796145,
+seg32.ts
+
+
+#EXT-X-CUE-OUT-CONT:4.796145/242.0
+#PTS 89744.301667
+#EXTINF:2.12,
+
+
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89984.161689
+#EXT-X-CUE-IN
+#PTS 89981.281522
+#EXTINF:5.020145,
+seg145.ts
+
+```
+#### `x_scte35`
+```lua
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89742.161689
+#EXT-X-SCTE35:CUE="/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=" ,CUE-OUT=YES 
+#PTS 89739.505522
+#EXTINF:4.796145,
+seg32.ts
+
+#EXT-X-SCTE35:CUE="/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=" ,CUE-OUT=CONT
+#PTS 89744.301667
+#EXTINF:2.12,
+seg33.ts
+
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89984.161689
+#EXT-X-SCTE35:CUE="/DAqAAAAAAAAAP/wDwUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAAAtegE5" ,CUE-IN=YES 
+#PTS 89981.281522
+#EXTINF:5.020145,
+seg145.ts
+```
+#### `x_daterange`
+```lua
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89742.161689
+#EXT-X-DATERANGE:ID="1",START-DATE="2022-10-14T17:36:58.321731Z",PLANNED-DURATION=242.0,SCTE35-OUT=0xfc302f00000000000000fff01405000002967fefffe16a1ab87e014c562000010000000a00084355454900000000ebf5a2a7
+#PTS 89739.505522
+#EXTINF:4.796145,
+seg32.ts
+
+
+
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89984.161689
+#EXT-X-DATERANGE:ID="2",END-DATE="2022-10-14T17:36:58.666073Z",SCTE35-IN=0xfc302a00000000000000fff00f05000002967f4fffe2b670d800010000000a000
+843554549000000002d7a0139
+#PTS 89981.281522
+#EXTINF:5.020145,
+seg145.ts
+```
+
+#### `x_splicepoint`
+```lua
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89742.161689
+#EXT-X-SPLICEPOINT-SCTE35:/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=
+#PTS 89739.505522
+#EXTINF:4.796145,
+seg32.ts
+
+#EXT-X-DISCONTINUITY
+# Splice Point @ 89984.161689
+#EXT-X-SPLICEPOINT-SCTE35:/DAqAAAAAAAAAP/wDwUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAAAtegE5
+#PTS 89981.281522
+#EXTINF:5.020145,
+seg145.ts
+
 
 ```
 
@@ -140,155 +318,9 @@ sys	0m0.169s
 
 
 
-## `Requires` 
-* python 3.6+ or pypy3
-* [threefive](https://github.com/futzu/scte35-threefive)  
-* [new_reader](https://github.com/futzu/new_reader)
-
-## `Install`
-* Use pip to install the the x9k3 lib and  executable script x9k3
-```
-# python3
-
-python3 -mpip install x9k3
-
-# pypy3 
-
-pypy3 -mpip install x9k3
-
-```
-
-## `How to Use`
-
-
-![image](https://user-images.githubusercontent.com/52701496/185186249-4914256c-9884-4218-a9f2-e5cc86c803f7.png)
-
-
-## `Example Usage`
-
- #### `local file as input`
- ```smalltalk
-    x9k3 -i video.mpegts
- ```
-  
- #### `multicast stream as input with a live sliding window`   
-   ```smalltalk
-   x9k3 --live -i udp://@235.35.3.5:3535
-   ```
+   
+   
  
- 
- #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
-      with a sliding window, and  expiring old segments.
-       --delete implies --live
-      
-   ```smalltalk
-    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
-   ```
- 
-#### `https stream for input, and writing segments to an output directory`
-      directory will be created if it does not exist.
-  ```smalltalk
-   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
-  ```
-  
-#### `using stdin as input`
-   ```smalltalk
-   cat video.ts | x9k3
-   ```
-   
-#### `load scte35 cues from a text file`
-    
-    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
-    
-    line format for text file : pts, cue
-    
-    pts is the insert time for the cue, A four second preroll is standard. 
-    
-    cue can be base64,hex, int, or bytes
-     
-  ```smalltalk
-  a@debian:~/x9k3$ cat sidecar.txt
-  
-  38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ== 
-  38199.918911, /DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0= 
-
-      
-```
-  ```smalltalk
-  x9k3 -i  noscte35.ts  -s sidecar.txt 
-  ```
-####   `In Live Mode you can do dynamic cue injection`
-   ```smalltalk
-   touch sidecar.txt
-   
-   x9k3 -i vid.ts -s sidecar.txt -l 
-   
-   # Open another terminal and printf cues into sidecar.txt
-   
-   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
-   
-   ```
-   
-   
-   
-   
-
-## `FAQ`
-
-#### `Q.`
-How do I Customize CUE-OUT and CUE-IN ad break events?
-#### `A.` 
-Override the `X9K3.scte35.is_cue_out` and  `X9K3.scte35.is_cue_in` static methods.
-
-
-
- The __X9K3 class__ has __three static methods__ you can __override__ and __customize__.
-
-|   @staticmethod                                                                                                     |  arg                                                        |return value|  details                                                              |
-|---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|------------|-----------------------------------------------------------------------|
-| [mk_cue_tag](https://github.com/futzu/x9k3/blob/main/x9k3.py#L74) | [cue](https://github.com/futzu/scte35-threefive#cue-class)  | text       | called to generate scte35 hls tags                                    |
-|  [is_cue_out](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L81)| [cue](https://github.com/futzu/scte35-threefive#cue-class)  |  bool      |returns True if the cue is a CUE-OUT                                   |
-| [ is_cue_in](https://github.com/futzu/x9k3/blob/main/x9k3.py#L93)|   [cue](https://github.com/futzu/scte35-threefive#cue-class)| bool       |                                    returns True if the cue is a CUE-IN|
-
-
-#### `Example`
----
-*  __Override__ the static method __X9K3.scte35.is_cue_out(cue)__ 
-*  Require 
-   * a Splice Command of type `6`, __Time Signal__ 
-   * a Splice Descriptor tag of type `2`, __Segmentation Descriptor__   
-   * a Segmentation Type Id of `0x22`, __"Break Start"__
-    
-```smalltalk
-def my_cue_out(cue):
-    """
-    my_cue_out returns True 
-    if the splice command is a time signal
-    """
-    if cue.command.command_type == 6: # time signal
-        for d in cue.descriptors:      # cue.descriptors is always list
-            if d.tag ==2:              # Segmentation Descriptor tag
-                if d.segmentation_type_id == 0x22:  # Break Start
-                    return True
-    return False
-
-
-```
-* __Create__ an __X9K3__ instance
-
-```smalltalk
-from x9k3 import X9K3
-x9 = X9K3("vid.ts")
-```
-* __set is_cue_out to your custom function__
-
-```smalltalk
-x9.scte35.is_cue_out = my_cue_out
-x9.decode()
-```
-
-![image](https://user-images.githubusercontent.com/52701496/191659902-516b9ac7-8c71-427d-85a7-8bfa4f90d847.png)
-
 
 
 
