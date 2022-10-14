@@ -5,6 +5,7 @@ X9K3
 """
 
 import argparse
+import datetime
 import io
 import os
 import sys
@@ -19,7 +20,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "43"
+MAINTAINENCE = "44"
 
 
 def version():
@@ -68,6 +69,7 @@ class SCTE35:
         self.tag_method = self.x_scte35
         self.break_timer = None
         self.break_duration = None
+        self.event_id =1
 
     def mk_cue_tag(self):
         """
@@ -107,6 +109,32 @@ class SCTE35:
             return f"{base},CUE-OUT=CONT"
         return False
 
+    def x_daterange(self):
+        """
+        #EXT-X-DATERANGE:ID="187",START-DATE="2018-09-11T21:44:00Z"
+        ,PLANNED-DURATION=24,
+        SCTE35-OUT=0xFC302100000000000000FFF010050
+        """
+        fbase = f'#EXT-X-DATERANGE:ID="{self.event_id}"'
+        iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
+      #  fdur=f',PLANNED-DURATION={self.break_duration}'
+        
+        if self.cue_out == "OUT":
+                    fstart = f',START-DATE="{iso8601}"'
+                    tag = f'{fbase}{fstart},SCTE35-OUT={self.cue.encode_as_hex()}'
+                    self.event_id +=1
+                    return tag
+                    
+        if self.cue_out == "IN":
+                    fstop = f',END-DATE="{iso8601}"'
+                    tag =  f'{fbase}{fstop},SCTE35-IN={self.cue.encode_as_hex()}'
+                    self.event_id +=1
+                    return tag
+
+        return False
+
+
+        
     @staticmethod
     def is_cue_out(cue):
         """
@@ -470,6 +498,8 @@ class X9K3(Stream):
             cue_tag = self.scte35.mk_cue_tag()
             if cue_tag:
                 self.active_data.write(cue_tag + "\n")
+            self.active_data.write(f'#PTS {round(self.seg.seg_start, 6)}\n')
+
             with open(self.seg.seg_uri, "wb+") as a_seg:
                 a_seg.write(self.active_segment.getbuffer())
                 a_seg.flush()
