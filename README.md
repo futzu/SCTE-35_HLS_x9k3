@@ -26,7 +26,7 @@
 
 ## `Details` 
 
-*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the --hls_tag switch.
+*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
 
 * Segments are cut on iframes.
 
