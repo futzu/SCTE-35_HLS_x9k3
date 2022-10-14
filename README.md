@@ -59,9 +59,10 @@ seg2.ts
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
 * [new_reader](https://github.com/futzu/new_reader)
+* [iframes](https://github.com/futzu/iframes)
 
 ## `Install`
-* Use pip to install the the x9k3 lib and  executable script x9k3
+* Use pip to install the the x9k3 lib and  executable script x9k3 (_will install threefive, new_reader and iframes too_)
 ```
 # python3
 
