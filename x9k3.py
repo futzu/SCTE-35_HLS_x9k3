@@ -66,7 +66,7 @@ class SCTE35:
         self.cue_out = None
         self.cue_tag = None
         self.cue_time = None
-        self.tag_method = self.x_scte35
+        self.tag_method = self.x_daterange
         self.break_timer = None
         self.break_duration = None
         self.event_id =1
@@ -234,6 +234,13 @@ class X9K3(Stream):
         )
 
         parser.add_argument(
+            
+            "--hls_tag",
+            default="x_scte35",
+            help="""hls tag  can be x_scte35, x_daterange, or x_splicepoint """,
+        )
+
+        parser.add_argument(
             "-o",
             "--output_dir",
             default=".",
@@ -307,6 +314,10 @@ class X9K3(Stream):
         else:
             self._tsdata = sys.stdin.buffer
 
+    def _args_hls_tag(self,args):
+        if args.hls_tag not in ("x_scte35", "x_daterange",  "x_splicepoint"):
+            raise ValueError("hls tag  can be x_scte35, x_daterange, or x_splicepoint ")
+
     def _args_output_dir(self, args):
         self.output_dir = args.output_dir
         if not os.path.isdir(args.output_dir):
@@ -335,6 +346,7 @@ class X9K3(Stream):
         """
         self._args_version(args)
         self._args_input(args)
+        self._args_hls_tag(args)
         self._args_output_dir(args)
         self._args_sidecar(args)
         self._args_time(args)
@@ -661,7 +673,8 @@ def cli():
     """
     cli provides one function call
     for running X9K3  with command line args
-    usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-l] [-d] [-r] [-v]
+    usage: x9k3.py [-h] [-i INPUT] [--hls_tag HLS_TAG] [-o OUTPUT_DIR] [-s SIDECAR]
+               [-t TIME] [-l] [-d] [-r] [-v]
 
     Two lines of code gives you a full X9K3 command line tool.
 
