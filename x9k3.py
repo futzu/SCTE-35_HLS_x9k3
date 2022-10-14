@@ -20,7 +20,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "44"
+MAINTAINENCE = "45"
 
 
 def version():
@@ -66,7 +66,7 @@ class SCTE35:
         self.cue_out = None
         self.cue_tag = None
         self.cue_time = None
-        self.tag_method = self.x_daterange
+        self.tag_method = self.x_cue
         self.break_timer = None
         self.break_duration = None
         self.event_id =1
@@ -79,17 +79,19 @@ class SCTE35:
             return self.tag_method()
         return False
 
-    ##
-    ##    def x_cue(self):
-    ##        if self.cue_out == "OUT":
-    ##            return f"#EXT-X-CUE-OUT:{self.break_duration}'
-    ##       if self.cue_out == "IN":
-    ##            return f"#EXT-X-CUE-IN"
-    ##       if self.cue_out == "CONT":
-    ##            return (
-    ##                f"#EXT-X-CUE-OUT-CONT:{self.break_timer:.6f}/{self.break_duration}"
-    ##            )
-    ##        return False
+
+    def x_cue(self):
+        if self.cue_out == "OUT":
+            self.break_timer = 0
+            return f'#EXT-X-CUE-OUT:{self.break_duration}'
+        if self.cue_out == "IN":
+            self.break_timer= None
+            return f"#EXT-X-CUE-IN"
+        if self.cue_out == "CONT":
+            return (
+                f"#EXT-X-CUE-OUT-CONT:{self.break_timer:.6f}/{self.break_duration}"
+            )
+        return False
 
     def x_splicepoint(self):
         base = f"#EXT-X-SPLICEPOINT-SCTE35:{self.cue.encode()}"
@@ -117,15 +119,19 @@ class SCTE35:
         """
         fbase = f'#EXT-X-DATERANGE:ID="{self.event_id}"'
         iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
-      #  fdur=f',PLANNED-DURATION={self.break_duration}'
+        fdur=""
+        if self.break_duration:
+            fdur=f',PLANNED-DURATION={self.break_duration}'
         
         if self.cue_out == "OUT":
+                    self.break_timer = 0
                     fstart = f',START-DATE="{iso8601}"'
-                    tag = f'{fbase}{fstart},SCTE35-OUT={self.cue.encode_as_hex()}'
+                    tag = f'{fbase}{fstart}{fdur},SCTE35-OUT={self.cue.encode_as_hex()}'
                     self.event_id +=1
                     return tag
                     
         if self.cue_out == "IN":
+                    self.break_timer = None
                     fstop = f',END-DATE="{iso8601}"'
                     tag =  f'{fbase}{fstop},SCTE35-IN={self.cue.encode_as_hex()}'
                     self.event_id +=1
@@ -135,28 +141,54 @@ class SCTE35:
 
 
         
-    @staticmethod
-    def is_cue_out(cue):
+    def is_cue_out(self,cue):
         """
         is_cue_out checks a Cue instance
         to see if it is a cue_out event.
         Returns True for a cue_out event.
         """
-        if cue.command.command_type == 5:
-            if cue.command.out_of_network_indicator:
-                return True
+        cmd =cue.command
+        if cmd.command_type == 5:
+            if cmd.out_of_network_indicator:
+                if cmd.break_duration:
+                    self.break_duration= cmd.break_duration
+                    self.break_timer= 0
+                    return True
+
+        upid_starts=[0x10,0x20,0x22,0x30,0x32,0x34,0x36,0x38,0x3a,0x3c,0x3e,0x44,0x46]               
+        if cmd.command_type ==6:
+            for d in cue.descriptors:
+                if d.tag ==2:
+                    if d.segmentation_type_id in upid_starts:
+                        if d.segmentation_duration:
+                            self.break_duration= d.segmentation_duration
+                            self.break_timer =0
+                            return True
+                
         return False
 
-    @staticmethod
-    def is_cue_in(cue):
+    def is_cue_in(self,cue):
         """
         is_cue_in checks a Cue instance
         to see if it is a cue_in event.
         Returns True for a cue_in event.
         """
-        if cue.command.command_type == 5:
-            if not cue.command.out_of_network_indicator:
+        cmd = cue.command
+        if cmd.command_type == 5:
+            if not cmd.out_of_network_indicator:
+                self.break_duration = None
+                self.break_timer =None
                 return True
+            
+        upid_stops = [0x11,0x21,0x21,0x23,0x33,0x35,0x37,0x39,0x3b,0x3d,0x3f,0x45,0x47]
+        if cmd.command_type ==6:
+            for d in cue.descriptors:
+                if d.tag ==2:
+                    if d.segmentation_type_id in upid_stops:
+                        self.break_duration = None
+                        self.break_timer =None
+                        return True                
+
         return False
 
     def cue_out_cue_in(self):
@@ -236,8 +268,8 @@ class X9K3(Stream):
         parser.add_argument(
             
             "--hls_tag",
-            default="x_scte35",
-            help="""hls tag  can be x_scte35, x_daterange, or x_splicepoint """,
+            default="x_cue",
+            help="""hls tag  can be x_scte35, x_cue, x_daterange, or x_splicepoint """,
         )
 
         parser.add_argument(
@@ -315,8 +347,13 @@ class X9K3(Stream):
             self._tsdata = sys.stdin.buffer
 
     def _args_hls_tag(self,args):
-        if args.hls_tag not in ("x_scte35", "x_daterange",  "x_splicepoint"):
-            raise ValueError("hls tag  can be x_scte35, x_daterange, or x_splicepoint ")
+        tag_map ={"x_scte35": self.scte35.x_scte35,
+                              "x_cue":self.scte35.x_cue,
+                              "x_daterange":self.scte35.x_daterange,
+                              "x_splicepoint":self.scte35.x_splicepoint}
+        if args.hls_tag not in  tag_map:
+            raise ValueError(f"hls tag  must be in {tag_map.keys()}")
+        self.scte35.tag_method = tag_map[args.hls_tag]
 
     def _args_output_dir(self, args):
         self.output_dir = args.output_dir
@@ -507,9 +544,12 @@ class X9K3(Stream):
         self.seg.seg_uri = self.mk_uri(self.output_dir, seg_file)
         if self.seg.seg_stop:
             self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
+
             cue_tag = self.scte35.mk_cue_tag()
             if cue_tag:
                 self.active_data.write(cue_tag + "\n")
+            if self.scte35.break_duration:     
+                self.scte35.break_timer +=self.seg.seg_time
             self.active_data.write(f'#PTS {round(self.seg.seg_start, 6)}\n')
 
             with open(self.seg.seg_uri, "wb+") as a_seg:
@@ -673,8 +713,7 @@ def cli():
     """
     cli provides one function call
     for running X9K3  with command line args
-    usage: x9k3.py [-h] [-i INPUT] [--hls_tag HLS_TAG] [-o OUTPUT_DIR] [-s SIDECAR]
-               [-t TIME] [-l] [-d] [-r] [-v]
+    usage: x9k3.py [-h] [-i INPUT] [--hls_tag HLS_TAG] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME] [-l] [-d] [-r] [-v]
 
     Two lines of code gives you a full X9K3 command line tool.
 
