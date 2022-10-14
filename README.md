@@ -20,7 +20,6 @@
    * Supports __h264__ and __h265__ and __mpeg2__ video.
    * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
-   * [__Customizable__](https://github.com/futzu/scte35-hls-x9k3/blob/main/README.md#faq)  Ad Break __Criteria__
    *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
 
 ---
