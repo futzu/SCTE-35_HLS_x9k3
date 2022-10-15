@@ -11,7 +11,7 @@
 
 # `x9k3`
 
-### Latest is `v.0.1.45`
+### Latest release is `v.0.1.45`
 
 ##  `HLS Segmenter with SCTE-35 Baked In`
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
