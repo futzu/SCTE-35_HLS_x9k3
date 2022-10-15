@@ -10,7 +10,6 @@ import io
 import os
 import sys
 import time
-from base64 import b64encode
 from collections import deque
 from functools import partial
 from operator import itemgetter
@@ -64,7 +63,6 @@ class SCTE35:
     def __init__(self):
         self.cue = None
         self.cue_out = None
-        self.cue_tag = None
         self.cue_time = None
         self.tag_method = self.x_scte35
         self.break_timer = None
@@ -80,17 +78,23 @@ class SCTE35:
         return False
 
     def x_cue(self):
+        """
+        #EXT-X-CUE-( OUT | IN | CONT )
+        """
         if self.cue_out == "OUT":
             self.break_timer = 0
             return f"#EXT-X-CUE-OUT:{self.break_duration}"
         if self.cue_out == "IN":
             self.break_timer = None
-            return f"#EXT-X-CUE-IN"
+            return "#EXT-X-CUE-IN"
         if self.cue_out == "CONT":
             return f"#EXT-X-CUE-OUT-CONT:{self.break_timer:.6f}/{self.break_duration}"
         return False
 
     def x_splicepoint(self):
+        """
+        #EXT-X-SPLICEPOINT-SCTE35
+        """
         base = f"#EXT-X-SPLICEPOINT-SCTE35:{self.cue.encode()}"
         if self.cue_out == "OUT":
             return f"{base}"
@@ -99,6 +103,9 @@ class SCTE35:
         return False
 
     def x_scte35(self):
+        """
+        #EXT-X-SCTE35
+        """
         base = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
         if self.cue_out == "OUT":
             return f"{base},CUE-OUT=YES "
@@ -110,9 +117,7 @@ class SCTE35:
 
     def x_daterange(self):
         """
-        #EXT-X-DATERANGE:ID="187",START-DATE="2018-09-11T21:44:00Z"
-        ,PLANNED-DURATION=24,
-        SCTE35-OUT=0xFC302100000000000000FFF010050
+        #EXT-X-DATERANGE
         """
         fbase = f'#EXT-X-DATERANGE:ID="{self.event_id}"'
         iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
@@ -166,11 +171,11 @@ class SCTE35:
             0x46,
         ]
         if cmd.command_type == 6:
-            for d in cue.descriptors:
-                if d.tag == 2:
-                    if d.segmentation_type_id in upid_starts:
-                        if d.segmentation_duration:
-                            self.break_duration = d.segmentation_duration
+            for dsptr in cue.descriptors:
+                if dsptr.tag == 2:
+                    if dsptr.segmentation_type_id in upid_starts:
+                        if dsptr.segmentation_duration:
+                            self.break_duration = dsptr.segmentation_duration
                             self.break_timer = 0
                             return True
 
@@ -205,9 +210,9 @@ class SCTE35:
             0x47,
         ]
         if cmd.command_type == 6:
-            for d in cue.descriptors:
-                if d.tag == 2:
-                    if d.segmentation_type_id in upid_stops:
+            for dsptr in cue.descriptors:
+                if dsptr.tag == 2:
+                    if dsptr.segmentation_type_id in upid_stops:
                         self.break_duration = None
                         self.break_timer = None
                         return True
@@ -258,19 +263,21 @@ class X9K3(Stream):
         self.active_data = io.StringIO()
         self.start = False
         self.scte35 = SCTE35()
+        self.seg = SegData()
+        self.iframer = IFramer(shush=True)
         self.window = []
+        self.window_size = 5
         self.window_slot = 0
         self.header = None
         self.live = False
         self.output_dir = "."
         self.delete = False
-        self.seg = SegData()
         self.sidecar_file = None
         self.sidecar = None
         self.seconds = 2
         self.replay = False
+        self.discontinuity_sequence = 0
         self._parse_args()
-        self.iframer = IFramer(shush=True)
 
     def _parse_args(self):
         """
@@ -314,7 +321,7 @@ class X9K3(Stream):
             "-T",
             "--hls_tag",
             default="x_cue",
-            help="""hls tag  can be x_scte35, x_cue, x_daterange, or x_splicepoint  (default x_cue)""",
+            help="x_scte35, x_cue, x_daterange, or x_splicepoint  (default x_cue)",
         )
 
         parser.add_argument(
@@ -408,7 +415,7 @@ class X9K3(Stream):
     def _args_time(self, args):
         self.seconds = args.time
 
-    def _args_window_size(self,args):
+    def _args_window_size(self, args):
         self.window_size = args.window_size
 
     def _apply_args(self, args):
@@ -446,17 +453,20 @@ class X9K3(Stream):
         """
         m3u = "#EXTM3U"
         m3u_version = "#EXT-X-VERSION:3"
-        headers = [m3u, m3u_version]
-        if not self.live:
-            play_type = "#EXT-X-PLAYLIST-TYPE:VOD"
-            headers.append(play_type)
-        target = f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}"
-        headers.append(target)
+        target = f"#EXT-X-TARGETDURATION:{int(self.seconds*2)}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
-        headers.append(seq)
+        dseq = f"#EXT-X-DISCONTINUITY-SEQUENCE:{self.discontinuity_sequence}"
         bumper = ""
-        headers.append(bumper)
-        self.header = "\n".join(headers)
+        self.header = "\n".join(
+            [
+                m3u,
+                m3u_version,
+                target,
+                seq,
+                dseq,
+                bumper,
+            ]
+        )
 
     def load_sidecar(self, file, pid):
         """
@@ -550,7 +560,7 @@ class X9K3(Stream):
         has a tag with CUE-OUT=CONT
         """
         self.window_slot += 1
-        self.window_slot = self.window_slot % (self.window_size+ 1)
+        self.window_slot = self.window_slot % (self.window_size + 1)
 
     def _mk_segment(self, pid):
         """
@@ -585,7 +595,7 @@ class X9K3(Stream):
                 self.active_data.write(cue_tag + "\n")
             if self.scte35.break_duration:
                 self.scte35.break_timer += self.seg.seg_time
-            #self.active_data.write(f"#PTS {round(self.seg.seg_start, 6)}\n")
+            # self.active_data.write(f"#PTS {round(self.seg.seg_start, 6)}\n")
 
             with open(self.seg.seg_uri, "wb+") as a_seg:
                 a_seg.write(self.active_segment.getbuffer())
@@ -617,6 +627,10 @@ class X9K3(Stream):
                 os.unlink(drop)
             self.window = self.window[1:]
 
+    def _discontinuity_seq_plus_one(self):
+        if "DISCONTINUITY" in self.window[0][2]:
+            self.discontinuity_sequence += 1
+
     def _open_m3u8(self):
         m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
         return open(m3u8_uri, "w+", encoding="utf-8")
@@ -628,11 +642,12 @@ class X9K3(Stream):
         """
         self.stream_diff()
         if self.live:
+            self._discontinuity_seq_plus_one()
             self._pop_segment()
             if self.window:
                 self.seg.start_seg_num = self.window[0][0]
             else:
-                return 
+                return
         with self._open_m3u8() as m3u8:
             self._mk_header()
             m3u8.write(self.header)
@@ -751,8 +766,6 @@ def cli():
     """
     cli provides one function call
     for running X9K3  with command line args
-    usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-v]
-
     Two lines of code gives you a full X9K3 command line tool.
 
      from X9K3 import cli
