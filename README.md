@@ -160,6 +160,49 @@ a@debian:~/x9k3$
    printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
    
    ```
+   ---
+##   `CUE-OUT`
+
+* `A Splice Insert Command` with:
+   *  the `out_of_network_indicator` set to `True` 
+   *  a `break_duration`.
+        
+* `A Time Signal Command` with:
+   *  a `segmentation_duration` 
+   *  a `segmentation_type_id` of:
+      * 0x10: "Program Start",
+      * 0x20: "Chapter Start"
+      * 0x22: "Break Start",
+      * 0x30: "Provider Advertisement Start",
+      * 0x32: "Distributor Advertisement Start",
+      * 0x34: "Provider Placement Opportunity Start",
+      * 0x36: "Distributor Placement Opportunity Start",
+      * 0x3C: "Provider Promo Start",
+      * 0x3E: "Distributor Promo Start",
+      * 0x44: "Provider Ad Block Start",
+      * 0x46: "Distributor Ad Block Start",
+
+
+## `CUE-IN`
+
+* `A Splice Insert Command`
+  *  with the `out_of_network_indicator` set to `False`
+
+* `A Time Signal Command` with:
+   *  a `segmentation_type_id` of:
+      *  0x11: "Program End",
+      * 0x21: "Chapter End",
+      * 0x23: "Break End",
+      * 0x31: "Provider Advertisement End",
+      * 0x33: "Distributor Advertisement End",
+      * 0x35: "Provider Placement Opportunity End",
+      * 0x37: "Distributor Placement Opportunity End",
+      * 0x3D: "Provider Promo End",
+      * 0x3F: "Distributor Promo End",
+      * 0x45: "Provider Ad Block End",
+      * 0x47: "Distributor Ad Block End",
+   
+    ---
 ## `HLS  Tags`
 ####  `x_cue`
 ```lua
