@@ -1,12 +1,11 @@
-[Details](#details)  |
  [Install](#install) |
  [Use](#how-to-use) |
- [Live Events](#live)  |
+ [CUE-OUT](#cue-out) |
+ [CUE-IN](#cue-in)   |
+ [SCTE-35 Tags](#hls--tags) |
+ [Sidecar SCTE35](#load-scte35-cues-from-a-text-file) |
+ [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
- [Feedback](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
- [Cue](https://github.com/futzu/scte35-threefive/blob/master/cue.md)  |
- [Stream Diff](#stream-diff)  |
- [Sidecar SCTE35](#load-scte35-cues-from-a-text-file)  |
 
 
 # `x9k3`
