@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "53"
+MAINTAINENCE = "55"
 
 
 def version():
@@ -247,22 +247,24 @@ class X9K3(Stream):
         self.in_stream = tsdata
         self.active_segment = io.BytesIO()
         self.active_data = io.StringIO()
-        self.start = False
         self.scte35 = SCTE35()
         self.seg = SegData()
         self.iframer = IFramer(shush=True)
         self.window = []
         self.window_size = 5
         self.window_slot = 0
+        self.seconds = 2
+        self.discontinuity_sequence = 0
         self.header = None
-        self.live = False
-        self.output_dir = "."
-        self.delete = False
         self.sidecar_file = None
         self.sidecar = None
-        self.seconds = 2
+        self.output_dir = "."
+        self.start = False
+        self.live = False
         self.replay = False
-        self.discontinuity_sequence = 0
+        self.debug = False
+        self.delete = False
+
         self._parse_args()
 
     def _parse_args(self):
@@ -354,6 +356,15 @@ class X9K3(Stream):
             help="Show version",
         )
 
+        parser.add_argument(
+            "-D",
+            "--debug",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag to add iframe PTS comments to index.m3u8",
+        )
+
         args = parser.parse_args()
         self._apply_args(args)
 
@@ -404,12 +415,16 @@ class X9K3(Stream):
     def _args_window_size(self, args):
         self.window_size = args.window_size
 
+    def _args_debug(self, args):
+        self.debug = args.debug
+
     def _apply_args(self, args):
         """
         _apply_args  uses command line args
         to set X9K3 instance vars
         """
         self._args_version(args)
+        self._args_debug(args)
         self._args_input(args)
         self._args_hls_tag(args)
         self._args_output_dir(args)
@@ -439,7 +454,7 @@ class X9K3(Stream):
         """
         m3u = "#EXTM3U"
         m3u_version = "#EXT-X-VERSION:3"
-        target = f"#EXT-X-TARGETDURATION:{int(self.seconds*2)}"
+        target = f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
         dseq = f"#EXT-X-DISCONTINUITY-SEQUENCE:{self.discontinuity_sequence}"
         bumper = ""
@@ -468,14 +483,14 @@ class X9K3(Stream):
                         pts, cue = line.split(",", 1)
                         if float(pts) >= self.pid2pts(pid):
                             if [float(pts), cue] not in self.sidecar:
-                                print("loading",pts,cue)
+                                print("loading", pts, cue)
                                 self.sidecar.append([float(pts), cue])
                                 self.sidecar = deque(
                                     sorted(self.sidecar, key=itemgetter(0))
                                 )
                 sidefile.close()
             if self.live:
-                with open(self.sidecar_file,'w') as scf:
+                with open(self.sidecar_file, "w") as scf:
                     scf.close()
 
     def chk_sidecar_cues(self, pid):
@@ -488,7 +503,6 @@ class X9K3(Stream):
                 raw = self.sidecar.popleft()[1]
                 self.scte35.cue = Cue(raw)
                 self.scte35.cue.decode()
-                # self.scte35.cue_tag = self.scte35.mk_cue_tag(self.scte35.cue)
                 self._chk_cue(pid)
 
     def chk_stream_cues(self, pkt, pid):
@@ -503,8 +517,6 @@ class X9K3(Stream):
 
     def _add_discontinuity(self):
         self.active_data.write("#EXT-X-DISCONTINUITY\n")
-    #    self.seg.seg_start = None
-      #  self.seg.seg_stop = None
 
     def _chk_cue(self, pid):
         """
@@ -519,14 +531,14 @@ class X9K3(Stream):
             print(
                 f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
             )
-            #self.scte35.cue_out = None
+            # self.scte35.cue_out = None
 
         else:
             self.scte35.cue_time = self.pid2pts(pid)
             self.active_data.write("# Splice Immediate\n")
-           # self._mk_cue_splice_point(pid)
+        # self._mk_cue_splice_point(pid)
 
-    def _mk_cue_splice_point(self,pid):
+    def _mk_cue_splice_point(self, pid):
         """
         _mk_cue_splice_point inserts a tag
         at the time specified in the cue.
@@ -534,14 +546,16 @@ class X9K3(Stream):
         if self.scte35.cue:
             if self.scte35.cue_time == self.pid2pts(pid):
                 if self.scte35.is_cue_out(self.scte35.cue):
-                    print(f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}")
+                    print(
+                        f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}"
+                    )
                     self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                     self.scte35.cue_out = "OUT"
                     self._add_discontinuity()
-            if self.scte35.break_timer >= self.scte35.break_duration:
+            if self.scte35.break_timer > self.scte35.break_duration:
                 self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                 self._add_discontinuity()
-                self.scte35.cue_out ='IN'
+                self.scte35.cue_out = "IN"
 
             if self.scte35.cue_out is None:
                 self.scte35.cue_time = None
@@ -561,21 +575,7 @@ class X9K3(Stream):
         _mk_segment cuts hls segments
         """
         now = self.pid2pts(pid)
-        #if now - self.seg.seg_start >= self.seconds:
-
-
-        if self.scte35.cue_out=='CONT':
-            if self.scte35.is_cue_in(self.scte35.cue):
-                self.scte35.cue_out ='IN'
-                if self.scte35.break_timer >= self.scte35.break_duration:
-                    self.seg.seg_stop = now
-                    self._mk_cue_splice_point(pid)
-
-                    self._write_segment()
-                    self._write_manifest()
-                    self.scte35.cue = None
-                    self.scte35.cue_time = None
-                    return
+        # if now - self.seg.seg_start >= self.seconds:
         if now >= self.seg.seg_stop:
             self.seg.seg_stop = now
         if self.scte35.cue_time:
@@ -585,12 +585,15 @@ class X9K3(Stream):
                 if self.scte35.is_cue_out(self.scte35.cue):
                     self._mk_cue_splice_point(pid)
                     self.scte35.cue_time = None
+                if self.scte35.is_cue_in(self.scte35.cue):
+                    if self.scte35.break_timer > self.scte35.break_duration:
+                        self.scte35.cue_out = "IN"
+                        self._mk_cue_splice_point(pid)
         if self.seg.seg_stop:
             if self.seg.seg_stop <= now:
                 self.seg.seg_stop = now
                 self._write_segment()
                 self._write_manifest()
-
 
     def _write_segment(self):
         """
@@ -605,8 +608,8 @@ class X9K3(Stream):
             self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
 
             cue_tag = self.scte35.mk_cue_tag()
-            print(cue_tag)
             if cue_tag:
+                print(cue_tag)
                 self.active_data.write(cue_tag + "\n")
             if self.scte35.break_duration:
                 self.scte35.break_timer += self.seg.seg_time
@@ -633,9 +636,9 @@ class X9K3(Stream):
                 self.cue_out_continue()
 
     def _auto_return(self):
-        if self.scte35.cue_out == 'CONT':
+        if self.scte35.cue_out == "CONT":
             if self.scte35.break_timer >= self.scte35.break_duration:
-                self.scte35.cue_out='IN'
+                self.scte35.cue_out = "IN"
                 self.scte35.break_timer = None
                 self.active_data.write("#auto")
                 self._add_discontinuity()
@@ -652,6 +655,12 @@ class X9K3(Stream):
     def _discontinuity_seq_plus_one(self):
         if "DISCONTINUITY" in self.window[0][2]:
             self.discontinuity_sequence += 1
+        if "DISCONTINUITY" in self.window[-1][2]:
+            self.reset_stream()
+
+    def _reset_stream(self):
+        self.seg.seg_start = None
+        self.seg.seg_stop = None
 
     def _open_m3u8(self):
         m3u8_uri = self.mk_uri(self.output_dir, "index.m3u8")
@@ -674,11 +683,10 @@ class X9K3(Stream):
             m3u8.write(self.header)
             for i in self.window:
                 m3u8.write(i[2])
- #           if self.scte35.cue_out=='IN':
-   #             self.scte35.cue_out = None
+            if self.scte35.cue_out == "IN":
+                self.scte35.cue_out = None
             if not self.live:
                 m3u8.write("#EXT-X-ENDLIST")
-
 
     def stream_diff(self):
         """
@@ -731,7 +739,9 @@ class X9K3(Stream):
             pts |= payload[13] >> 1
             prgm = self.pid2prgm(pid)
             self.maps.prgm_pts[prgm] = pts
-            #self.active_data.write(f'#PTS {self.as_90k(pts)}\n')
+            # iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
+            if self.debug:
+                self.active_data.write(f"#Iframe @ {self.as_90k(pts)} \n")
             if not self.seg.seg_start:
                 self.seg.seg_start = self.as_90k(pts)
                 self.seg.seg_stop = self.seg.seg_start + self.seconds
@@ -747,15 +757,13 @@ class X9K3(Stream):
         if pid in self.pids.scte35:
             self.chk_stream_cues(pkt, pid)
         if self._pusi_flag(pkt):
-            self._parse_pts(pkt, pid)
             if self.iframer.parse(pkt):
-                #      self.sps.is_sps(pkt)
+                self._parse_pts(pkt, pid)
                 self.load_sidecar(self.sidecar_file, pid)
                 self._mk_segment(pid)
                 if not self.start:
                     self.start = True
-        if self.start:
-            self.active_segment.write(pkt)
+        self.active_segment.write(pkt)
 
     def loop(self):
         """
