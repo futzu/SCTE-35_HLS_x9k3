@@ -5,7 +5,7 @@
  [SCTE-35 Tags](#hls--tags) |
  [Sidecar SCTE35](#load-scte35-cues-from-a-text-file) |
  [Live](#live)  |
- [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)  |
+ [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 
 # `x9k3`
