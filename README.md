@@ -10,16 +10,18 @@
 
 # `x9k3`
 
-### Latest release is `v.0.1.51` _(fixed CUE-IN / DISCONTINUITY bug)_
+### Latest release is `v.0.1.51` 
+
+_fixed the cue-in / discontinuity bug._
 
 ##  `HLS Segmenter with SCTE-35 Baked In`
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
-   *  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated.
+   * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
+   * __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated.
    * Segments are __Split on SCTE-35 Cues__ as needed.
    * Supports __h264__ and __h265__ and __mpeg2__ video.
-   * __Multi-protocol.__ Files, __Http(s)__, __Multicast__, and __Udp__.
+   * __Multi-protocol.__ Files, Http(s), Multicast, and Udp.
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
-   *  __SCTE-35 Cues Can Now Load from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
 
 ---
 
