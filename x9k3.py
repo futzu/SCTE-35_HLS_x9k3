@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "51"
+MAINTAINENCE = "53"
 
 
 def version():
@@ -634,9 +634,9 @@ class X9K3(Stream):
 
     def _auto_return(self):
         if self.scte35.cue_out == 'CONT':
-           if self.scte35.break_timer >= self.scte35.break_duration:
+            if self.scte35.break_timer >= self.scte35.break_duration:
                 self.scte35.cue_out='IN'
-                self.scte35.ad_timer = None
+                self.scte35.break_timer = None
                 self.active_data.write("#auto")
                 self._add_discontinuity()
             # self.scte35.cue_out_cue_in()
