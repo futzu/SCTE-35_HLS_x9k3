@@ -10,7 +10,7 @@
 
 # `x9k3`
 
-### Latest release is `v.0.1.51` 
+### Latest release is `v.0.1.53` 
 
 _fixed the cue-in / discontinuity bug._
 
