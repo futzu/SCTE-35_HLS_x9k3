@@ -76,24 +76,37 @@ pypy3 -mpip install x9k3
 
 ## `How to Use`
 ```smalltalk
-x9k3 -h
-usage: x9k3.py [-h] [-i INPUT] [--hls_tag HLS_TAG] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME] [-l] [-d] [-r] [-v]
+a@debian:~/build/x9k3$ x9k3 -h
+usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
+            [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-v]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
+  
   -i INPUT, --input INPUT
-                        Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
-  --hls_tag HLS_TAG     hls tag can be x_scte35, x_cue, x_daterange, or x_splicepoint
+                        Input source, like "/home/a/vid.ts" or
+                        "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+                        
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Directory for segments and index.m3u8 ( created if it does not exist )
+                       Directory for segments and index.m3u8 ( created if it does not exist )
+                        
   -s SIDECAR, --sidecar SIDECAR
                         Sidecar file of scte35 cues. each line contains PTS, Cue
+                        
   -t TIME, --time TIME  Segment time in seconds ( default is 2)
+  
+  -T HLS_TAG, --hls_tag HLS_TAG
+                        Tags are x_scte35, x_cue, x_daterange, or x_splicepoint (default x_cue)
+                        
+  -w WINDOW_SIZE, --window_size WINDOW_SIZE    sliding window size(default:5)
+                        
+  -d, --delete          Delete segments ( enables --live )
+  
   -l, --live            Flag for a live event ( enables sliding window m3u8 )
-  -d, --delete          delete segments ( enables --live )
+  
   -r, --replay          Flag for replay (looping) ( enables --live and --delete )
   -v, --version         Show version
-a@debian:~/x9k3$ 
+
 
 ```
 
