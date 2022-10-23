@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-X9K3      
+X9K3
 """
 
 import argparse
@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "49"
+MAINTAINENCE = "51"
 
 
 def version():
@@ -541,6 +541,7 @@ class X9K3(Stream):
             if self.scte35.break_timer >= self.scte35.break_duration:
                 self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                 self._add_discontinuity()
+                self.scte35.cue_out ='IN'
 
             if self.scte35.cue_out is None:
                 self.scte35.cue_time = None
@@ -565,15 +566,15 @@ class X9K3(Stream):
 
         if self.scte35.cue_out=='CONT':
             if self.scte35.is_cue_in(self.scte35.cue):
+                self.scte35.cue_out ='IN'
                 if self.scte35.break_timer >= self.scte35.break_duration:
                     self.seg.seg_stop = now
-                    self.scte35.cue_out ='IN'
                     self._mk_cue_splice_point(pid)
-                    self.active_data.write(f'#PTS   {self.pid2pts(pid)}\n')
-                    self.scte35.cue = None
-                    self.scte35.cue_time = None
+
                     self._write_segment()
                     self._write_manifest()
+                    self.scte35.cue = None
+                    self.scte35.cue_time = None
                     return
         if now >= self.seg.seg_stop:
             self.seg.seg_stop = now
@@ -604,6 +605,7 @@ class X9K3(Stream):
             self.seg.seg_time = round(self.seg.seg_stop - self.seg.seg_start, 6)
 
             cue_tag = self.scte35.mk_cue_tag()
+            print(cue_tag)
             if cue_tag:
                 self.active_data.write(cue_tag + "\n")
             if self.scte35.break_duration:
