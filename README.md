@@ -10,10 +10,10 @@
 
 # `x9k3`
 
-### Latest release is `v.0.1.55` 
+### Latest release is `v.0.1.57` 
 
-_fixed the cue-in / discontinuity bug._
-
+* _fixed the cue-in / discontinuity bug._
+* _added program date time tags_
 ##  `HLS Segmenter with SCTE-35 Baked In`
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
