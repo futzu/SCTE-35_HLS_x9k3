@@ -77,8 +77,8 @@ pypy3 -mpip install x9k3
 ## `How to Use`
 ```smalltalk
 a@debian:~/build/x9k3$ x9k3 -h
-usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
-            [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-v] [-D]
+usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
+               [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-v] [-p]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -89,7 +89,8 @@ optional arguments:
                         Directory for segments and index.m3u8 ( created if it
                         does not exist )
   -s SIDECAR, --sidecar SIDECAR
-                        Sidecar file of scte35. each line contains PTS, Cue
+                        Sidecar file of scte35 cues. each line contains PTS,
+                        Cue
   -t TIME, --time TIME  Segment time in seconds ( default is 2)
   -T HLS_TAG, --hls_tag HLS_TAG
                         x_scte35, x_cue, x_daterange, or x_splicepoint
@@ -101,7 +102,9 @@ optional arguments:
   -r, --replay          Flag for replay (looping) ( enables --live and
                         --delete )
   -v, --version         Show version
-  -D, --debug           Flag to add iframe PTS comments to index.m3u8
+  -p, --program_date_time
+                        Flag to add Program Date Time tags to index.m3u8 (
+                        enables --live)
 
 
 ```
