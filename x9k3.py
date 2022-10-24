@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "55"
+MAINTAINENCE = "57"
 
 
 def version():
@@ -262,7 +262,7 @@ class X9K3(Stream):
         self.start = False
         self.live = False
         self.replay = False
-        self.debug = False
+        self.program_date_time_flag = False
         self.delete = False
 
         self._parse_args()
@@ -357,12 +357,12 @@ class X9K3(Stream):
         )
 
         parser.add_argument(
-            "-D",
-            "--debug",
+            "-p",
+            "--program_date_time",
             action="store_const",
             default=False,
             const=True,
-            help="Flag to add iframe PTS comments to index.m3u8",
+            help="Flag to add Program Date Time tags to index.m3u8 ( enables --live)",
         )
 
         args = parser.parse_args()
@@ -415,8 +415,10 @@ class X9K3(Stream):
     def _args_window_size(self, args):
         self.window_size = args.window_size
 
-    def _args_debug(self, args):
-        self.debug = args.debug
+    def _args_program_date_time(self, args):
+        self.program_date_time_flag = args.program_date_time
+        if self.program_date_time_flag:
+            self.live = True
 
     def _apply_args(self, args):
         """
@@ -424,7 +426,7 @@ class X9K3(Stream):
         to set X9K3 instance vars
         """
         self._args_version(args)
-        self._args_debug(args)
+        self._args_program_date_time(args)
         self._args_input(args)
         self._args_hls_tag(args)
         self._args_output_dir(args)
@@ -481,10 +483,11 @@ class X9K3(Stream):
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
                         pts, cue = line.split(",", 1)
-                        if float(pts) >= self.pid2pts(pid):
-                            if [float(pts), cue] not in self.sidecar:
+                        pts = float(pts)
+                        if pts >= self.pid2pts(pid):
+                            if [pts, cue] not in self.sidecar:
                                 print("loading", pts, cue)
-                                self.sidecar.append([float(pts), cue])
+                                self.sidecar.append([pts, cue])
                                 self.sidecar = deque(
                                     sorted(self.sidecar, key=itemgetter(0))
                                 )
@@ -592,6 +595,10 @@ class X9K3(Stream):
         if self.seg.seg_stop:
             if self.seg.seg_stop <= now:
                 self.seg.seg_stop = now
+                if self.program_date_time_flag:
+                    iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
+                    self.active_data.write(f"#Iframe @ {self.pid2pts(pid)} \n")
+                    self.active_data.write(f'#EXT-X-PROGRAM-DATE-TIME:{iso8601}\n')
                 self._write_segment()
                 self._write_manifest()
 
@@ -656,7 +663,7 @@ class X9K3(Stream):
         if "DISCONTINUITY" in self.window[0][2]:
             self.discontinuity_sequence += 1
         if "DISCONTINUITY" in self.window[-1][2]:
-            self.reset_stream()
+            self._reset_stream()
 
     def _reset_stream(self):
         self.seg.seg_start = None
@@ -739,9 +746,6 @@ class X9K3(Stream):
             pts |= payload[13] >> 1
             prgm = self.pid2prgm(pid)
             self.maps.prgm_pts[prgm] = pts
-            # iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
-            if self.debug:
-                self.active_data.write(f"#Iframe @ {self.as_90k(pts)} \n")
             if not self.seg.seg_start:
                 self.seg.seg_start = self.as_90k(pts)
                 self.seg.seg_stop = self.seg.seg_start + self.seconds
