@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "57"
+MAINTAINENCE = "59"
 
 
 def version():
@@ -242,9 +242,10 @@ class X9K3(Stream):
         tsdata is an file or http/https url or multicast url
         set show_null=False to exclude Splice Nulls
         """
+        self.in_stream = None
+
         super().__init__(tsdata, show_null)
         self._tsdata = tsdata
-        self.in_stream = tsdata
         self.active_segment = io.BytesIO()
         self.active_data = io.StringIO()
         self.scte35 = SCTE35()
@@ -377,6 +378,7 @@ class X9K3(Stream):
     def _args_input(self, args):
         if args.input:
             self._tsdata = args.input
+            self.in_stream = args.input
         else:
             self._tsdata = sys.stdin.buffer
 
@@ -782,6 +784,7 @@ class X9K3(Stream):
             for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")
         ]
         self._add_discontinuity()
+        self._reset_stream()
         self._tsdata = reader(self.in_stream)
         return True
 
