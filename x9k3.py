@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "59"
+MAINTAINENCE = "61"
 
 
 def version():
@@ -784,7 +784,6 @@ class X9K3(Stream):
             for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")
         ]
         self._add_discontinuity()
-        self._reset_stream()
         self._tsdata = reader(self.in_stream)
         return True
 
