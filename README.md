@@ -10,7 +10,7 @@
 
 # `x9k3`
 
-### Latest release is `v.0.1.57` 
+### Latest release is `v.0.1.59` 
 
 * _fixed the cue-in / discontinuity bug._
 * _added program date time tags_
