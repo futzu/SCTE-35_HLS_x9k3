@@ -461,6 +461,7 @@ class X9K3(Stream):
         target = f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.seg.start_seg_num}"
         dseq = f"#EXT-X-DISCONTINUITY-SEQUENCE:{self.discontinuity_sequence}"
+        x9k3v = f"#EXT-X-X9K3-VERSION:{version()}"
         bumper = ""
         self.header = "\n".join(
             [
@@ -469,6 +470,7 @@ class X9K3(Stream):
                 target,
                 seq,
                 dseq,
+                x9k3v,
                 bumper,
             ]
         )
@@ -600,7 +602,7 @@ class X9K3(Stream):
                 if self.program_date_time_flag:
                     iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
                     self.active_data.write(f"#Iframe @ {self.pid2pts(pid)} \n")
-                    self.active_data.write(f'#EXT-X-PROGRAM-DATE-TIME:{iso8601}\n')
+                    self.active_data.write(f"#EXT-X-PROGRAM-DATE-TIME:{iso8601}\n")
                 self._write_segment()
                 self._write_manifest()
 
