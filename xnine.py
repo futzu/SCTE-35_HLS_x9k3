@@ -5,6 +5,7 @@ from functools import partial
 from new_reader import reader
 from iframes import IFramer
 from collections import deque
+from threefive import Stream
 
 
 class SCTE35:
@@ -100,6 +101,7 @@ class SCTE35:
         Returns True for a cue_out event.
         """
         cmd = cue.command
+        print("IS CUE OUT")
         if cmd.command_type == 5:
             if cmd.out_of_network_indicator:
                 if cmd.break_duration:
@@ -169,6 +171,7 @@ class SCTE35:
 
         return False
 
+
 class Timer:
     def __init__(self):
         self.begin = None
@@ -230,8 +233,10 @@ class SlidingWindow:
         return "".join([chunk.get() for chunk in self.queue])
 
 
-class XNine:
-    def __init__(self):
+class XNine(Stream):
+    def __init__(self, tsdata, show_null=False):
+        super().__init__(tsdata, show_null)
+        self.video = tsdata
         self.active_segment = io.BytesIO()
         self.iframer = IFramer()
         self.window = SlidingWindow(5)
@@ -260,14 +265,17 @@ class XNine:
 
     def _mk_start_end(self, i_pts):
         self.start_time = i_pts
-        self.end_time = i_pts + self.seconds
+        if self.end_time:
+            self.start_time = self.end_time
+        self.end_time = self.start_time + self.seconds
 
-    def add_cue_tag(self,chunk):
+    def add_cue_tag(self, chunk):
         tag = self.scte35.mk_cue_tag()
         if tag:
-            k,v = tag.split(":",1)
-            chunk.add_tag(k,v)
-            
+            print(tag)
+            k, v = tag.split(":", 1)
+            chunk.add_tag(k, v)
+
     def _write_segment(self, seg_time):
         seg_name = f"seg{self.segnum}.ts"
         with open(seg_name, "wb") as seg:
@@ -290,41 +298,86 @@ class XNine:
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_segment = io.BytesIO()
 
-    def chk_scte35_cue_time(self):       
+    def chk_stream_cues(self, pkt, pid):
+        """
+        chk_stream_cues checks scte35 packets
+        and inserts the cue.
+        """
+        cue = self._parse_scte35(pkt, pid)
+        if cue:
+            self.scte35.cue = cue
+            self._chk_cue(pid)
+
+    def _add_discontinuity(self):
+        self.active_data.write("#EXT-X-DISCONTINUITY\n")
+
+    def _chk_cue(self, pid):
+        """
+        _chk_cue checks for SCTE-35 cues
+        and inserts a tag at the time
+        the cue is received.
+        """
+        self.scte35.cue.show()
+        print(f"{self.scte35.cue.command.name}")
+        if "pts_time" in self.scte35.cue.command.get():
+            self.scte35.cue_time = self.scte35.cue.command.pts_time
+            print(
+                f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
+            )
+            # self.scte35.cue_out = None
+
+        else:
+            self.scte35.cue_time = self.pid2pts(pid)
+            self.active_data.write("# Splice Immediate\n")
+
+    def chk_scte35_cue_time(self):
         if self.scte35.cue_time:
+            print("CUE TIME: ", self.scte35.cue_time, self.start_time)
             if self.start_time < self.scte35.cue_time < self.end_time:
                 self.end_time = self.scte35.cue_time
             if self.scte35.cue_time == self.start_time:
-                if self.scte35.is_cue_out(self.scte35.cue):
-                    self.scte35.cue_out="OUT"
-                if self.scte35.is_cue_in(self.scte35.cue):
-                    self.scte35.cue_out="IN"
+                if not self.scte35.cue_out:
+                    self.scte35.cue_out = "OUT"
+                else:
+                    self.scte35.cue_out = "IN"
             else:
-                if self.scte35.cue_out =="OUT":
-                    self.scte35.cue_out ="CONT"
-                   
+                if self.scte35.cue_out == "OUT":
+                    self.scte35.cue_out = "CONT"
+                if self.scte35.cue_out == "IN":
+                    self.scte35.cue_out = None
+                    self.scte35.cue_time = None
+
     def _parse(self, i_pts, timer):
         if not self.start_time:
             self.start_time = i_pts
             timer.start()
-            self.chk_scte35_cue_time()
             self._mk_start_end(i_pts)
+        #      self.chk_scte35_cue_time()
+
         if i_pts >= self.end_time:
+            self.chk_scte35_cue_time()
+
             seg_time = i_pts - self.start_time
             self._write_segment(seg_time)
             self._mk_start_end(i_pts)
             if self.live:
                 timer.throttle(seg_time)
 
-    def slice(self, video):
-        with reader(video) as video:
+    def slice(self):
+        with reader(self.video) as video:
             timer = Timer()
             for pkt in iter(partial(video.read, self.packet_size), b""):
+                pid = self._parse_info(pkt)
+                if self._pusi_flag(pkt):
+                    self._parse_pts(pkt, pid)
+                # self.chk_sidecar_cues(pid)
+                if pid in self.pids.scte35:
+                    self.chk_stream_cues(pkt, pid)
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
                     self._parse(i_pts, timer)
                 self.active_segment.write(pkt)
 
 
-x9 = XNine()
-x9.slice(sys.argv[1])
+x9 = XNine(sys.argv[1])
+x9.slice()
