@@ -20,7 +20,7 @@ setuptools.setup(
     platforms="all",
     install_requires=[
           'threefive >= 2.3.49',
-          'new_reader',
+          'new_reader >= 0.0.9',
           'iframes',
       ],
     classifiers=[
