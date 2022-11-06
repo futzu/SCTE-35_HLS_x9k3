@@ -18,7 +18,7 @@ class SCTE35:
         self.cue = None
         self.cue_out = None
         self.cue_time = None
-        self.tag_method = self.x_scte35
+        self.tag_method = self.x_cue
         self.break_timer = None
         self.break_duration = None
         self.break_auto_return = False
@@ -37,12 +37,13 @@ class SCTE35:
         #EXT-X-CUE-( OUT | IN | CONT )
         """
         if self.cue_out == "OUT":
-            self.break_timer = 0
+           # self.break_timer = Timer()
+            #self.break_timer.start()
             return f"#EXT-X-CUE-OUT:{self.break_duration}"
         if self.cue_out == "IN":
             return "#EXT-X-CUE-IN"
         if self.cue_out == "CONT":
-            return f"#EXT-X-CUE-OUT-CONT:{self.break_timer:.3f}/{self.break_duration}"
+            return f"#EXT-X-CUE-OUT-CONT:{self.break_timer.elapsed():.3f}/{self.break_duration}"
         return False
 
     def x_splicepoint(self):
@@ -106,7 +107,7 @@ class SCTE35:
             if cmd.out_of_network_indicator:
                 if cmd.break_duration:
                     self.break_duration = cmd.break_duration
-                    self.break_timer = 0
+
                     return True
 
         upid_starts = [
@@ -130,7 +131,7 @@ class SCTE35:
                     if dsptr.segmentation_type_id in upid_starts:
                         if dsptr.segmentation_duration:
                             self.break_duration = dsptr.segmentation_duration
-                            self.break_timer = 0
+
                             return True
 
         return False
@@ -144,7 +145,7 @@ class SCTE35:
         cmd = cue.command
         if cmd.command_type == 5:
             if not cmd.out_of_network_indicator:
-                if self.break_timer >= self.break_duration:
+                if self.break_timer.elapsed() >= self.break_duration:
                     return True
 
         upid_stops = [
@@ -166,7 +167,7 @@ class SCTE35:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
                     if dsptr.segmentation_type_id in upid_stops:
-                        if self.break_timer >= self.break_duration:
+                        if self.break_timer.elapsed() >= self.break_duration:
                             return True
 
         return False
@@ -239,7 +240,7 @@ class XNine(Stream):
         self.video = tsdata
         self.active_segment = io.BytesIO()
         self.iframer = IFramer()
-        self.window = SlidingWindow(5)
+        self.window = SlidingWindow(50)
         self.scte35 = SCTE35()
         self.packet_size = 188
         self.seconds = 2
@@ -273,7 +274,10 @@ class XNine(Stream):
         tag = self.scte35.mk_cue_tag()
         if tag:
             print(tag)
-            k, v = tag.split(":", 1)
+            k = tag
+            v= ""
+            if ":" in tag:
+                k, v = tag.split(":", 1)
             chunk.add_tag(k, v)
 
     def _write_segment(self, seg_time):
@@ -324,41 +328,43 @@ class XNine(Stream):
             print(
                 f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
             )
-            # self.scte35.cue_out = None
-
         else:
             self.scte35.cue_time = self.pid2pts(pid)
-            self.active_data.write("# Splice Immediate\n")
 
     def chk_scte35_cue_time(self):
-        if self.scte35.cue_time:
-            print("CUE TIME: ", self.scte35.cue_time, self.start_time)
-            if self.start_time < self.scte35.cue_time < self.end_time:
-                self.end_time = self.scte35.cue_time
-            if self.scte35.cue_time == self.start_time:
-                if not self.scte35.cue_out:
-                    self.scte35.cue_out = "OUT"
-                else:
+        print("CUE TIME: ", self.scte35.cue_time, self.start_time)
+        if self.scte35.cue_time == self.start_time:
+            if self.scte35.is_cue_out(self.scte35.cue):
+                self.scte35.cue_out = "OUT"
+                self.scte35.break_timer = Timer()
+                self.scte35.break_timer.start()
+            if self.scte35.is_cue_in(self.scte35.cue):
+                self.scte35.cue_out = "IN"
+                self.scte35.break_timer.stop()
+        if self.scte35.cue_out == "CONT":
+            if self.scte35.break_timer.elapsed() >= self.scte35.break_duration:
                     self.scte35.cue_out = "IN"
-            else:
+                    self.scte35.break_timer.stop()
+
+    def _parse(self, i_pts, timer):
+        if not self.start_time:
+            self.start_time = i_pts
+            self._mk_start_end(i_pts)
+            timer.start()
+        if self.scte35.cue_time:
+            if self.start_time < self.scte35.cue_time <= i_pts:
+                self.end_time = self.scte35.cue_time = i_pts
+            self.chk_scte35_cue_time()
+        if i_pts >= self.end_time:
+            self.end_time = i_pts
+            seg_time = self.end_time - self.start_time
+            self._write_segment(seg_time)
+            if self.scte35.cue_time:
                 if self.scte35.cue_out == "OUT":
                     self.scte35.cue_out = "CONT"
                 if self.scte35.cue_out == "IN":
                     self.scte35.cue_out = None
                     self.scte35.cue_time = None
-
-    def _parse(self, i_pts, timer):
-        if not self.start_time:
-            self.start_time = i_pts
-            timer.start()
-            self._mk_start_end(i_pts)
-        #      self.chk_scte35_cue_time()
-
-        if i_pts >= self.end_time:
-            self.chk_scte35_cue_time()
-
-            seg_time = i_pts - self.start_time
-            self._write_segment(seg_time)
             self._mk_start_end(i_pts)
             if self.live:
                 timer.throttle(seg_time)
