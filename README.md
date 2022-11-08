@@ -20,10 +20,9 @@
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
 
-### Latest release is `v.0.1.61` 
+### Latest release  `0.1.63`
+* _fixed fake live looping_
 
- * _fixed the cue-in / discontinuity bug._
- * _added program date time tags_
 
 ## `Details` 
 
