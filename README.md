@@ -20,8 +20,11 @@
 ---
 
 ### Latest release  `0.1.63`
-* _fixed fake live looping_
+* _fixed fake live looping_. `-r` and `--replay` _now work as expected_.
+```lua
+  -r, --replay  Flag for replay (looping) ( enables --live and--delete )
 
+```
 
 ## `Details` 
 
