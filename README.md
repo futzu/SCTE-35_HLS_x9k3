@@ -8,7 +8,7 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 
-# `x9k3` is a HLS segmenter with SCTE-35 parsing and injection.
+# `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
