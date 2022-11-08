@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "61"
+MAINTAINENCE = "63"
 
 
 def version():
@@ -222,20 +222,6 @@ class X9K3(Stream):
     X9K3 class
     """
 
-    # sliding window size
-    __slots__ = [
-        "_tsdata",
-        "start",
-        "window_slot",
-        "header",
-        "live",
-        "output_dir",
-        "delete",
-        "sidecar",
-        "seconds",
-        "replay",
-    ]
-
     def __init__(self, tsdata=None, show_null=False):
         """
         __init__ for X9K3
@@ -246,6 +232,7 @@ class X9K3(Stream):
 
         super().__init__(tsdata, show_null)
         self._tsdata = tsdata
+        self.in_stream = tsdata
         self.active_segment = io.BytesIO()
         self.active_data = io.StringIO()
         self.scte35 = SCTE35()
@@ -559,7 +546,7 @@ class X9K3(Stream):
                     self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                     self.scte35.cue_out = "OUT"
                     self._add_discontinuity()
-            if self.scte35.break_timer > self.scte35.break_duration:
+            if self.scte35.break_timer >= self.scte35.break_duration:
                 self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                 self._add_discontinuity()
                 self.scte35.cue_out = "IN"
@@ -779,14 +766,12 @@ class X9K3(Stream):
         sliding window and throttled to simulate live playback,
         segments are deleted when they fall out the sliding window.
         """
-        if not self._find_start():
-            return False
-        _ = [
-            self._parse(pkt)
-            for pkt in iter(partial(self._tsdata.read, self._PACKET_SIZE), b"")
-        ]
+
+        self.decode()
+        self._reset_stream()
         self._add_discontinuity()
         self._tsdata = reader(self.in_stream)
+
         return True
 
     def run(self):
