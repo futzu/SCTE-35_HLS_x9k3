@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "63"
+MAINTAINENCE = "65"
 
 
 def version():
@@ -252,6 +252,7 @@ class X9K3(Stream):
         self.replay = False
         self.program_date_time_flag = False
         self.delete = False
+        self.shulga = False
 
         self._parse_args()
 
@@ -336,6 +337,14 @@ class X9K3(Stream):
         )
 
         parser.add_argument(
+            "-S",
+            "--shulga",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag to enable Shulga iframe detection mode",
+        )
+        parser.add_argument(
             "-v",
             "--version",
             action="store_const",
@@ -386,6 +395,8 @@ class X9K3(Stream):
             os.mkdir(args.output_dir)
 
     def _args_flags(self, args):
+        if args.shulga:
+            self.shulga = True
         if args.live or args.delete or args.replay:
             self.live = True
             if args.delete or args.replay:
@@ -752,13 +763,27 @@ class X9K3(Stream):
         if pid in self.pids.scte35:
             self.chk_stream_cues(pkt, pid)
         if self._pusi_flag(pkt):
-            if self.iframer.parse(pkt):
-                self._parse_pts(pkt, pid)
-                self.load_sidecar(self.sidecar_file, pid)
-                self._mk_segment(pid)
-                if not self.start:
-                    self.start = True
+            self._parse_pts(pkt, pid)
+            self.load_sidecar(self.sidecar_file, pid)
+            if self.shulga:
+                self.shulga_mode(pkt, pid)
+            else:
+                if self.iframer.parse(pkt):
+                    self._mk_segment(pid)
+            if not self.start:
+                self.start = True
         self.active_segment.write(pkt)
+
+    @staticmethod
+    def _rai_flag(pkt):
+        return pkt[5] & 0x40
+
+    def shulga_mode(self, pkt, pid):
+        """
+        shulga_mode iframe detection
+        """
+        if self._rai_flag(pkt):
+            self._mk_segment(pid)
 
     def loop(self):
         """
