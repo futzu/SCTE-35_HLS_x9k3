@@ -19,7 +19,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "65"
+MAINTAINENCE = "67"
 
 
 def version():
