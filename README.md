@@ -19,7 +19,8 @@
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
 
-### Latest release  `0.1.63`
+### Latest release  
+![image](https://user-images.githubusercontent.com/52701496/201737811-124a1a31-6e14-4a9f-a158-1735899bc063.png)
 * _fixed fake live looping_. `-r` and `--replay` _now work as expected_.
 ```lua
   -r, --replay  Flag for replay (looping) ( enables --live and--delete )
@@ -78,8 +79,8 @@ pypy3 -mpip install x9k3
 ## `How to Use`
 ```smalltalk
 a@debian:~/build/x9k3$ x9k3 -h
-usage: x9k3.py [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
-               [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-v] [-p]
+usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
+            [-T HLS_TAG] [-w WINDOW_SIZE] [-d] [-l] [-r] [-S] [-v] [-p]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -102,11 +103,11 @@ optional arguments:
   -l, --live            Flag for a live event ( enables sliding window m3u8 )
   -r, --replay          Flag for replay (looping) ( enables --live and
                         --delete )
+  -S, --shulga          Flag to enable Shulga iframe detection mode
   -v, --version         Show version
   -p, --program_date_time
                         Flag to add Program Date Time tags to index.m3u8 (
                         enables --live)
-
 
 ```
 
