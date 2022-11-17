@@ -11,7 +11,6 @@ import os
 import sys
 import time
 from collections import deque
-from functools import partial
 from operator import itemgetter
 from new_reader import reader
 from threefive import Stream, Cue
@@ -19,7 +18,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "67"
+MAINTAINENCE = "69"
 
 
 def version():
@@ -264,7 +263,7 @@ class X9K3(Stream):
         parser.add_argument(
             "-i",
             "--input",
-            default=None,
+            default=sys.stdin.buffer,
             help=""" Input source, like "/home/a/vid.ts"
                                     or "udp://@235.35.3.5:3535"
                                     or "https://futzu.com/xaa.ts"
@@ -372,11 +371,8 @@ class X9K3(Stream):
             sys.exit()
 
     def _args_input(self, args):
-        if args.input:
-            self._tsdata = args.input
-            self.in_stream = args.input
-        else:
-            self._tsdata = sys.stdin.buffer
+        self._tsdata = args.input
+        self.in_stream = args.input
 
     def _args_hls_tag(self, args):
         tag_map = {
@@ -741,7 +737,7 @@ class X9K3(Stream):
         if len(payload) < 14:
             return
         if self._pts_flag(payload):
-            pts = ((payload[9] >> 1) & 7) << 30
+            pts = (payload[9] & 14) << 29
             pts |= payload[10] << 22
             pts |= (payload[11] >> 1) << 15
             pts |= payload[12] << 7
