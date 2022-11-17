@@ -20,10 +20,12 @@
 ---
 
 ### Latest release  
-![image](https://user-images.githubusercontent.com/52701496/201737811-124a1a31-6e14-4a9f-a158-1735899bc063.png)
-* _fixed fake live looping_. `-r` and `--replay` _now work as expected_.
+![image](https://user-images.githubusercontent.com/52701496/202579483-71b9a7ba-e64d-4118-9b94-67363068f53b.png)
+
+*  reading from stdin now available
+
 ```lua
-  -r, --replay  Flag for replay (looping) ( enables --live and--delete )
+ cat somevideo.ts | x9k3 
 
 ```
 
