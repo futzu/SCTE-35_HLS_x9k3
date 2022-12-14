@@ -18,9 +18,12 @@
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
+![image](https://user-images.githubusercontent.com/52701496/207711391-b9a492b7-16a8-42a5-8b81-49197d02b36c.png)
 
-### Latest release  
-![image](https://user-images.githubusercontent.com/52701496/202579483-71b9a7ba-e64d-4118-9b94-67363068f53b.png)
+## `Details` 
+
+*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
+
 
 *  reading from stdin now available
 
@@ -29,9 +32,6 @@
 
 ```
 
-## `Details` 
-
-*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
 
 * Segments are cut on iframes.
 
