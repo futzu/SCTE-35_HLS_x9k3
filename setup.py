@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires=[
           'threefive >= 2.3.61',
           'new_reader >= 0.1.1',
-          'iframes',
+          'iframes >= 0.0.5',
       ],
     classifiers=[
         "License :: OSI Approved :: MIT License",
