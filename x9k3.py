@@ -531,7 +531,7 @@ class X9K3(Stream):
             if cmd.command_type == 5:
                 if cmd.break_auto_return:
                     evt_id = random.randint(1, 1000)
-                    pts = cmd.pts_time + cmd.break_duration
+                    pts = self.scte35.cue_time + cmd.break_duration
                     cue = mk_splice_insert(evt_id, pts)
                     b64 = cue.encode()
                     if [pts, cue] not in self.sidecar:
