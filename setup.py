@@ -11,7 +11,7 @@ setuptools.setup(
     version=x9k3.version(),
     author="Adrian",
     author_email="spam@iodisco.com",
-    description="HLS Segmenter with SCTE-35",
+    description="HLS Segmenter with SCTE-35 ",
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/futzu/x9k3",
@@ -19,8 +19,8 @@ setuptools.setup(
     scripts=['bin/x9k3'],
     platforms="all",
     install_requires=[
-          'threefive >= 2.3.61',
-          'new_reader >= 0.1.1',
+          'threefive >= 2.3.63',
+          'new_reader >= 0.1.3',
           'iframes >= 0.0.5',
       ],
     classifiers=[
