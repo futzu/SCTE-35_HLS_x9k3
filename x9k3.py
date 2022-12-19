@@ -531,7 +531,7 @@ class X9K3(Stream):
             if cmd.command_type == 5:
                 if cmd.break_auto_return:
                     evt_id = random.randint(1, 1000)
-                    pts = self.scte35.cue_time + cmd.break_duration
+                    pts = cmd.pts_time + cmd.break_duration
                     cue = mk_splice_insert(evt_id, pts)
                     b64 = cue.encode()
                     if [pts, cue] not in self.sidecar:
@@ -545,7 +545,7 @@ class X9K3(Stream):
         and inserts a tag at the time
         the cue is received.
         """
-        self._auto_return()
+        # self._auto_return()
         self.scte35.cue.show()
         print(f"{self.scte35.cue.command.name}")
         if "pts_time" in self.scte35.cue.command.get():
@@ -555,6 +555,7 @@ class X9K3(Stream):
             )
         else:
             self.scte35.cue_time = self.pid2pts(pid)
+        self._auto_return()
 
     def _mk_cue_splice_point(self, pid):
         """
@@ -612,7 +613,7 @@ class X9K3(Stream):
                 self._write_segment()
                 self._write_manifest()
 
-    def _chk_pdt_flag(self,pid):
+    def _chk_pdt_flag(self, pid):
         if self.program_date_time_flag:
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
             self.active_data.write(f"#Iframe @ {self.pid2pts(pid)} \n")
