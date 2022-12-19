@@ -8,7 +8,13 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 
+
+
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
+
+
+![image](https://user-images.githubusercontent.com/52701496/208342995-a98e7535-a070-4e14-9958-0db7b5024791.png)
+
    * `#EXT-X-SCTE35` `#EXT-X-CUE`  `#EXT-X-DATERANGE`  `#EXT-X-SPLICEPOINT` 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
@@ -18,7 +24,6 @@
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
-![image](https://user-images.githubusercontent.com/52701496/207711391-b9a492b7-16a8-42a5-8b81-49197d02b36c.png)
 
 ## `Details` 
 
