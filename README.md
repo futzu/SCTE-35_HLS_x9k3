@@ -12,10 +12,14 @@
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 
+### `Latest` is `v.0.1.73`
+### Supported SCTE-35 HLS Tags 
 
-![image](https://user-images.githubusercontent.com/52701496/208342995-a98e7535-a070-4e14-9958-0db7b5024791.png)
-
-   * `#EXT-X-SCTE35` `#EXT-X-CUE`  `#EXT-X-DATERANGE`  `#EXT-X-SPLICEPOINT` 
+ - [x] `#EXT-X-SCTE35` 
+ - [x] `#EXT-X-CUE` 
+ - [x] `#EXT-X-DATERANGE`  
+ - [x] `#EXT-X-SPLICEPOINT` 
+ 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
    * Segments are __Split on SCTE-35 Cues__ as needed.
