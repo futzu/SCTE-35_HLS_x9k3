@@ -20,7 +20,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "71"
+MAINTAINENCE = "73"
 
 
 def version():
@@ -486,7 +486,7 @@ class X9K3(Stream):
                         pts = float(pts)
                         if pts >= self.pid2pts(pid):
                             if [pts, cue] not in self.sidecar:
-                                print("loading", pts, cue)
+                                print("\nLoading from Sidecar File\n", pts, cue)
                                 self.sidecar.append([pts, cue])
                                 self.sidecar = deque(
                                     sorted(self.sidecar, key=itemgetter(0))
@@ -507,6 +507,7 @@ class X9K3(Stream):
                 self.scte35.cue = Cue(raw)
                 self.scte35.cue.decode()
                 self._chk_cue(pid)
+                self._auto_return(self.scte35.cue)
 
     def chk_stream_cues(self, pkt, pid):
         """
@@ -517,25 +518,25 @@ class X9K3(Stream):
         if cue:
             self.scte35.cue = cue
             self._chk_cue(pid)
+            self._auto_return(self.scte35.cue)
 
     def _add_discontinuity(self):
         self.active_data.write("#EXT-X-DISCONTINUITY\n")
 
-    def _auto_return(self):
+    def _auto_return(self, next_cue):
         """
         _auto_return generates a cue in cue
         if a cue out cue has brek_auto_return set
         """
-        if self.scte35.is_cue_out(self.scte35.cue):
-            cmd = self.scte35.cue.command
+        if self.scte35.is_cue_out(next_cue):
+            cmd = next_cue.command
             if cmd.command_type == 5:
                 if cmd.break_auto_return:
                     evt_id = random.randint(1, 1000)
-                    pts = cmd.pts_time + cmd.break_duration
+                    pts = self.scte35.cue_time + cmd.break_duration
                     cue = mk_splice_insert(evt_id, pts)
                     b64 = cue.encode()
                     if [pts, cue] not in self.sidecar:
-                        print("loading", pts - 4, b64)
                         self.sidecar.append([pts, b64])
                         self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
 
@@ -545,17 +546,11 @@ class X9K3(Stream):
         and inserts a tag at the time
         the cue is received.
         """
-        # self._auto_return()
-        self.scte35.cue.show()
-        print(f"{self.scte35.cue.command.name}")
         if "pts_time" in self.scte35.cue.command.get():
             self.scte35.cue_time = self.scte35.cue.command.pts_time
-            print(
-                f"Preroll: {round(self.scte35.cue.command.pts_time- self.pid2pts(pid), 6)} "
-            )
+
         else:
             self.scte35.cue_time = self.pid2pts(pid)
-        self._auto_return()
 
     def _mk_cue_splice_point(self, pid):
         """
@@ -565,14 +560,9 @@ class X9K3(Stream):
         if self.scte35.cue:
             if self.scte35.cue_time == self.pid2pts(pid):
                 if self.scte35.is_cue_out(self.scte35.cue):
-                    print(
-                        f"Splice Point {self.scte35.cue.command.name}@{self.scte35.cue_time}"
-                    )
-                    self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                     self.scte35.cue_out = "OUT"
                     self._add_discontinuity()
             if self.scte35.break_timer >= self.scte35.break_duration:
-                self.active_data.write(f"# Splice Point @ {self.scte35.cue_time}\n")
                 self._add_discontinuity()
                 self.scte35.cue_out = "IN"
             if self.scte35.cue_out is None:
@@ -729,8 +719,8 @@ class X9K3(Stream):
         furi = f"{rev}{self.seg.seg_uri}{res}"
         fstart = f"\tstart: {rev}{self.seg.seg_start- self.seg.seg_time:.6f}{res}"
         fdur = f"\tduration: {rev}{self.seg.seg_time:.6f}{res}"
-        fdiff = f"\tstream diff: {rev}{round(self.seg.diff_total,6)}{res}"
-        print(f"{furi}{fstart}{fdur}{fdiff}")
+        # fdiff = f"\tstream diff: {rev}{round(self.seg.diff_total,6)}{res}"
+        print(f"{furi}{fstart}{fdur}")
         self.seg.init_time = now
         if self.live:
             if self.seg.diff_total > 0:
@@ -768,7 +758,6 @@ class X9K3(Stream):
             self.chk_stream_cues(pkt, pid)
         if self._pusi_flag(pkt):
             self._parse_pts(pkt, pid)
-            self.load_sidecar(self.sidecar_file, pid)
             if self.shulga:
                 self.shulga_mode(pkt, pid)
             else:
@@ -777,6 +766,7 @@ class X9K3(Stream):
             if not self.start:
                 self.start = True
         self.active_segment.write(pkt)
+        self.load_sidecar(self.sidecar_file, pid)
 
     @staticmethod
     def _rai_flag(pkt):
