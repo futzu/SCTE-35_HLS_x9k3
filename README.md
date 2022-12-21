@@ -11,7 +11,7 @@
 
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-
+### break auto return is not supported 
 ### `Latest` is `v.0.1.73`
 ### Supported SCTE-35 HLS Tags 
 
