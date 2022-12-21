@@ -20,7 +20,7 @@ from iframes import IFramer
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "73"
+MAINTAINENCE = "75"
 
 
 def version():
@@ -486,7 +486,6 @@ class X9K3(Stream):
                         pts = float(pts)
                         if pts >= self.pid2pts(pid):
                             if [pts, cue] not in self.sidecar:
-                                print("\nLoading from Sidecar File\n", pts, cue)
                                 self.sidecar.append([pts, cue])
                                 self.sidecar = deque(
                                     sorted(self.sidecar, key=itemgetter(0))
@@ -536,7 +535,7 @@ class X9K3(Stream):
                     pts = self.scte35.cue_time + cmd.break_duration
                     cue = mk_splice_insert(evt_id, pts)
                     b64 = cue.encode()
-                    if [pts, cue] not in self.sidecar:
+                    if [pts, b64] not in self.sidecar:
                         self.sidecar.append([pts, b64])
                         self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
 
@@ -586,16 +585,18 @@ class X9K3(Stream):
         if now >= self.seg.seg_stop:
             self.seg.seg_stop = now
         if self.scte35.cue_time:
-            if self.seg.seg_start < self.scte35.cue_time < self.seg.seg_stop:
+            if self.seg.seg_start < self.scte35.cue_time <= self.seg.seg_stop:
                 self.scte35.cue_time = self.seg.seg_stop
             if self.scte35.cue_time == now:
                 if self.scte35.is_cue_out(self.scte35.cue):
                     self._mk_cue_splice_point(pid)
                     self.scte35.cue_time = None
-                if self.scte35.is_cue_in(self.scte35.cue):
-                    if self.scte35.break_timer > self.scte35.break_duration:
-                        self.scte35.cue_out = "IN"
-                        self._mk_cue_splice_point(pid)
+            if self.scte35.is_cue_in(self.scte35.cue):
+                if self.scte35.break_timer > self.scte35.break_duration:
+                    self.scte35.cue_out = "IN"
+                    self._mk_cue_splice_point(pid)
+                    self.scte35.cue_time = None
+
         if self.seg.seg_stop:
             if self.seg.seg_stop <= now:
                 self.seg.seg_stop = now
@@ -753,6 +754,8 @@ class X9K3(Stream):
         """
 
         pid = self._parse_info(pkt)
+        self.load_sidecar(self.sidecar_file, pid)
+
         self.chk_sidecar_cues(pid)
         if pid in self.pids.scte35:
             self.chk_stream_cues(pkt, pid)
@@ -766,7 +769,6 @@ class X9K3(Stream):
             if not self.start:
                 self.start = True
         self.active_segment.write(pkt)
-        self.load_sidecar(self.sidecar_file, pid)
 
     @staticmethod
     def _rai_flag(pkt):
