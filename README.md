@@ -7,7 +7,24 @@
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
+> __I am working on a rewrite of x9k3__, there is too much code in the current version.
+>
+> After working with x9k3 for a while, there are some things I would do differently.
+> I am going to do them differently now.
 
+> __Why am I telling you this?__ 
+
+> Because __I will be breaking things__ and I will __not__ be adding features __nor__ will I be addressing bugs.
+>
+> I am __not__ going to maintain two versions,I am going to work out of the main repo, 
+>
+> I do x9k3 and several other projects alone, if you want two versions, __come here and help me.__
+>
+> For the next few weeks __the git repo will not be stable.__
+>
+> __v.0.1.73 is the current stable version__. It is available via __pip__.
+>
+> The code will change, but __the interface will stay the same,__ everything will still work the same way. 
 
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
