@@ -1,7 +1,7 @@
 """
 The SlidingWindow Class for live M3u8 playlists
 
-The arg named chunk is a just lines of text associated
+The arg named a_pane  is just lines of text associated
 with the segment to be written to the m3u8
 like:
 
@@ -10,40 +10,43 @@ like:
 #EXTINF:2.152144,
 seg2.ts
 
-""
+"""
+
 
 class SlidingWindow:
     """
     The SlidingWindow class
     """
+
     def __init__(self, size):
         self.size = size
-        self.queue = []
+        self.panes = []
 
-    def popleft(self):
+    def pop_pane(self):
         """
-        popleft removes the first item in self.queue
+        pop_pane removes the first item in self.panes
         """
-        if len(self.queue) >= self.size:
-            self.queue = self.queue[1:]
+        if len(self.panes) >= self.size:
+            self.panes = self.panes[1:]
 
-    def push(self, chunk):
+    def push_pane(self, a_pane):
         """
-        push appends a chunk to self.queue
+        push appends a_pane to self.panes
         """
-        self.queue.append(chunk)
-       # print([chunk.name for chunk in list(self.queue)])
+        self.panes.append(a_pane)
+        print([a_pane.name for a_pane in self.panes])
 
-    def all(self):
+    def all_panes(self):
         """
-        all returns the current window chunks
+        all_panes returns the current window panes joined.
         """
-        return "".join([chunk.get() for chunk in self.queue])
+        return "".join([a_pane.get() for a_pane in self.panes])
 
-    def slide(self,chunk):
+    def slide_panes(self, a_pane):
         """
-        slide calls self.push with chunk
-        and calls self.popleft to move the window
+        slide calls self.push_pane with a_pane
+        and then calls self.pop_pane to trim self.panes
+        as needed.
         """
-        self.push(chunk)
+        self.push(a_pane)
         self.popleft()
