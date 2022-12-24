@@ -1,3 +1,53 @@
+## Classes for the x9k3 remix
+
+
+### SCTE35
+
+```js
+    class SCTE35(builtins.object)
+     |  A SCTE35 instance is used to hold
+     |  SCTE35 cue data by X9K5.
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self)
+     |  
+     |  is_cue_in(self, cue)
+     |      is_cue_in checks a Cue instance
+     |      to see if it is a cue_in event.
+     |      Returns True for a cue_in event.
+     |  
+     |  is_cue_out(self, cue)
+     |      is_cue_out checks a Cue instance
+     |      to see if it is a cue_out event.
+     |      Returns True for a cue_out event.
+     |  
+     |  mk_auto_return(timestamp)
+     |      mk_auto_return generates a cue
+     |      when a splice insert has the
+     |      break_autp_return flag set.
+     |  
+     |  mk_cue_tag(self)
+     |      mk_cue_tag routes  hls tag creation
+     |      to the appropriate method.
+     |  
+     |  x_cue(self)
+     |      #EXT-X-CUE-( OUT | IN | CONT )
+     |  
+     |  x_daterange(self)
+     |      #EXT-X-DATERANGE
+     |  
+     |  x_scte35(self)
+     |      #EXT-X-SCTE35
+     |  
+     |  x_splicepoint(self)
+     |      #EXT-X-SPLICEPOINT-SCTE35
+     |  
+     |  ----------------------------------
+```
+
+
+
 ###      SlidingWindow
 
 ```js
