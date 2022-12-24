@@ -6,7 +6,7 @@
 ```js
     class SCTE35(builtins.object)
      |  A SCTE35 instance is used to hold
-     |  SCTE35 cue data by X9K5.
+     |  SCTE35 cue data by X9K3.
      |  
      |  Methods defined here:
      |  
