@@ -1,6 +1,28 @@
 ## Classes for the x9k3 remix
 
 
+###  Chunk
+
+```js
+    class Chunk(builtins.object)
+     |  Chunk(name, num)
+     |  
+     |  Class to hold hls segment tags
+     |  for a segment.
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, name, num)
+     |  
+     |  add_tag(self, quay, val)
+     |      add_tag appends key and value for a hls tag
+     |  
+     |  get(self)
+     |      get returns the Chunk data formated.
+     |  
+     |  ----------------------------------------------------------------------
+```
+
 ### SCTE35
 
 ```js
