@@ -31,16 +31,17 @@ class ExpX9K3(Stream):
         self.active_data.write("#EXT-X-DISCONTINUITY\n")
 
     def _header(self):
+        bump = ""
         self.media_seq = self.window.panes[0].num
         head = [
             "#EXTM3U",
             "#EXT-X-VERSION:3",
             f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}",
             f"#EXT-X-MEDIA-SEQUENCE:{self.media_seq}",
-            "",
         ]
         if not self.live:
             head.append("#EXT-X-PLAYLIST-TYPE:VOD")
+        head.append(bump)
         return "\n".join(head)
 
     def add_cue_tag(self, chunk):
