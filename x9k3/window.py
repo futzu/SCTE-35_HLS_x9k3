@@ -48,5 +48,5 @@ class SlidingWindow:
         and then calls self.pop_pane to trim self.panes
         as needed.
         """
-        self.push(a_pane)
-        self.popleft()
+        self.push_pane(a_pane)
+        self.pop_pane()
