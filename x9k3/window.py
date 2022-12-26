@@ -34,7 +34,7 @@ class SlidingWindow:
         push appends a_pane to self.panes
         """
         self.panes.append(a_pane)
-        print([a_pane.name for a_pane in self.panes])
+        #print([a_pane.name for a_pane in self.panes])
 
     def all_panes(self):
         """
