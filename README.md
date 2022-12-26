@@ -22,8 +22,15 @@
 >
 > For the next few weeks __the git repo will not be stable.__
 >
-> __v.0.1.73 is the current stable version__. It is available via __pip__.
+> __v.0.1.75 is the current stable version__. It is available via __pip__.
 >
+### Update 12/26/2022
+> One of the main goals was to simply the logic used to cut segments, I have done that and I feel much better this code.   
+This morning I turned on:
+* discontinuity media sequence
+* shulga mode
+* break auto return 
+
 
 ### Update 12/25/2022
 The remix is going very well. I still need to finish these parts. 
@@ -37,7 +44,7 @@ The remix is going very well. I still need to finish these parts.
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### break auto return is not supported 
-### `Latest` is `v.0.1.73`
+### `Latest` is `v.0.1.75`
 ### Supported SCTE-35 HLS Tags 
 
  - [x] `#EXT-X-SCTE35` 
