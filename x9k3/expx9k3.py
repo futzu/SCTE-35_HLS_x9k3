@@ -29,6 +29,14 @@ class ExpX9K3(strm.Stream):
         self.live = False
         self.media_seq = 0
         self.program_date_time_flag = False
+        self.discontinuity_sequence = 0
+        self.sidecar_file = None
+        self.sidecar = None
+        self.output_dir = "."
+        self.shulga = False
+        self.delete = False
+
+
 
     def _header(self):
         bump = ""
@@ -65,6 +73,7 @@ class ExpX9K3(strm.Stream):
     def _write_segment(self):
         seg_name = f"seg{self.segnum}.ts"
         seg_time = self.next_start - self.started
+
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         chunk = Chunk(seg_name, self.segnum)
@@ -124,22 +133,78 @@ class ExpX9K3(strm.Stream):
             else:
                 self.scte35.cue_time = self.pid2pts(pid)
 
+    def _auto_return(self):
+        """
+        _auto_return generates a cue in cue
+        if a cue out cue has brek_auto_return set
+        """
+        if self.scte35.is_cue_out(self.scte35.cue):
+            cmd = next_cue.command
+            if cmd.command_type == 5:
+                if cmd.break_auto_return:
+                    timestamp = self.scte35.cue_time + cmd.break_duration
+                    b64 = self.scte35.mk_auto_return(timestamp)
+                    if [timestamp, b64] not in self.sidecar:
+                        self.sidecar.append([pts, b64])
+                        self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
+
+    def load_sidecar(self, file, pid):
+        """
+        load_sidecar reads (pts, cue) pairs from
+        the sidecar file and loads them into X9K3.sidecar
+        if live, blank out the sidecar file after cues are loaded.
+        """
+        if self.sidecar_file:
+            with reader(file) as sidefile:
+                for line in sidefile:
+                    line = line.decode().strip().split("#", 1)[0]
+                    if len(line):
+                        pts, cue = line.split(",", 1)
+                        pts = float(pts)
+                        if pts >= self.pid2pts(pid):
+                            if [pts, cue] not in self.sidecar:
+                                self.sidecar.append([pts, cue])
+                                self.sidecar = deque(
+                                    sorted(self.sidecar, key=itemgetter(0))
+                                )
+                sidefile.close()
+            if self.live:
+                with open(self.sidecar_file, "w") as scf:
+                    scf.close()
+
+
+    def chk_sidecar_cues(self, pid):
+        """
+        chk_sidecar_cues checks the insert pts time
+        for the next sidecar cue and inserts the cue if needed.
+        """
+        if self.sidecar:
+            if self.sidecar[0][0] <= self.pid2pts(pid):
+                raw = self.sidecar.popleft()[1]
+                self.scte35.cue = Cue(raw)
+                self.scte35.cue.decode()
+                self._chk_cue_time(pid)
+                self._auto_return(self.scte35.cue)
+
     def _parse_scte35(self, pkt, pid):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             self.scte35.cue = cue
             self._chk_cue_time(pid)
+           # self._auto_return()
         return cue
 
     def _parse(self, pkt):
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
+        # print(now)
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
             i_pts = self.iframer.parse(pkt)
             if i_pts:
+                self.chk_sidecar_cues(pkt_pid)
                 self.chk_slice_point(now)
         self.active_segment.write(pkt)
 
