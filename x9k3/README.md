@@ -2,7 +2,6 @@
 
 ### ExpX9K3
 ```js
-    
     class ExpX9K3(threefive.stream.Stream)
      |  ExpX9K3(tsdata, show_null=False)
      |  
@@ -27,6 +26,10 @@
      |  
      |  add_cue_tag(self, chunk)
      |  
+     |  chk_sidecar_cues(self, pid)
+     |      chk_sidecar_cues checks the insert pts time
+     |      for the next sidecar cue and inserts the cue if needed.
+     |  
      |  chk_slice_point(self, now)
      |      chk_slice_time checks for the slice point
      |      of a segment eoither buy self.seconds
@@ -36,6 +39,11 @@
      |      do parses packets
      |      and ensures all the packets are written
      |      to segments.
+     |  
+     |  load_sidecar(self, file, pid)
+     |      load_sidecar reads (pts, cue) pairs from
+     |      the sidecar file and loads them into X9K3.sidecar
+     |      if live, blank out the sidecar file after cues are loaded.
      |  
      |  ----------------------------------------------------------------------
 
@@ -68,7 +76,7 @@
 
 ```js
     
-    class SCTE35(builtins.object)
+      class SCTE35(builtins.object)
      |  A SCTE35 instance is used to hold
      |  SCTE35 cue data by X9K5.
      |  
