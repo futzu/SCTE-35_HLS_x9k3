@@ -1,6 +1,8 @@
 import datetime
 import io
 import sys
+from collections import deque
+from operator import itemgetter
 from chunk import Chunk
 from new_reader import reader
 from iframes import IFramer
@@ -8,8 +10,27 @@ from scte35 import SCTE35
 
 # from timer import Timer
 from window import SlidingWindow
-
+from threefive import Cue
 import threefive.stream as strm
+
+MAJOR = "0"
+MINOR = "1"
+MAINTAINENCE = "76"
+
+
+def version():
+    """
+    version prints x9k3's version as a string
+
+    Odd number versions are releases.
+    Even number versions are testing builds between releases.
+
+    Used to set version in setup.py
+    and as an easy way to check which
+    version you have installed.
+
+    """
+    return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
 
 
 class ExpX9K3(strm.Stream):
@@ -31,12 +52,10 @@ class ExpX9K3(strm.Stream):
         self.program_date_time_flag = False
         self.discontinuity_sequence = 0
         self.sidecar_file = None
-        self.sidecar = None
+        self.sidecar = deque()
         self.output_dir = "."
         self.shulga = False
         self.delete = False
-
-
 
     def _header(self):
         bump = ""
@@ -89,6 +108,9 @@ class ExpX9K3(strm.Stream):
         self.scte35.chk_cue_state()
 
     def _write_m3u8(self):
+        if self.live:
+            self._discontinuity_seq_plus_one()
+
         with open(self.m3u8, "w+") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
@@ -96,6 +118,73 @@ class ExpX9K3(strm.Stream):
             if not self.live:
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_segment = io.BytesIO()
+
+    def _auto_return(self):
+        """
+        _auto_return generates a cue in cue
+        if a cue out cue has brek_auto_return set
+        """
+        if self.scte35.is_cue_out(self.scte35.cue):
+            cmd = self.scte35.cue.command
+            if cmd.command_type == 5:
+                # self.scte35.break_timer = 0.0
+                if cmd.break_auto_return:
+                    if self.scte35.break_timer is not None:
+                        if self.scte35.break_timer >= self.scte35.break_duration:
+                            timestamp = self.scte35.cue_time + cmd.break_duration
+                            b64 = self.scte35.mk_auto_return(timestamp)
+                            if [timestamp, b64] not in self.sidecar:
+                                self.sidecar.append([timestamp, b64])
+                                self.sidecar = deque(
+                                    sorted(self.sidecar, key=itemgetter(0))
+                                )
+
+    def load_sidecar(self, file, pid):
+        """
+        load_sidecar reads (pts, cue) pairs from
+        the sidecar file and loads them into X9K3.sidecar
+        if live, blank out the sidecar file after cues are loaded.
+        """
+        if self.sidecar_file:
+            with reader(file) as sidefile:
+                for line in sidefile:
+                    line = line.decode().strip().split("#", 1)[0]
+                    if len(line):
+                        pts, cue = line.split(",", 1)
+                        pts = float(pts)
+                        if pts >= self.pid2pts(pid):
+                            if [pts, cue] not in self.sidecar:
+                                self.sidecar.append([pts, cue])
+                                self.sidecar = deque(
+                                    sorted(self.sidecar, key=itemgetter(0))
+                                )
+                sidefile.close()
+            if self.live:
+                with open(self.sidecar_file, "w") as scf:
+                    scf.close()
+
+    def chk_sidecar_cues(self, pid):
+        """
+        chk_sidecar_cues checks the insert pts time
+        for the next sidecar cue and inserts the cue if needed.
+        """
+        if self.sidecar:
+            if self.sidecar[0][0] <= self.pid2pts(pid):
+                raw = self.sidecar.popleft()[1]
+                self.scte35.cue = Cue(raw)
+                self.scte35.cue.decode()
+                self._chk_cue_time(pid)
+            # self._auto_return()
+
+    def _discontinuity_seq_plus_one(self):
+        if "DISCONTINUITY" in self.window.panes[0][2]:
+            self.discontinuity_sequence += 1
+        if "DISCONTINUITY" in self.window.panes[-1][2]:
+            self._reset_stream()
+
+    def _reset_stream(self):
+        self.started = None
+        self.next_start = None
 
     def _start_next_start(self, pts=None):
         if pts is not None:
@@ -133,65 +222,23 @@ class ExpX9K3(strm.Stream):
             else:
                 self.scte35.cue_time = self.pid2pts(pid)
 
-    def _auto_return(self):
-        """
-        _auto_return generates a cue in cue
-        if a cue out cue has brek_auto_return set
-        """
-        if self.scte35.is_cue_out(self.scte35.cue):
-            cmd = next_cue.command
-            if cmd.command_type == 5:
-                if cmd.break_auto_return:
-                    timestamp = self.scte35.cue_time + cmd.break_duration
-                    b64 = self.scte35.mk_auto_return(timestamp)
-                    if [timestamp, b64] not in self.sidecar:
-                        self.sidecar.append([pts, b64])
-                        self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
+    @staticmethod
+    def _rai_flag(pkt):
+        return pkt[5] & 0x40
 
-    def load_sidecar(self, file, pid):
+    def shulga_mode(self, pkt, now):
         """
-        load_sidecar reads (pts, cue) pairs from
-        the sidecar file and loads them into X9K3.sidecar
-        if live, blank out the sidecar file after cues are loaded.
+        shulga_mode iframe detection
         """
-        if self.sidecar_file:
-            with reader(file) as sidefile:
-                for line in sidefile:
-                    line = line.decode().strip().split("#", 1)[0]
-                    if len(line):
-                        pts, cue = line.split(",", 1)
-                        pts = float(pts)
-                        if pts >= self.pid2pts(pid):
-                            if [pts, cue] not in self.sidecar:
-                                self.sidecar.append([pts, cue])
-                                self.sidecar = deque(
-                                    sorted(self.sidecar, key=itemgetter(0))
-                                )
-                sidefile.close()
-            if self.live:
-                with open(self.sidecar_file, "w") as scf:
-                    scf.close()
-
-
-    def chk_sidecar_cues(self, pid):
-        """
-        chk_sidecar_cues checks the insert pts time
-        for the next sidecar cue and inserts the cue if needed.
-        """
-        if self.sidecar:
-            if self.sidecar[0][0] <= self.pid2pts(pid):
-                raw = self.sidecar.popleft()[1]
-                self.scte35.cue = Cue(raw)
-                self.scte35.cue.decode()
-                self._chk_cue_time(pid)
-                self._auto_return(self.scte35.cue)
+        if self._rai_flag(pkt):
+            chk_slice_point(self, now)
 
     def _parse_scte35(self, pkt, pid):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-           # self._auto_return()
+            self._auto_return()
         return cue
 
     def _parse(self, pkt):
@@ -202,10 +249,13 @@ class ExpX9K3(strm.Stream):
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
-            i_pts = self.iframer.parse(pkt)
-            if i_pts:
-                self.chk_sidecar_cues(pkt_pid)
-                self.chk_slice_point(now)
+            if self.shulga:
+                self.shulga_mode(pkt, now)
+            else:
+                i_pts = self.iframer.parse(pkt)
+                if i_pts:
+                    self.chk_sidecar_cues(pkt_pid)
+                    self.chk_slice_point(now)
         self.active_segment.write(pkt)
 
     def do(self):
