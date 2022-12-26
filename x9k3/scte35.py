@@ -18,8 +18,8 @@ class SCTE35:
         self.cue = None
         self.cue_state = None
         self.cue_time = None
-        self.tag_method = self.x_scte35
-        self.break_timer = Timer()
+        self.tag_method = self.x_cue
+        self.break_timer = None
         self.break_duration = None
         self.event_id = 1
 
@@ -40,8 +40,6 @@ class SCTE35:
         """
         tag = False
         if self.cue:
-            if self.is_cue_in(self.cue):
-                self.cue_state = "IN"
             tag = self.tag_method()
         return tag
 
@@ -58,7 +56,7 @@ class SCTE35:
             self.cue_time = None
             self.cue = None
             self.cue_state = None
-
+            self.break_timer = None
 
     def mk_cue_state(self):
         """
@@ -67,21 +65,21 @@ class SCTE35:
         sets cue_state.
         """
         if self.is_cue_out(self.cue):
-            self.cue_state= "OUT"
+            self.cue_state = "OUT"
+            self.break_timer = 0.0
         if self.is_cue_in(self.cue):
-            self.cue_state= "IN"
+            self.cue_state = "IN"
 
     def x_cue(self):
         """
         #EXT-X-CUE-( OUT | IN | CONT )
         """
         if self.cue_state == "OUT":
-            # self.break_timer = Timer()
             return f"#EXT-X-CUE-OUT:{self.break_duration}"
         if self.cue_state == "IN":
             return "#EXT-X-CUE-IN"
-       # if self.cue_state == "CONT":
-        #    return f"#EXT-X-CUE-OUT-CONT:{self.break_timer.elapsed():.6f}/{self.break_duration}"
+        if self.cue_state == "CONT":
+            return f"#EXT-X-CUE-OUT-CONT:{self.break_timer:.6f}/{self.break_duration}"
         return False
 
     def x_splicepoint(self):
@@ -179,7 +177,11 @@ class SCTE35:
             cmd = cue.command
             if cmd.command_type == 5:
                 if not cmd.out_of_network_indicator:
-                    return True
+                    if self.break_duration:
+                        if self.break_timer >= self.break_duration:
+                            return True
+                    else:
+                        return True
 
             upid_stops = [
                 0x11,
