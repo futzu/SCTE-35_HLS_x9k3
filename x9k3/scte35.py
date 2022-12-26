@@ -46,6 +46,12 @@ class SCTE35:
         return tag
 
     def chk_cue_state(self):
+        """
+        chk_cue_state changes
+        OUT to CONT
+        and IN to None
+        when the cue is expired.
+        """
         if self.cue_state == "OUT":
             self.cue_state = "CONT"
         if self.cue_state == "IN":
@@ -55,6 +61,11 @@ class SCTE35:
 
 
     def mk_cue_state(self):
+        """
+        mk_cue_state checks if the cue
+        is a CUE-OUT or a CUE-IN and
+        sets cue_state.
+        """
         if self.is_cue_out(self.cue):
             self.cue_state= "OUT"
         if self.is_cue_in(self.cue):
