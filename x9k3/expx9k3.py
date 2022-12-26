@@ -4,18 +4,18 @@ from chunk import Chunk
 from new_reader import reader
 from iframes import IFramer
 from scte35 import SCTE35
-from timer import Timer
+#from timer import Timer
 from window import SlidingWindow
 
-from threefive import Stream
+import threefive.stream as strm
 
 
-class ExpX9K3(Stream):
+class ExpX9K3(strm.Stream):
     def __init__(self, tsdata, show_null=False):
         super().__init__(tsdata, show_null)
         self.video = tsdata
         self.active_segment = io.BytesIO()
-        self.iframer = IFramer()
+        self.iframer = IFramer(shush=True)
         self.window = SlidingWindow(500)
         self.scte35 = SCTE35()
         self.packet_size = 188
@@ -26,9 +26,6 @@ class ExpX9K3(Stream):
         self.m3u8 = "index.m3u8"
         self.live = False
         self.media_seq = 0
-
-    def _add_discontinuity(self):
-        self.active_data.write("#EXT-X-DISCONTINUITY\n")
 
     def _header(self):
         bump = ""
@@ -45,11 +42,10 @@ class ExpX9K3(Stream):
         return "\n".join(head)
 
     def add_cue_tag(self, chunk):
-        print("adding cue tag")
         tag = self.scte35.mk_cue_tag()
-        print(tag)
         if tag:
-            print(tag)
+            if self.scte35.cue_state in ["OUT","IN"]:
+                chunk.add_tag("#EXT-X-DISCONTINUITY","")
             kay = tag
             vee = ""
             if ":" in tag:
@@ -65,7 +61,7 @@ class ExpX9K3(Stream):
         chunk = Chunk(seg_name, self.segnum)
         self.add_cue_tag(chunk)
         chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
-        #chunk.add_tag("#EXT-X-FU",f"{self.started}-{self.next_start} ")
+        chunk.add_tag("#EXT-X-FU",f"{self.started}-{self.next_start} ")
         self.window.slide_panes(chunk)
         self._write_m3u8()
         self._start_next_start()
@@ -87,21 +83,25 @@ class ExpX9K3(Stream):
             self.started = self.next_start
         self.next_start = self.started + self.seconds
 
-    def slice_check(self,now):
+    def chk_slice_point(self,now):
+        """
+        chk_slice_time checks for the slice point
+        of a segment eoither buy self.seconds
+        or by self.scte35.cue_time
+        """
         if self.scte35.cue_time:
-            print("CUE: ", self.scte35.cue_time)
             if now >= self.scte35.cue_time:
                 self.next_start= self.scte35.cue_time
                 self._write_segment()
-                self.scte35.break_timer.start()
+                #self.scte35.break_timer.start()
                 self.scte35.cue_time=None
                 self.scte35.mk_cue_state()
         else:
             if  now >= self.next_start:
                 self.next_start = now
-                self._write_segment()        
+                self._write_segment()
 
-    def _chk_cue(self, pid):
+    def _chk_cue_time(self, pid):
         """
         _chk_cue checks for SCTE-35 cues
         and inserts a tag at the time
@@ -110,7 +110,6 @@ class ExpX9K3(Stream):
         if self.scte35.cue:
             if "pts_time" in self.scte35.cue.command.get():
                 self.scte35.cue_time = self.scte35.cue.command.pts_time
-
             else:
                 self.scte35.cue_time = self.pid2pts(pid)
 
@@ -118,27 +117,35 @@ class ExpX9K3(Stream):
         cue = super()._parse_scte35(pkt,pid)
         if cue:
             self.scte35.cue = cue
-            self._chk_cue(pid)
+            self._chk_cue_time(pid)
         return cue
 
     def _parse(self, pkt):
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
+        print(now)
         if not self.started:
             self._start_next_start(pts=now)
         i_pts = self.iframer.parse(pkt)
         if i_pts:
-            self.slice_check(now)
+            self.chk_slice_point(now)
         self.active_segment.write(pkt)
 
-    def slicer(self):
+    def do(self):
+        """
+        do parses packets
+        and ensures all the packets are written
+        to segments.
+
+        """
         for pkt in self._find_start():
             self._parse(pkt)
         pid = self._parse_pid(pkt[1], pkt[2])
         self.next_start = self.pid2pts(pid)
         self._write_segment()
 
+if __name__ == '__main__':
 
-x9 = ExpX9K3(sys.argv[1])
-x9.slicer()
+    x9 = ExpX9K3(sys.argv[1])
+    x9.do()
