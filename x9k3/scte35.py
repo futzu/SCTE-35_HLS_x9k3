@@ -4,6 +4,7 @@ The SCTE35 class generates SCTE35 HLS tags
 
 
 import datetime
+import random
 from timer import Timer
 from threefive.encode import mk_splice_insert
 
@@ -23,14 +24,14 @@ class SCTE35:
         self.break_duration = None
         self.event_id = 1
 
-    def mk_auto_return(timestamp):
+    def mk_auto_return(self, timestamp):
         """
         mk_auto_return generates a cue
         when a splice insert has the
         break_autp_return flag set.
         """
         evt_id = random.randint(1, 1000)
-        cue = mk_splice_insert(evt_id, time_stamp)
+        cue = mk_splice_insert(evt_id, timestamp)
         return cue.encode()
 
     def mk_cue_tag(self):
