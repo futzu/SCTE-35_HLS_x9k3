@@ -6,10 +6,12 @@
  [Sidecar SCTE35](#load-scte35-cues-from-a-text-file) |
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
+<details>
+<summary><h1>Heads Up </h1>(click to expand)</summary>
 
-> __I am working on a rewrite of x9k3__, there is too much code in the current version.
->
-> After working with x9k3 for a while, there are some things I would do differently.
+ __I am working on a rewrite of x9k3__, there is too much code in the current version.
+
+>After working with x9k3 for a while, there are some things I would do differently.
 > I am going to do them differently now.
 
 > __Why am I telling you this?__ 
@@ -18,14 +20,20 @@
 >
 > I am __not__ going to maintain two versions,I am going to work out of the main repo, 
 >
-> I do x9k3 and several other projects alone, if you want two versions, __come here and help me.__
->
 > For the next few weeks __the git repo will not be stable.__
 >
 > __v.0.1.73 is the current stable version__. It is available via __pip__.
 >
-> The code will change, but __the interface will stay the same,__ everything will still work the same way. 
 
+### Update 12/25/2022
+The remix is going very well. I still need to finish these parts. 
+
+* CUE-OUT CONT timers
+* break auto return
+* throttling for live and fake live streaming
+* adding command line arguments. 
+> I am thinking I need another week to get it caught up.
+</details>
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### break auto return is not supported 
