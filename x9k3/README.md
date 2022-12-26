@@ -2,6 +2,7 @@
 
 ### ExpX9K3
 ```js
+    
     class ExpX9K3(threefive.stream.Stream)
      |  ExpX9K3(tsdata, show_null=False)
      |  
@@ -26,64 +27,18 @@
      |  
      |  add_cue_tag(self, chunk)
      |  
-     |  slice_check(self, now)
+     |  chk_slice_point(self, now)
+     |      chk_slice_time checks for the slice point
+     |      of a segment eoither buy self.seconds
+     |      or by self.scte35.cue_time
      |  
-     |  slicer(self)
-     |  
-     |  ----------------------------------------------------------------------
-     |  Methods inherited from threefive.stream.Stream:
-     |  
-     |  __repr__(self)
-     |  
-     |  decode(self, func=<function show_cue at 0x00007f0818f51e20>)
-     |      Stream.decode reads self.tsdata to find SCTE35 packets.
-     |      func can be set to a custom function that accepts
-     |      a threefive.Cue instance as it's only argument.
-     |  
-     |  decode_next(self)
-     |      Stream.decode_next returns the next
-     |      SCTE35 cue as a threefive.Cue instance.
-     |  
-     |  decode_program(self, the_program, func=<function show_cue at 0x00007f0818f51e20>)
-     |      Stream.decode_program limits SCTE35 parsing
-     |      to a specific MPEGTS program.
-     |  
-     |  
-     |  decode_proxy(self, func=<function show_cue_stderr at 0x00007f0818f51d80>)
-     |      Stream.decode_proxy writes all ts packets are written to stdout
-     |      for piping into another program like mplayer.
-     |      SCTE-35 cues are printed to stderr.
-     |  
-     |  decode_start_time(self)
-     |      displays streams that will be
-     |      parsed for SCTE-35.
-     |  
-     |  iter_pkts(self)
-     |      iter_pkts iterates a mpegts stream into packets
-     |  
-     |  pid2pcr(self, pid)
-     |      pid2pcr takes a pid
-     |      returns the current pcr
-     |  
-     |  pid2prgm(self, pid)
-     |      pid2prgm takes a pid,
-     |      returns the program
-     |  
-     |  pid2pts(self, pid)
-     |      pid2pts takes a pid
-     |      returns the current pts
-     |  
-     |  show(self)
-     |      displays streams that will be
-     |      parsed for SCTE-35.
+     |  do(self)
+     |      do parses packets
+     |      and ensures all the packets are written
+     |      to segments.
      |  
      |  ----------------------------------------------------------------------
-     |  Static methods inherited from threefive.stream.Stream:
-     |  
-     |  as_90k(ticks)
-     |      as_90k returns ticks as 90k clock time
-     |  
-     |  ----------------------------------------------------------------------
+
 ```
 
 
@@ -150,7 +105,6 @@
      |  mk_cue_tag(self)
      |      mk_cue_tag routes  hls tag creation
      |      to the appropriate method.
-     |  
      |  
      |  x_cue(self)
      |      #EXT-X-CUE-( OUT | IN | CONT )
