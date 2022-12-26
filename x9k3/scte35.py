@@ -18,7 +18,7 @@ class SCTE35:
         self.cue = None
         self.cue_state = None
         self.cue_time = None
-        self.tag_method = self.x_daterange
+        self.tag_method = self.x_scte35
         self.break_timer = Timer()
         self.break_duration = None
         self.event_id = 1
@@ -75,14 +75,13 @@ class SCTE35:
         """
         #EXT-X-CUE-( OUT | IN | CONT )
         """
-        print(self.cue_state)
         if self.cue_state == "OUT":
             # self.break_timer = Timer()
             return f"#EXT-X-CUE-OUT:{self.break_duration}"
         if self.cue_state == "IN":
             return "#EXT-X-CUE-IN"
-        if self.cue_state == "CONT":
-            return f"#EXT-X-CUE-OUT-CONT:{self.break_timer.elapsed():.6f}/{self.break_duration}"
+       # if self.cue_state == "CONT":
+        #    return f"#EXT-X-CUE-OUT-CONT:{self.break_timer.elapsed():.6f}/{self.break_duration}"
         return False
 
     def x_splicepoint(self):
@@ -201,6 +200,5 @@ class SCTE35:
                 for dsptr in cue.descriptors:
                     if dsptr.tag == 2:
                         if dsptr.segmentation_type_id in upid_stops:
-                            if self.break_timer.elapsed() >= self.break_duration:
-                                return True
+                            return True
         return False
