@@ -6,13 +6,12 @@ The SCTE35 class generates SCTE35 HLS tags
 import datetime
 import random
 from timer import Timer
-from threefive.encode import mk_splice_insert
 
 
 class SCTE35:
     """
     A SCTE35 instance is used to hold
-    SCTE35 cue data by X9K5.
+    SCTE35 cue data by X9K3.
     """
 
     def __init__(self):
@@ -23,16 +22,6 @@ class SCTE35:
         self.break_timer = None
         self.break_duration = None
         self.event_id = 1
-
-    def mk_auto_return(self, timestamp):
-        """
-        mk_auto_return generates a cue
-        when a splice insert has the
-        break_autp_return flag set.
-        """
-        evt_id = random.randint(1, 1000)
-        cue = mk_splice_insert(evt_id, timestamp)
-        return cue.encode()
 
     def mk_cue_tag(self):
         """
@@ -100,9 +89,9 @@ class SCTE35:
         """
         base = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
         if self.cue_state == "OUT":
-            return f"{base},CUE-OUT=YES "
+            return f"{base},CUE-OUT=YES"
         if self.cue_state == "IN":
-            return f"{base},CUE-IN=YES "
+            return f"{base},CUE-IN=YES"
         if self.cue_state == "CONT":
             return f"{base},CUE-OUT=CONT"
         return False
@@ -178,11 +167,7 @@ class SCTE35:
             cmd = cue.command
             if cmd.command_type == 5:
                 if not cmd.out_of_network_indicator:
-                    if self.break_duration:
-                        if self.break_timer >= self.break_duration:
-                            return True
-                    else:
-                        return True
+                    return True
 
             upid_stops = [
                 0x11,
