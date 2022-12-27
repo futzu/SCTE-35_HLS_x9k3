@@ -21,12 +21,15 @@ class SlidingWindow:
     def __init__(self, size):
         self.size = size
         self.panes = []
+        self.delete = False
 
     def pop_pane(self):
         """
         pop_pane removes the first item in self.panes
         """
         if len(self.panes) >= self.size:
+            popped = self.panes[0]
+            if self.delete
             self.panes = self.panes[1:]
 
     def push_pane(self, a_pane):
