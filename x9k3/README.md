@@ -24,7 +24,10 @@
      |      strm = Stream("vid.ts",show_null=False)
      |      strm.decode()
      |  
-     |  add_cue_tag(self, chunk)
+     |  add_cue_tag(self, chunk, seg_time)
+     |      add_cue_tag adds SCTE-35 tags,
+     |      handles break auto returns,
+     |      and adds discontinuity tags as needed.
      |  
      |  chk_sidecar_cues(self, pid)
      |      chk_sidecar_cues checks the insert pts time
@@ -40,12 +43,16 @@
      |      and ensures all the packets are written
      |      to segments.
      |  
-     |  load_sidecar(self, file, pid)
+     |  load_sidecar(self, pid)
      |      load_sidecar reads (pts, cue) pairs from
      |      the sidecar file and loads them into X9K3.sidecar
      |      if live, blank out the sidecar file after cues are loaded.
      |  
+     |  shulga_mode(self, pkt, now)
+     |      shulga_mode iframe detection
+     |  
      |  ----------------------------------------------------------------------
+
 
 ```
 
@@ -76,7 +83,7 @@
 
 ```js
     
-      class SCTE35(builtins.object)
+    class SCTE35(builtins.object)
      |  A SCTE35 instance is used to hold
      |  SCTE35 cue data by X9K5.
      |  
@@ -99,11 +106,6 @@
      |      is_cue_out checks a Cue instance
      |      to see if it is a cue_out event.
      |      Returns True for a cue_out event.
-     |  
-     |  mk_auto_return(timestamp)
-     |      mk_auto_return generates a cue
-     |      when a splice insert has the
-     |      break_autp_return flag set.
      |  
      |  mk_cue_state(self)
      |      mk_cue_state checks if the cue
