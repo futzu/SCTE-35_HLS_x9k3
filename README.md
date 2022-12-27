@@ -27,9 +27,15 @@
 ### Update 12/26/2022
 > One of the main goals was to simply the logic used to cut segments, I have done that and I feel much better this code.   
 This morning I turned on:
-* discontinuity media sequence
-* shulga mode
-* break auto return 
+* `discontinuity tags`
+* `program datetime flags`
+* `discontinuity media sequence header`
+* `shulga mode`
+* `automatic break auto return`
+* `sidecar file loading`
+* `expired segment deleting`
+* `Super accurate slicing`
+* `CUE-OUT CONT timers`
 
 
 ### Update 12/25/2022
