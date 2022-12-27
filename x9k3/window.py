@@ -54,3 +54,5 @@ class SlidingWindow:
         """
         self.push_pane(a_pane)
         self.pop_pane()
+
+        
