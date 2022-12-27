@@ -11,7 +11,7 @@ like:
 seg2.ts
 
 """
-
+import os
 
 class SlidingWindow:
     """
@@ -28,8 +28,9 @@ class SlidingWindow:
         pop_pane removes the first item in self.panes
         """
         if len(self.panes) >= self.size:
-            popped = self.panes[0]
-            if self.delete
+            if self.delete:
+                popped = self.panes[0].name
+                os.unlink(popped)    
             self.panes = self.panes[1:]
 
     def push_pane(self, a_pane):
