@@ -88,7 +88,8 @@ class X9K3(strm.Stream):
         if self.args.program_date_time or self.args.delete or self.args.replay:
             self.args.live = True
             if self.args.delete or self.args.replay:
-                self.args.delete = True
+                # self.args.delete = True
+                self.window.delete = True
 
     def _args_window_size(self):
         self.window.size = self.args.window_size
@@ -134,9 +135,9 @@ class X9K3(strm.Stream):
         head.append(bump)
         return "\n".join(head)
 
-    def add_cue_tag(self, chunk, seg_time):
+    def _add_cue_tag(self, chunk, seg_time):
         """
-        add_cue_tag adds SCTE-35 tags,
+        _add_cue_tag adds SCTE-35 tags,
         handles break auto returns,
         and adds discontinuity tags as needed.
         """
@@ -164,12 +165,15 @@ class X9K3(strm.Stream):
     def _write_segment(self):
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round(self.next_start - self.started,6)
-        print(f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}", file=sys.stderr)
+        seg_time = round(self.next_start - self.started, 6)
+        print(
+            f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}",
+            file=sys.stderr,
+        )
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         chunk = Chunk(seg_name, self.segnum)
-        self.add_cue_tag(chunk, seg_time)
+        self._add_cue_tag(chunk, seg_time)
         self._chk_pdt_flag(chunk)
         chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
         self.window.push_pane(chunk)
@@ -178,12 +182,11 @@ class X9K3(strm.Stream):
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
-       # print(seg_name, self.started,self.next_start, seg_time, file=sys.stderr, end='\r')
+        # print(seg_name, self.started,self.next_start, seg_time, file=sys.stderr, end='\r')
         if self.args.live:
             self.window.pop_pane()
             self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
-
 
     def _write_m3u8(self):
         with open(self.m3u8, "w+") as m3u8:
@@ -194,10 +197,9 @@ class X9K3(strm.Stream):
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_segment = io.BytesIO()
 
-
-    def load_sidecar(self, pid):
+    def _load_sidecar(self, pid):
         """
-        load_sidecar reads (pts, cue) pairs from
+        _load_sidecar reads (pts, cue) pairs from
         the sidecar file and loads them into X9K3.sidecar
         if live, blank out the sidecar file after cues are loaded.
         """
@@ -219,9 +221,9 @@ class X9K3(strm.Stream):
                 with open(self.args.sidecar_file, "w") as scf:
                     scf.close()
 
-    def chk_sidecar_cues(self, pid):
+    def _chk_sidecar_cues(self, pid):
         """
-        chk_sidecar_cues checks the insert pts time
+        _chk_sidecar_cues checks the insert pts time
         for the next sidecar cue and inserts the cue if needed.
         """
         if self.sidecar:
@@ -248,7 +250,7 @@ class X9K3(strm.Stream):
             self.started = self.next_start
         self.next_start = self.started + self.args.time
 
-    def chk_slice_point(self, now):
+    def _chk_slice_point(self, now):
         """
         chk_slice_time checks for the slice point
         of a segment eoither buy self.args.time
@@ -261,7 +263,7 @@ class X9K3(strm.Stream):
                 self.scte35.cue_time = None
                 self.scte35.mk_cue_state()
                 return
-        if now >= self.started +self.args.time:
+        if now >= self.started + self.args.time:
             self.next_start = now
             self._write_segment()
 
@@ -282,18 +284,18 @@ class X9K3(strm.Stream):
     def _rai_flag(pkt):
         return pkt[5] & 0x40
 
-    def shulga_mode(self, pkt, now):
+    def _shulga_mode(self, pkt, now):
         """
-        shulga_mode iframe detection
+        _shulga_mode iframe detection
         """
         if self._rai_flag(pkt):
-            self.chk_slice_point(now)
+            self._chk_slice_point(now)
 
     def _parse_scte35(self, pkt, pid):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             cue.decode()
-          #  cue.show()
+            #  cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
         return cue
@@ -305,15 +307,14 @@ class X9K3(strm.Stream):
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
-            self.load_sidecar(pkt_pid)
+            self._load_sidecar(pkt_pid)
             if self.args.shulga:
-                self.shulga_mode(pkt, now)
+                self._shulga_mode(pkt, now)
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
-                  #  print(f"iframe: {i_pts} now: {now} ")
-                    self.chk_sidecar_cues(pkt_pid)
-                    self.chk_slice_point(i_pts)
+                    self._chk_sidecar_cues(pkt_pid)
+                    self._chk_slice_point(i_pts)
         self.active_segment.write(pkt)
 
     def decode(self, func=False):
