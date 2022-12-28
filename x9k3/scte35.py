@@ -189,3 +189,4 @@ class SCTE35:
                         if dsptr.segmentation_type_id in upid_stops:
                             return True
         return False
+    
