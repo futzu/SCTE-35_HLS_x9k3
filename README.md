@@ -25,8 +25,8 @@
 > __v.0.1.75 is the current stable version__. It is available via __pip__.
 >
 ### Update 12/28/2022
-* live/ fake live throttling is working 
-* Everything is now working, Hell yes. 
+* `live/ fake live throttling` is working 
+ * `Everything is now working` 
    * I need to do a little more testing, probably package it up for pip, Friday.  
 
 ### Update 12/27/2022
