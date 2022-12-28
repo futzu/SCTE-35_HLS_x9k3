@@ -17,7 +17,7 @@ import threefive.stream as strm
 from scte35 import SCTE35
 from args import argue
 
-# from timer import Timer
+from timer import Timer
 from window import SlidingWindow
 
 MAJOR = "0"
@@ -50,6 +50,7 @@ class X9K3(strm.Stream):
         self.window = SlidingWindow(500)
         self.scte35 = SCTE35()
         self.sidecar = deque()
+        self.timer = Timer()
         self.m3u8 = "index.m3u8"
         self.started = None
         self.next_start = None
@@ -163,23 +164,28 @@ class X9K3(strm.Stream):
     def _write_segment(self):
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = self.next_start - self.started
+        seg_time = round(self.next_start - self.started,6)
+        print(f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}", file=sys.stderr)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         chunk = Chunk(seg_name, self.segnum)
         self.add_cue_tag(chunk, seg_time)
         self._chk_pdt_flag(chunk)
         chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
-        self.window.slide_panes(chunk)
+        self.window.push_pane(chunk)
         self._write_m3u8()
         self._start_next_start()
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
+       # print(seg_name, self.started,self.next_start, seg_time, file=sys.stderr, end='\r')
+        if self.args.live:
+            self.window.pop_pane()
+            self.timer.throttle(seg_time)
+            self._discontinuity_seq_plus_one()
+
 
     def _write_m3u8(self):
-        if self.args.live:
-            self._discontinuity_seq_plus_one()
         with open(self.m3u8, "w+") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
@@ -187,6 +193,7 @@ class X9K3(strm.Stream):
             if not self.args.live:
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_segment = io.BytesIO()
+
 
     def load_sidecar(self, pid):
         """
@@ -253,10 +260,10 @@ class X9K3(strm.Stream):
                 self._write_segment()
                 self.scte35.cue_time = None
                 self.scte35.mk_cue_state()
-        else:
-            if now >= self.next_start:
-                self.next_start = now
-                self._write_segment()
+                return
+        if now >= self.started +self.args.time:
+            self.next_start = now
+            self._write_segment()
 
     def _chk_cue_time(self, pid):
         """
@@ -286,7 +293,7 @@ class X9K3(strm.Stream):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             cue.decode()
-            cue.show()
+          #  cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
         return cue
@@ -304,8 +311,9 @@ class X9K3(strm.Stream):
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
+                  #  print(f"iframe: {i_pts} now: {now} ")
                     self.chk_sidecar_cues(pkt_pid)
-                    self.chk_slice_point(now)
+                    self.chk_slice_point(i_pts)
         self.active_segment.write(pkt)
 
     def decode(self, func=False):
@@ -314,6 +322,7 @@ class X9K3(strm.Stream):
         and passes them to _parse.
 
         """
+        self.timer.start()
         super().decode()
 
     def loop(self):
