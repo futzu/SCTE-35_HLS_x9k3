@@ -1,5 +1,7 @@
+import argparse
 import datetime
 import io
+import os
 import sys
 from collections import deque
 from operator import itemgetter
@@ -34,7 +36,7 @@ def version():
 
 
 class ExpX9K3(strm.Stream):
-    def __init__(self, tsdata, show_null=False):
+    def __init__(self, tsdata=None, show_null=False):
         super().__init__(tsdata, show_null)
         self.video = tsdata
         self.active_segment = io.BytesIO()
@@ -56,6 +58,198 @@ class ExpX9K3(strm.Stream):
         self.output_dir = "."
         self.shulga = False
         self.delete = False
+        self._parse_args()
+
+    def _parse_args(self):
+        """
+        _parse_args parse command line args
+        """
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "-i",
+            "--input",
+            default=sys.stdin.buffer,
+            help=""" Input source, like "/home/a/vid.ts"
+                                    or "udp://@235.35.3.5:3535"
+                                    or "https://futzu.com/xaa.ts"
+                                    """,
+        )
+
+        parser.add_argument(
+            "-o",
+            "--output_dir",
+            default=".",
+            help="""Directory for segments and index.m3u8
+                    ( created if it does not exist ) """,
+        )
+
+        parser.add_argument(
+            "-s",
+            "--sidecar",
+            default=None,
+            help="""Sidecar file of scte35 cues. each line contains  PTS, Cue""",
+        )
+
+        parser.add_argument(
+            "-t",
+            "--time",
+            default=2,
+            type=float,
+            help="Segment time in seconds ( default is 2)",
+        )
+
+        parser.add_argument(
+            "-T",
+            "--hls_tag",
+            default="x_cue",
+            help="x_scte35, x_cue, x_daterange, or x_splicepoint  (default x_cue)",
+        )
+
+        parser.add_argument(
+            "-w",
+            "--window_size",
+            default=5,
+            type=int,
+            help="sliding window size(default:5)",
+        )
+
+        parser.add_argument(
+            "-d",
+            "--delete",
+            action="store_const",
+            default=False,
+            const=True,
+            help="delete segments ( enables --live )",
+        )
+
+        parser.add_argument(
+            "-l",
+            "--live",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag for a live event ( enables sliding window m3u8 )",
+        )
+
+        parser.add_argument(
+            "-r",
+            "--replay",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag for replay (looping) ( enables --live and --delete )",
+        )
+
+        parser.add_argument(
+            "-S",
+            "--shulga",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag to enable Shulga iframe detection mode",
+        )
+        parser.add_argument(
+            "-v",
+            "--version",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Show version",
+        )
+
+        parser.add_argument(
+            "-p",
+            "--program_date_time",
+            action="store_const",
+            default=False,
+            const=True,
+            help="Flag to add Program Date Time tags to index.m3u8 ( enables --live)",
+        )
+
+        args = parser.parse_args()
+        self._apply_args(args)
+
+    @staticmethod
+    def _args_version(args):
+        if args.version:
+            print(version())
+            sys.exit()
+
+    def _args_input(self, args):
+        self._tsdata = args.input
+        self.in_stream = args.input
+
+    def _args_hls_tag(self, args):
+        tag_map = {
+            "x_scte35": self.scte35.x_scte35,
+            "x_cue": self.scte35.x_cue,
+            "x_daterange": self.scte35.x_daterange,
+            "x_splicepoint": self.scte35.x_splicepoint,
+        }
+        if args.hls_tag not in tag_map:
+            raise ValueError(f"hls tag  must be in {tag_map.keys()}")
+        self.scte35.tag_method = tag_map[args.hls_tag]
+
+    def _args_output_dir(self, args):
+        self.output_dir = args.output_dir
+        if not os.path.isdir(args.output_dir):
+            os.mkdir(args.output_dir)
+
+    def _args_flags(self, args):
+        if args.shulga:
+            self.shulga = True
+        if args.live or args.delete or args.replay:
+            self.live = True
+            if args.delete or args.replay:
+                self.delete = True
+                if args.replay:
+                    self.replay = True
+
+    def _args_sidecar(self, args):
+        if args.sidecar:
+            self.sidecar = deque()
+            self.sidecar_file = args.sidecar
+
+    def _args_time(self, args):
+        self.seconds = args.time
+
+    def _args_window_size(self, args):
+        self.window_size = args.window_size
+
+    def _args_program_date_time(self, args):
+        self.program_date_time_flag = args.program_date_time
+        if self.program_date_time_flag:
+            self.live = True
+
+    def _apply_args(self, args):
+        """
+        _apply_args  uses command line args
+        to set X9K3 instance vars
+        """
+        self._args_version(args)
+        self._args_program_date_time(args)
+        self._args_input(args)
+        self._args_hls_tag(args)
+        self._args_output_dir(args)
+        self._args_sidecar(args)
+        self._args_time(args)
+        self._args_window_size(args)
+        self._args_flags(args)
+        if isinstance(self._tsdata, str):
+            self._tsdata = reader(self._tsdata)
+
+    @staticmethod
+    def mk_uri(head, tail):
+        """
+        mk_uri is used to create local filepaths
+        and resolve backslash or forwardslash seperators
+        """
+        sep = "/"
+        if len(head.split("\\")) > len(head.split("/")):
+            sep = "\\"
+        if not head.endswith(sep):
+            head = head + sep
+        return f"{head}{tail}"
 
     def _header(self):
         bump = ""
@@ -71,16 +265,16 @@ class ExpX9K3(strm.Stream):
         head.append(bump)
         return "\n".join(head)
 
-    def add_cue_tag(self, chunk,seg_time):
+    def add_cue_tag(self, chunk, seg_time):
         """
         add_cue_tag adds SCTE-35 tags,
         handles break auto returns,
         and adds discontinuity tags as needed.
         """
         if self.scte35.break_timer is not None:
-            if self.scte35.break_timer+seg_time > self.scte35.break_duration:
+            if self.scte35.break_timer + seg_time > self.scte35.break_duration:
                 self.scte35.break_timer = None
-                self.scte35.cue_state="IN"
+                self.scte35.cue_state = "IN"
         tag = self.scte35.mk_cue_tag()
         if tag:
             if self.scte35.cue_state in ["OUT", "IN"]:
@@ -104,7 +298,7 @@ class ExpX9K3(strm.Stream):
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         chunk = Chunk(seg_name, self.segnum)
-        self.add_cue_tag(chunk,seg_time)
+        self.add_cue_tag(chunk, seg_time)
         self._chk_pdt_flag(chunk)
         chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
         self.window.slide_panes(chunk)
@@ -162,9 +356,9 @@ class ExpX9K3(strm.Stream):
                 self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
-        if "DISCONTINUITY" in self.window.panes[0][2]:
+        if "DISCONTINUITY" in self.window.panes[0].tags:
             self.discontinuity_sequence += 1
-        if "DISCONTINUITY" in self.window.panes[-1][2]:
+        if "DISCONTINUITY" in self.window.panes[-1].tags:
             self._reset_stream()
 
     def _reset_stream(self):
@@ -204,9 +398,9 @@ class ExpX9K3(strm.Stream):
         if self.scte35.cue:
             pts_adjust = self.scte35.cue.info_section.pts_adjustment
             if "pts_time" in self.scte35.cue.command.get():
-                self.scte35.cue_time = self.scte35.cue.command.pts_time+pts_adjust
+                self.scte35.cue_time = self.scte35.cue.command.pts_time + pts_adjust
             else:
-                self.scte35.cue_time = self.pid2pts(pid)+pts_adjust
+                self.scte35.cue_time = self.pid2pts(pid) + pts_adjust
 
     @staticmethod
     def _rai_flag(pkt):
@@ -226,7 +420,7 @@ class ExpX9K3(strm.Stream):
             cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-       #     self._auto_return()
+        #     self._auto_return()
         return cue
 
     def _parse(self, pkt):
@@ -259,9 +453,8 @@ class ExpX9K3(strm.Stream):
         self.next_start = self.pid2pts(pid)
         self._write_segment()
 
-        
 
 if __name__ == "__main__":
 
-    x9 = ExpX9K3(sys.argv[1])
+    x9 = ExpX9K3()
     x9.do()
