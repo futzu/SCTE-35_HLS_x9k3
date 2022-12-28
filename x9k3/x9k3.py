@@ -1,4 +1,8 @@
-import argparse
+"""
+X9K3
+"""
+
+
 import datetime
 import io
 import os
@@ -8,12 +12,13 @@ from operator import itemgetter
 from chunk import Chunk
 from new_reader import reader
 from iframes import IFramer
+from threefive import Cue
+import threefive.stream as strm
 from scte35 import SCTE35
+from args import argue
 
 # from timer import Timer
 from window import SlidingWindow
-from threefive import Cue
-import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
@@ -35,206 +40,69 @@ def version():
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
 
 
-class ExpX9K3(strm.Stream):
+class X9K3(strm.Stream):
     def __init__(self, tsdata=None, show_null=False):
         super().__init__(tsdata, show_null)
-        self.video = tsdata
+        self._tsdata = tsdata
+        self.in_stream = tsdata
         self.active_segment = io.BytesIO()
         self.iframer = IFramer(shush=True)
         self.window = SlidingWindow(500)
         self.scte35 = SCTE35()
-        self.packet_size = 188
-        self.seconds = 2
-        self.segnum = 0
+        self.sidecar = deque()
+        self.m3u8 = "index.m3u8"
         self.started = None
         self.next_start = None
-        self.m3u8 = "index.m3u8"
-        self.live = False
+        self.segnum = 0
         self.media_seq = 0
-        self.program_date_time_flag = False
         self.discontinuity_sequence = 0
-        self.sidecar_file = "sidecar.txt"
-        self.sidecar = deque()
-        self.output_dir = "."
-        self.shulga = False
-        self.delete = False
-        self._parse_args()
+        self.args = argue()
+        self._apply_args()
 
-    def _parse_args(self):
-        """
-        _parse_args parse command line args
-        """
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "-i",
-            "--input",
-            default=sys.stdin.buffer,
-            help=""" Input source, like "/home/a/vid.ts"
-                                    or "udp://@235.35.3.5:3535"
-                                    or "https://futzu.com/xaa.ts"
-                                    """,
-        )
-
-        parser.add_argument(
-            "-o",
-            "--output_dir",
-            default=".",
-            help="""Directory for segments and index.m3u8
-                    ( created if it does not exist ) """,
-        )
-
-        parser.add_argument(
-            "-s",
-            "--sidecar",
-            default=None,
-            help="""Sidecar file of scte35 cues. each line contains  PTS, Cue""",
-        )
-
-        parser.add_argument(
-            "-t",
-            "--time",
-            default=2,
-            type=float,
-            help="Segment time in seconds ( default is 2)",
-        )
-
-        parser.add_argument(
-            "-T",
-            "--hls_tag",
-            default="x_cue",
-            help="x_scte35, x_cue, x_daterange, or x_splicepoint  (default x_cue)",
-        )
-
-        parser.add_argument(
-            "-w",
-            "--window_size",
-            default=5,
-            type=int,
-            help="sliding window size(default:5)",
-        )
-
-        parser.add_argument(
-            "-d",
-            "--delete",
-            action="store_const",
-            default=False,
-            const=True,
-            help="delete segments ( enables --live )",
-        )
-
-        parser.add_argument(
-            "-l",
-            "--live",
-            action="store_const",
-            default=False,
-            const=True,
-            help="Flag for a live event ( enables sliding window m3u8 )",
-        )
-
-        parser.add_argument(
-            "-r",
-            "--replay",
-            action="store_const",
-            default=False,
-            const=True,
-            help="Flag for replay (looping) ( enables --live and --delete )",
-        )
-
-        parser.add_argument(
-            "-S",
-            "--shulga",
-            action="store_const",
-            default=False,
-            const=True,
-            help="Flag to enable Shulga iframe detection mode",
-        )
-        parser.add_argument(
-            "-v",
-            "--version",
-            action="store_const",
-            default=False,
-            const=True,
-            help="Show version",
-        )
-
-        parser.add_argument(
-            "-p",
-            "--program_date_time",
-            action="store_const",
-            default=False,
-            const=True,
-            help="Flag to add Program Date Time tags to index.m3u8 ( enables --live)",
-        )
-
-        args = parser.parse_args()
-        self._apply_args(args)
-
-    @staticmethod
-    def _args_version(args):
-        if args.version:
+    def _args_version(self):
+        if self.args.version:
             print(version())
             sys.exit()
 
-    def _args_input(self, args):
-        self._tsdata = args.input
-        self.in_stream = args.input
+    def _args_input(self):
+        self._tsdata = self.args.input
+        self.in_stream = self.args.input
 
-    def _args_hls_tag(self, args):
+    def _args_hls_tag(self):
         tag_map = {
             "x_scte35": self.scte35.x_scte35,
             "x_cue": self.scte35.x_cue,
             "x_daterange": self.scte35.x_daterange,
             "x_splicepoint": self.scte35.x_splicepoint,
         }
-        if args.hls_tag not in tag_map:
+        if self.args.hls_tag not in tag_map:
             raise ValueError(f"hls tag  must be in {tag_map.keys()}")
-        self.scte35.tag_method = tag_map[args.hls_tag]
+        self.scte35.tag_method = tag_map[self.args.hls_tag]
 
-    def _args_output_dir(self, args):
-        self.output_dir = args.output_dir
-        if not os.path.isdir(args.output_dir):
-            os.mkdir(args.output_dir)
+    def _args_output_dir(self):
+        if not os.path.isdir(self.args.output_dir):
+            os.mkdir(self.args.output_dir)
 
-    def _args_flags(self, args):
-        if args.shulga:
-            self.shulga = True
-        if args.live or args.delete or args.replay:
-            self.live = True
-            if args.delete or args.replay:
-                self.delete = True
-                if args.replay:
-                    self.replay = True
+    def _args_flags(self):
+        if self.args.program_date_time or self.args.delete or self.args.replay:
+            self.args.live = True
+            if self.args.delete or self.args.replay:
+                self.args.delete = True
 
-    def _args_sidecar(self, args):
-        if args.sidecar:
-            self.sidecar = deque()
-            self.sidecar_file = args.sidecar
+    def _args_window_size(self):
+        self.window.size = self.args.window_size
 
-    def _args_time(self, args):
-        self.seconds = args.time
-
-    def _args_window_size(self, args):
-        self.window_size = args.window_size
-
-    def _args_program_date_time(self, args):
-        self.program_date_time_flag = args.program_date_time
-        if self.program_date_time_flag:
-            self.live = True
-
-    def _apply_args(self, args):
+    def _apply_args(self):
         """
         _apply_args  uses command line args
         to set X9K3 instance vars
         """
-        self._args_version(args)
-        self._args_program_date_time(args)
-        self._args_input(args)
-        self._args_hls_tag(args)
-        self._args_output_dir(args)
-        self._args_sidecar(args)
-        self._args_time(args)
-        self._args_window_size(args)
-        self._args_flags(args)
+        self._args_version()
+        self._args_input()
+        self._args_hls_tag()
+        self._args_output_dir()
+        self._args_window_size()
+        self._args_flags()
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
@@ -257,10 +125,10 @@ class ExpX9K3(strm.Stream):
         head = [
             "#EXTM3U",
             "#EXT-X-VERSION:3",
-            f"#EXT-X-TARGETDURATION:{int(self.seconds+1)}",
+            f"#EXT-X-TARGETDURATION:{int(self.args.time+1)}",
             f"#EXT-X-MEDIA-SEQUENCE:{self.media_seq}",
         ]
-        if not self.live:
+        if not self.args.live:
             head.append("#EXT-X-PLAYLIST-TYPE:VOD")
         head.append(bump)
         return "\n".join(head)
@@ -287,13 +155,14 @@ class ExpX9K3(strm.Stream):
             print(kay, vee)
 
     def _chk_pdt_flag(self, chunk):
-        if self.program_date_time_flag:
+        if self.args.program_date_time:
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
             chunk.add_tag("#Iframe", f"{self.started}")
             chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _write_segment(self):
-        seg_name = f"seg{self.segnum}.ts"
+        seg_file = f"seg{self.segnum}.ts"
+        seg_name = self.mk_uri(self.args.output_dir, seg_file)
         seg_time = self.next_start - self.started
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
@@ -309,13 +178,13 @@ class ExpX9K3(strm.Stream):
         self.scte35.chk_cue_state()
 
     def _write_m3u8(self):
-        if self.live:
+        if self.args.live:
             self._discontinuity_seq_plus_one()
         with open(self.m3u8, "w+") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
             self.segnum += 1
-            if not self.live:
+            if not self.args.live:
                 m3u8.write("#EXT-X-ENDLIST")
         self.active_segment = io.BytesIO()
 
@@ -325,8 +194,8 @@ class ExpX9K3(strm.Stream):
         the sidecar file and loads them into X9K3.sidecar
         if live, blank out the sidecar file after cues are loaded.
         """
-        if self.sidecar_file:
-            with reader(self.sidecar_file) as sidefile:
+        if self.args.sidecar_file:
+            with reader(self.args.sidecar_file) as sidefile:
                 for line in sidefile:
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
@@ -339,8 +208,8 @@ class ExpX9K3(strm.Stream):
                                     sorted(self.sidecar, key=itemgetter(0))
                                 )
                 sidefile.close()
-            if self.live:
-                with open(self.sidecar_file, "w") as scf:
+            if self.args.live:
+                with open(self.args.sidecar_file, "w") as scf:
                     scf.close()
 
     def chk_sidecar_cues(self, pid):
@@ -370,12 +239,12 @@ class ExpX9K3(strm.Stream):
             self.started = pts
         else:
             self.started = self.next_start
-        self.next_start = self.started + self.seconds
+        self.next_start = self.started + self.args.time
 
     def chk_slice_point(self, now):
         """
         chk_slice_time checks for the slice point
-        of a segment eoither buy self.seconds
+        of a segment eoither buy self.args.time
         or by self.scte35.cue_time
         """
         if self.scte35.cue_time:
@@ -411,7 +280,7 @@ class ExpX9K3(strm.Stream):
         shulga_mode iframe detection
         """
         if self._rai_flag(pkt):
-            chk_slice_point(self, now)
+            self.chk_slice_point(now)
 
     def _parse_scte35(self, pkt, pid):
         cue = super()._parse_scte35(pkt, pid)
@@ -420,7 +289,6 @@ class ExpX9K3(strm.Stream):
             cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-        #     self._auto_return()
         return cue
 
     def _parse(self, pkt):
@@ -431,7 +299,7 @@ class ExpX9K3(strm.Stream):
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
             self.load_sidecar(pkt_pid)
-            if self.shulga:
+            if self.args.shulga:
                 self.shulga_mode(pkt, now)
             else:
                 i_pts = self.iframer.parse(pkt)
@@ -440,21 +308,53 @@ class ExpX9K3(strm.Stream):
                     self.chk_slice_point(now)
         self.active_segment.write(pkt)
 
-    def do(self):
+    def decode(self, func=False):
         """
-        do parses packets
-        and ensures all the packets are written
-        to segments.
+        decode iterates mpegts packets
+        and passes them to _parse.
 
         """
-        for pkt in self._find_start():
-            self._parse(pkt)
-        pid = self._parse_pid(pkt[1], pkt[2])
-        self.next_start = self.pid2pts(pid)
-        self._write_segment()
+        super().decode()
+
+    def loop(self):
+        """
+        loop  loops a video in the hls manifest.
+        sliding window and throttled to simulate live playback,
+        segments are deleted when they fall out the sliding window.
+        """
+        self.decode()
+        self._reset_stream()
+        with open(self.m3u8, "w+") as m3u8:
+            m3u8.write("#EXT-X-DISCONTINUITY")
+        self._tsdata = reader(self.in_stream)
+        return True
+
+    def run(self):
+        """
+        run calls replay() if replay is set
+        or else it calls decode()
+        """
+        if self.args.replay:
+            while True:
+                self.loop()
+        else:
+            self.decode()
+
+
+def cli():
+    """
+    cli provides one function call
+    for running X9K3  with command line args
+    Two lines of code gives you a full X9K3 command line tool.
+
+     from X9K3 import cli
+     cli()
+
+    """
+    stuff = X9K3()
+    stuff.run()
 
 
 if __name__ == "__main__":
-
-    x9 = ExpX9K3()
-    x9.do()
+    x9k = X9K3()
+    x9k.run()
