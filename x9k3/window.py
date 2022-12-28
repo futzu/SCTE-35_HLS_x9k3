@@ -13,6 +13,7 @@ seg2.ts
 """
 import os
 
+
 class SlidingWindow:
     """
     The SlidingWindow class
@@ -30,7 +31,8 @@ class SlidingWindow:
         if len(self.panes) >= self.size:
             if self.delete:
                 popped = self.panes[0].name
-                os.unlink(popped)    
+                print(f"deleting {popped}")
+                os.unlink(popped)
             self.panes = self.panes[1:]
 
     def push_pane(self, a_pane):
@@ -54,5 +56,3 @@ class SlidingWindow:
         """
         self.push_pane(a_pane)
         self.pop_pane()
-
-        
