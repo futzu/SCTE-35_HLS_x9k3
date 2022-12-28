@@ -1,3 +1,4 @@
+import sys
 import time
 
 
@@ -29,6 +30,6 @@ class Timer:
         self.stop(end)
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
-            print(f"throttling {diff}")
+           # print(f"throttling {diff}")#,file=sys.stderr, end='\r')
             time.sleep(diff)
         self.start(begin)
