@@ -4,14 +4,12 @@ The SCTE35 class generates SCTE35 HLS tags
 
 
 import datetime
-import random
-from timer import Timer
 
 
 class SCTE35:
     """
     A SCTE35 instance is used to hold
-    SCTE35 cue data by X9K3.
+    SCTE35 cue data by X9K5.
     """
 
     def __init__(self):
@@ -89,9 +87,9 @@ class SCTE35:
         """
         base = f'#EXT-X-SCTE35:CUE="{self.cue.encode()}" '
         if self.cue_state == "OUT":
-            return f"{base},CUE-OUT=YES"
+            return f"{base},CUE-OUT=YES "
         if self.cue_state == "IN":
-            return f"{base},CUE-IN=YES"
+            return f"{base},CUE-IN=YES "
         if self.cue_state == "CONT":
             return f"{base},CUE-OUT=CONT"
         return False
@@ -125,37 +123,38 @@ class SCTE35:
         to see if it is a cue_out event.
         Returns True for a cue_out event.
         """
-        if cue is not None:
-            cmd = cue.command
-            if cmd.command_type == 5:
-                if cmd.out_of_network_indicator:
-                    if cmd.break_duration:
-                        self.break_duration = cmd.break_duration
-                        return True
-
-            upid_starts = [
-                0x10,
-                0x20,
-                0x22,
-                0x30,
-                0x32,
-                0x34,
-                0x36,
-                0x38,
-                0x3A,
-                0x3C,
-                0x3E,
-                0x44,
-                0x46,
-            ]
-            if cmd.command_type == 6:
-                for dsptr in cue.descriptors:
-                    if dsptr.tag == 2:
-                        if dsptr.segmentation_type_id in upid_starts:
-                            if dsptr.segmentation_duration:
-                                self.break_duration = dsptr.segmentation_duration
-                                return True
+        if cue is None:
             return False
+        cmd = cue.command
+        if cmd.command_type == 5:
+            if cmd.out_of_network_indicator:
+                if cmd.break_duration:
+                    self.break_duration = cmd.break_duration
+                    return True
+
+        upid_starts = [
+            0x10,
+            0x20,
+            0x22,
+            0x30,
+            0x32,
+            0x34,
+            0x36,
+            0x38,
+            0x3A,
+            0x3C,
+            0x3E,
+            0x44,
+            0x46,
+        ]
+        if cmd.command_type == 6:
+            for dsptr in cue.descriptors:
+                if dsptr.tag == 2:
+                    if dsptr.segmentation_type_id in upid_starts:
+                        if dsptr.segmentation_duration:
+                            self.break_duration = dsptr.segmentation_duration
+                            return True
+        return False
 
     def is_cue_in(self, cue):
         """
