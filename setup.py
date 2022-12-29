@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="x9k3",
     version=x9k3.version(),
-    author="Adrian and a Cast of Thousands",
+    author="Brought to you by the fine folks at fu-corp",
     author_email="spam@iodisco.com",
     description="A SCTE-35 Aware HLS Segmenter",
     long_description=readme,
