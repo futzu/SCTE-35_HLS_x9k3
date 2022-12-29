@@ -23,7 +23,24 @@
 > For the next few weeks __the git repo will not be stable.__
 >
 > __v.0.1.75 is the current stable version__. It is available via __pip__.
->
+
+### Update 13/29/2022
+#### How accurate is the new x9k3? 
+```js
+#EXT-X-CUE-OUT-CONT:237.459978/242.0
+#EXTINF:2.060000,
+./seg141.ts
+#EXT-X-CUE-OUT-CONT:239.519978/242.0
+#EXTINF:2.300000,
+./seg142.ts
+#EXT-X-CUE-OUT-CONT:241.819978/242.0
+#EXTINF:0.180022,                   #    Boom << Boom
+./seg143.ts
+#EXT-X-DISCONTINUITY
+#EXT-X-CUE-IN
+#EXTINF:2.139978,
+```
+
 ### Update 12/28/2022
 * `live/ fake live throttling` is working 
  * `Everything is now working` 
