@@ -23,6 +23,7 @@
 > For the next few weeks __the git repo will not be stable.__
 >
 > __v.0.1.75 is the current stable version__. It is available via __pip__.
+> __v.0.1.77 is the new remix version__ _(discretion is the better part of valor, go slow.)_  . It is available via __pip__.
 
 ### Update 13/29/2022
 #### How accurate is the new x9k3? 
@@ -78,6 +79,7 @@ The remix is going very well. I still need to finish these parts.
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### `Latest` is `v.0.1.75`
+### `Remixed` is `v.0.1.77` _(discretion is the better part of valor, go slow)_ 
 ### Supported SCTE-35 HLS Tags 
 
  - [x] `#EXT-X-SCTE35` 
