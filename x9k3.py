@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "76"
+MAINTAINENCE = "77"
 
 
 def version():
@@ -151,7 +151,7 @@ class X9K3(strm.Stream):
         and adds discontinuity tags as needed.
         """
         if self.scte35.break_timer is not None:
-            if self.scte35.break_timer + seg_time > self.scte35.break_duration:
+            if self.scte35.break_timer  >= self.scte35.break_duration:
                 self.scte35.break_timer = None
                 self.scte35.cue_state = "IN"
         tag = self.scte35.mk_cue_tag()
@@ -242,8 +242,7 @@ class X9K3(strm.Stream):
                 self.scte35.cue_time = float(raw[0])
                 self.scte35.cue = Cue(raw[1])
                 self.scte35.cue.decode()
-                self.scte35.mk_cue_state()
-            # self._chk_cue_time(pid)
+                self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
         if "DISCONTINUITY" in self.window.panes[0].tags:
@@ -269,7 +268,7 @@ class X9K3(strm.Stream):
         or by self.scte35.cue_time
         """
         if self.scte35.cue_time:
-            if now >= self.scte35.cue_time >= self.next_start:
+            if now >= self.scte35.cue_time:
                 self.next_start = self.scte35.cue_time
                 self._write_segment()
                 self.scte35.cue_time = None
@@ -307,7 +306,7 @@ class X9K3(strm.Stream):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             cue.decode()
-            #  cue.show()
+            cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
         return cue
@@ -321,8 +320,7 @@ class X9K3(strm.Stream):
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
             self._load_sidecar(pkt_pid)
-            self._chk_sidecar_cues(pkt_pid)
-
+            self._chk_sidecar_cues(pkt_pid)    
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
             else:
