@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "77"
+MAINTAINENCE = "79"
 
 
 def version():
@@ -151,7 +151,7 @@ class X9K3(strm.Stream):
         and adds discontinuity tags as needed.
         """
         if self.scte35.break_timer is not None:
-            if self.scte35.break_timer  >= self.scte35.break_duration:
+            if self.scte35.break_timer >= self.scte35.break_duration:
                 self.scte35.break_timer = None
                 self.scte35.cue_state = "IN"
         tag = self.scte35.mk_cue_tag()
@@ -163,7 +163,7 @@ class X9K3(strm.Stream):
             if ":" in tag:
                 kay, vee = tag.split(":", 1)
             chunk.add_tag(kay, vee)
-            print(kay, vee)
+            print(kay, vee, file=sys.stderr)
 
     def _chk_pdt_flag(self, chunk):
         if self.args.program_date_time:
@@ -175,10 +175,7 @@ class X9K3(strm.Stream):
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
         seg_time = round(self.next_start - self.started, 6)
-        print(
-            f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}",
-            file=sys.stderr,
-        )
+
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         chunk = Chunk(seg_name, self.segnum)
@@ -192,6 +189,10 @@ class X9K3(strm.Stream):
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
         # print(seg_name, self.started,self.next_start, seg_time, file=sys.stderr, end='\r')
+        print(
+            f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}",
+            file=sys.stderr,
+        )
         if self.args.live:
             self.window.pop_pane()
             self.timer.throttle(seg_time)
@@ -318,9 +319,9 @@ class X9K3(strm.Stream):
         now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=now)
-        if self._pusi_flag(pkt):
+        if self._pusi_flag(pkt) and self.started:
             self._load_sidecar(pkt_pid)
-            self._chk_sidecar_cues(pkt_pid)    
+            self._chk_sidecar_cues(pkt_pid)
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
             else:
