@@ -237,11 +237,13 @@ class X9K3(strm.Stream):
         for the next sidecar cue and inserts the cue if needed.
         """
         if self.sidecar:
-            if self.sidecar[0][0] <= self.pid2pts(pid):
-                raw = self.sidecar.popleft()[1]
-                self.scte35.cue = Cue(raw)
+            if float(self.sidecar[0][0]) <= self.pid2pts(pid):
+                raw = self.sidecar.popleft()
+                self.scte35.cue_time = float(raw[0])
+                self.scte35.cue = Cue(raw[1])
                 self.scte35.cue.decode()
-                self._chk_cue_time(pid)
+                self.scte35.mk_cue_state()
+            # self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
         if "DISCONTINUITY" in self.window.panes[0].tags:
@@ -312,18 +314,20 @@ class X9K3(strm.Stream):
 
     def _parse(self, pkt):
         super()._parse(pkt)
+
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt):
             self._load_sidecar(pkt_pid)
+            self._chk_sidecar_cues(pkt_pid)
+
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
-                    self._chk_sidecar_cues(pkt_pid)
                     self._chk_slice_point(i_pts)
         self.active_segment.write(pkt)
 
