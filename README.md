@@ -9,11 +9,27 @@
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### `Latest` is `v.0.1.79` Remixed and Stable.
-
+<details><summary><h3>Release Features</h3><i> click to expand</i></summary>
+ 
+ - [x] break auto return 
+ - [x] sidecar files 
+ - [x] live mode
+ - [x] fake live mode
+ - [x] delete mode
+ - [x] replay mode
+ - [x] shulga mode _(mpeg2 codec iframe detection)_
+ - [x] sliding window sizing
+ - [x] custom segment times
+ - [x] program datetime tags
+ - [x] discontinuity tags 
+ - [x] media sequence headers
+ - [x] discontinuity sequence headers
+ - [x] All four major SCTE-35 HLS tags
  - [x] `#EXT-X-SCTE35` 
  - [x] `#EXT-X-CUE` 
  - [x] `#EXT-X-DATERANGE`  
  - [x] `#EXT-X-SPLICEPOINT` 
+ </details>
  
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
