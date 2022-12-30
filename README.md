@@ -8,27 +8,59 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 # `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-### `Latest` is `v.0.1.79` Remixed and Stable.
-<details><summary><h3>Release Features</h3><i> click to expand</i></summary>
+### `Latest` is `v.0.1.81` 
+<details><summary><h3>Release Notes</h3><i> click to expand</i></summary>
+
+ * Fix for discontinuity sequence headers
+ * Sidecar files can now accept 0.0 as the PTS insert time for Splice Immediate. 
  
- - [x] break auto return 
- - [x] sidecar files 
- - [x] live mode
- - [x] fake live mode
- - [x] delete mode
- - [x] replay mode
- - [x] shulga mode _(mpeg2 codec iframe detection)_
- - [x] sliding window sizing
- - [x] custom segment times
- - [x] program datetime tags
- - [x] discontinuity tags 
- - [x] media sequence headers
- - [x] discontinuity sequence headers
- - [x] All four major SCTE-35 HLS tags
- - [x] `#EXT-X-SCTE35` 
- - [x] `#EXT-X-CUE` 
- - [x] `#EXT-X-DATERANGE`  
- - [x] `#EXT-X-SPLICEPOINT` 
+ 
+ Example:
+ 
+ 
+ touch a sidecar file
+ ```js
+ touch sidecar.txt
+ ```
+ 
+ 
+ start x9k3
+ ```js
+ x9k3 -i video.ts -s sidecar.txt -l
+
+ ```
+ Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
+
+ ```jspypy3 x9k3.py -i ../la-slim.ts -s sidecar.txt -l
+
+ printf `0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z` > sidecar.txt
+
+ ```
+ 
+ *  A CUE-OUT can be terminated early using a sidecar file.
+ 
+ Example
+ 
+ In the middle of a CUE-OUT send a splice insert with the out_of_network_indicator flag not set and the splice immediate flag set.
+ Do the steps above ,
+ and then do this
+ ```js
+ printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==' > sidecar.txt
+```
+ It will cause the CUE-OUT to end at the next segment start.
+ ```js
+#EXT-X-CUE-OUT 13.4
+./seg5.ts:	start:112.966667	end:114.966667	duration:2.233334
+#EXT-X-CUE-OUT-CONT 2.233334/13.4
+./seg6.ts:	start:114.966667	end:116.966667	duration:2.1
+#EXT-X-CUE-OUT-CONT 4.333334/13.4
+./seg7.ts:	start:116.966667	end:118.966667	duration:2.0
+#EXT-X-CUE-OUT-CONT 6.333334/13.4
+./seg8.ts:	start:117.0	        end:119.0	duration:0.033333
+#EXT-X-CUE-IN None
+./seg9.ts:	start:119.3	        end:121.3	duration:2.3
+
+``` 
  </details>
  
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
