@@ -31,9 +31,9 @@
  ```
  Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
 
- ```jspypy3 x9k3.py -i ../la-slim.ts -s sidecar.txt -l
+ ```js
 
- printf `0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z` > sidecar.txt
+ printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z' > sidecar.txt
 
  ```
  
