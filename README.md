@@ -369,8 +369,7 @@ seg145.ts
    * Like VOD except:
      * M3u8 manifests are regenerated every time a segment is written
      * Segment creation is throttled when using non-live sources to simulate live streaming. ( like ffmpeg's "-re" )
-     * Sliding Window for 5 [WINDOW_SLOTS](https://github.com/futzu/scte35-hls-x9k3/blob/main/x9k3.py#L118)
-     * A cue out continue tag is added to first segment in manifest during an ad break.
+     * default Sliding Window size is 5, it can be changed with the `-w` switch or by setting `X9k3.window.size` 
 ###  `--delete`
   * implies `--live`
   * deletes segments when they move out of the sliding window of the m3u8.
