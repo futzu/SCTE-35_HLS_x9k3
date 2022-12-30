@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "79"
+MAINTAINENCE = "81"
 
 
 def version():
@@ -188,7 +188,6 @@ class X9K3(strm.Stream):
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
-        # print(seg_name, self.started,self.next_start, seg_time, file=sys.stderr, end='\r')
         print(
             f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}",
             file=sys.stderr,
@@ -221,6 +220,8 @@ class X9K3(strm.Stream):
                     if len(line):
                         pts, cue = line.split(",", 1)
                         pts = float(pts)
+                        if pts==0.0:
+                           pts = self.next_start  
                         if pts >= self.pid2pts(pid):
                             if [pts, cue] not in self.sidecar:
                                 self.sidecar.append([pts, cue])
@@ -243,13 +244,15 @@ class X9K3(strm.Stream):
                 self.scte35.cue_time = float(raw[0])
                 self.scte35.cue = Cue(raw[1])
                 self.scte35.cue.decode()
+                self.scte35.cue.show()
                 self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
-        if "DISCONTINUITY" in self.window.panes[0].tags:
-            self.discontinuity_sequence += 1
-        if "DISCONTINUITY" in self.window.panes[-1].tags:
-            self._reset_stream()
+        if self.window.panes:
+            if "#EXT-X-DISCONTINUITY" in self.window.panes[0].tags:
+                self.discontinuity_sequence += 1
+            if "#EXT-X-DISCONTINUITY" in self.window.panes[-1].tags:
+                self._reset_stream()
 
     def _reset_stream(self):
         self.started = None
@@ -317,6 +320,7 @@ class X9K3(strm.Stream):
 
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
+
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt) and self.started:
