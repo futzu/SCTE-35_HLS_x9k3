@@ -244,7 +244,7 @@ class X9K3(strm.Stream):
                 self.scte35.cue_time = float(raw[0])
                 self.scte35.cue = Cue(raw[1])
                 self.scte35.cue.decode()
-                self.scte35.cue.show()
+                #self.scte35.cue.show()
                 self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
