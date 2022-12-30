@@ -381,55 +381,6 @@ seg145.ts
 
 
 
-## `Stream Diff`
-
-* stream diff is the difference between the playback time of the stream and generation of segments by x9k3.
-
-*  A segment with a 2 second duration that takes 0.5 seconds to generate would have a stream diff of 1.5.
- 
-
-* __In the default mode, stream_diff is a benchmark of playlist generation.__
- 
- ```lua
- a@debian:~/x9k3$ time x9k3  -i local-vid.ts 
- ./seg0.ts	start:  3.545000	duration:  2.112000	stream diff:  2.094049
- ./seg1.ts	start:  5.593000	duration:  2.048000	stream diff:  4.133058
-   ...
-   
- ./seg77.ts	start:  163.011667	duration:  2.176000	stream diff:  161.307591
- ./seg78.ts	start:  165.187667	duration:  2.176000	stream diff:  163.482903 <-- big stream diff
-
-real	0m0.482s             <--  fast segmenting for VOD
-user	0m0.334s
-sys	0m0.128s
-
-```
-   
-* stream_diff with `--live` or `--delete` or `--replay`
-
-   * stream_diff automatically throttles non-live streams for realtime playback . 
-   * stream_diff keeps segmentation and the sliding window in sync.
- 
- ```lua
- a@debian:~/x9k3$ time x9k3 -i local-vid.ts --live
- ./seg0.ts	start:  1.433000	duration:  2.112000	stream diff:  1.749682
- ./seg1.ts	start:  3.545000	duration:  2.048000	stream diff:  1.664505
- ./seg2.ts	start:  5.593000	duration:  2.005333	stream diff:  1.604484
- ./seg3.ts	start:  7.598333	duration:  2.026667	stream diff:  1.608694
- 
- ...
- 
- ./seg76.ts	start:  158.617000	duration:  2.218667	stream diff:  0.151273
- ./seg77.ts	start:  160.835667	duration:  2.176000	stream diff:  0.101823
- ./seg78.ts	start:  163.011667	duration:  2.176000	stream diff:  0.100369  <-- small stream diff
-
-real	2m44.775s   <-- real time segmenting to sync live stream sliding window
-user	0m0.678s
-sys	0m0.169s
-```
- 
-
-
    
    
  
