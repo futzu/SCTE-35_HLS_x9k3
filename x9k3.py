@@ -65,7 +65,9 @@ class X9K3(strm.Stream):
             sys.exit()
 
     def _args_input(self):
-        if not self._tsdata
+        if self._tsdata is not None:
+            self.args.input = self._tsdata
+        else:
             self._tsdata = self.args.input
         self.in_stream = self.args.input
 
