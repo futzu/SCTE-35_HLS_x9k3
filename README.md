@@ -10,60 +10,7 @@
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### `Latest` is `v.0.1.81` 
-<details><summary><h3>Release Notes</h3><i> click to expand</i></summary>
 
- * Fix for discontinuity sequence headers
- * Sidecar files can now accept 0.0 as the PTS insert time for Splice Immediate. 
- 
- 
- Example:
- 
- 
- touch a sidecar file
- ```js
- touch sidecar.txt
- ```
- 
- 
- start x9k3
- ```js
- x9k3 -i video.ts -s sidecar.txt -l
-
- ```
- Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
-
- ```js
-
- printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z' > sidecar.txt
-
- ```
- 
- *  A CUE-OUT can be terminated early using a sidecar file.
- 
- Example
- 
- In the middle of a CUE-OUT send a splice insert with the out_of_network_indicator flag not set and the splice immediate flag set.
- Do the steps above ,
- and then do this
- ```js
- printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==' > sidecar.txt
-```
- It will cause the CUE-OUT to end at the next segment start.
- ```js
-#EXT-X-CUE-OUT 13.4
-./seg5.ts:	start:112.966667	end:114.966667	duration:2.233334
-#EXT-X-CUE-OUT-CONT 2.233334/13.4
-./seg6.ts:	start:114.966667	end:116.966667	duration:2.1
-#EXT-X-CUE-OUT-CONT 4.333334/13.4
-./seg7.ts:	start:116.966667	end:118.966667	duration:2.0
-#EXT-X-CUE-OUT-CONT 6.333334/13.4
-./seg8.ts:	start:117.0	        end:119.0	duration:0.033333
-#EXT-X-CUE-IN None
-./seg9.ts:	start:119.3	        end:121.3	duration:2.3
-
-``` 
- </details>
- 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
    * Segments are __Split on SCTE-35 Cues__ as needed.
@@ -73,46 +20,6 @@
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
 
-## `Details` 
-
-*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
-
-
-*  reading from stdin now available
-
-```lua
- cat somevideo.ts | x9k3 
-
-```
-
-
-* Segments are cut on iframes.
-
-* Segment size is 2 seconds or more, determined by GOP size. 
-* Segments are named seg1.ts seg2.ts etc...
-
-*  For SCTE-35, Video segments are cut at the the first iframe >=  the splice point pts.
-*  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
-
-
-```smalltalk
-# Time Signal
-#EXT-X-SCTE35:CUE="/DC+AAAAAAAAAP/wBQb+W+M4YgCoAiBDVUVJCW3YD3+fARFEcmF3aW5nRlJJMTE1V0FCQzUBAQIZQ1VFSQlONI9/nwEKVEtSUjE2MDY3QREBAQIxQ1VFSQlw1HB/nwEiUENSMV8xMjEwMjExNDU2V0FCQ0dFTkVSQUxIT1NQSVRBTBABAQI2Q1VFSQlw1HF/3wAAFJlwASJQQ1IxXzEyMTAyMTE0NTZXQUJDR0VORVJBTEhPU1BJVEFMIAEBhgjtJQ==" 
-#EXTINF:2.085422,
-seg1.ts
-```
-
-#### `SCTE-35 cues with a preroll are inserted at the splice point`
-
-```smalltalk
-# Splice Point @ 17129.086244
-#EXT-X-SCTE35:CUE="/DC+AAAAAAAAAP/wBQb+W+M4YgCoAiBDVUVJCW3YD3+fARFEcmF3aW5nRlJJMTE1V0FCQzUBAQIZQ1VFSQlONI9/nwEKVEtSUjE2MDY3QREBAQIxQ1VFSQlw1HB/nwEiUENSMV8xMjEwMjExNDU2V0FCQ0dFTkVSQUxIT1NQSVRBTBABAQI2Q1VFSQlw1HF/3wAAFJlwASJQQ1IxXzEyMTAyMTE0NTZXQUJDR0VORVJBTEhPU1BJVEFMIAEBhgjtJQ==" 
-#EXTINF:0.867544,
-seg2.ts
-
-```
-
-
 ## `Requires` 
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
@@ -121,7 +28,7 @@ seg2.ts
 
 ## `Install`
 * Use pip to install the the x9k3 lib and  executable script x9k3 (_will install threefive, new_reader and iframes too_)
-```
+```lua
 # python3
 
 python3 -mpip install x9k3
@@ -131,7 +38,22 @@ python3 -mpip install x9k3
 pypy3 -mpip install x9k3
 ```
 
+## `Details` 
+
+*  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
+
+* reading from stdin now available
+* Segments are cut on iframes.
+* Segment time is 2 seconds or more, determined by GOP size. Can be set with the `-t` switch or by setting `X9K3.args.time` 
+* Segments are named seg1.ts seg2.ts etc...
+*  For SCTE-35, Video segments are cut at the the first iframe >=  the splice point pts.
+*  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
+* SCTE-35 cues with a preroll are inserted at the splice point.
+
 ## `How to Use`
+* the x9k3 cli tool
+
+
 ```smalltalk
 a@debian:~/build/x9k3$ x9k3 -h
 usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
@@ -139,9 +61,10 @@ usage: x9k3 [-h] [-i INPUT] [-o OUTPUT_DIR] [-s SIDECAR] [-t TIME]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i INPUT, --input INPUT
+  -i INPUT, --input INPUT  
                         Input source, like "/home/a/vid.ts" or
                         "udp://@235.35.3.5:3535" or "https://futzu.com/xaa.ts"
+                                             
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
                         Directory for segments and index.m3u8 ( created if it
                         does not exist )
@@ -166,27 +89,83 @@ optional arguments:
 
 ```
 
+
+
+
+#### programmatically
+```js
+x9 = X9K3("https://iodisco.com/fu.ts")
+x9.run()
+```
+Setting  parameters
+* create an instance.
+```js
+x9 = X9K3()
+```
+*  input source
+
+```js
+x9.args.input = "https://futzu.com/xaa.ts"   
+```
+* hls_tag can be x_scte35, x_cue, x_daterange, or x_splicepoint
+
+```js
+x9.args.hls tag = x_cue 
+```
+* output directory default is "."
+```js
+x9.args.output_dir="/home/a/stuff"
+```
+* live
+```js 
+x9.args.live = True
+```
+* replay (loop video) ( also sets live )
+```js
+x9.args.replay = True
+```
+* delete segments when they expire ( also sets live )
+```js
+x9.args.delete = True
+```
+
+* add program date time tags ( also sets live )
+```js
+self.args.program_date_time= True
+```
+* set window size for live mode ( requires live ) 
+```js
+x9.args.window_size = 5 
+```
+* apply args
+```js
+x9.apply_args()
+```
+* run 
+```js
+x9.run()
+```
+
 ## `Example Usage`
 
  #### `local file as input`
  ```smalltalk
     x9k3 -i video.mpegts
  ```
-  
  #### `multicast stream as input with a live sliding window`   
    ```smalltalk
    x9k3 --live -i udp://@235.35.3.5:3535
    ```
- 
- 
- #### `use ffmpeg to read multicast stream as input and x9k3 to segment`
-      with a sliding window, and  expiring old segments.
-       --delete implies --live
-      
-   ```smalltalk
-    ffmpeg  -re -copyts -i udp://@235.35.3.5:3535 -map 0 -c copy -f mpegts - | x9k3 --delete
+  #### Live mode works with a live source or static files.
+  
+   ```js
+   # x9k3 will throttle segment creation to mimic a live stream.
+   x9k3 --live -i /some/video.ts
    ```
- 
+ #### `live sliding window and deleting expired segments`
+   ```smalltalk
+   x9k3  -i udp://@235.35.3.5:3535 --delete
+   ```
 #### `https stream for input, and writing segments to an output directory`
       directory will be created if it does not exist.
   ```smalltalk
