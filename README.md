@@ -198,15 +198,15 @@ optional arguments:
    cat video.ts | x9k3
    ```
 ### `Sidecar Files`   
-#### load scte35 cues from a `Sidecar file`
+#### load scte35 cues from a Sidecar file
+
     
-    Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
+Sidecar Cues will be handled the same as SCTE35 cues from a video stream.   
+line format for text file  `insert_pts, cue`
     
-    line format for text file : pts, cue
     
-    pts is the insert time for the cue, A four second preroll is standard. 
-    
-    cue can be base64,hex, int, or bytes
+pts is the insert time for the cue, A four second preroll is standard. 
+cue can be base64,hex, int, or bytes
      
   ```smalltalk
   a@debian:~/x9k3$ cat sidecar.txt
