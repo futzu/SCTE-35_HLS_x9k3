@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "81"
+MAINTAINENCE = "83"
 
 
 def version():
@@ -57,7 +57,7 @@ class X9K3(strm.Stream):
         self.media_seq = 0
         self.discontinuity_sequence = 0
         self.args = argue()
-        self._apply_args()
+        self.apply_args()
 
     def _args_version(self):
         if self.args.version:
@@ -65,7 +65,8 @@ class X9K3(strm.Stream):
             sys.exit()
 
     def _args_input(self):
-        self._tsdata = self.args.input
+        if not self._tsdata
+            self._tsdata = self.args.input
         self.in_stream = self.args.input
 
     def _args_hls_tag(self):
@@ -93,7 +94,7 @@ class X9K3(strm.Stream):
         if self.args.live:
             self.window.size = self.args.window_size
 
-    def _apply_args(self):
+    def apply_args(self):
         """
         _apply_args  uses command line args
         to set X9K3 instance vars
