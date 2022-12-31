@@ -3,7 +3,7 @@
  [CUE-OUT](#cue-out) |
  [CUE-IN](#cue-in)   |
  [SCTE-35 Tags](#hls--tags) |
- [Sidecar SCTE35](#load-scte35-cues-from-a-text-file) |
+ [Sidecar SCTE35](#sidecar-files) |
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
@@ -65,7 +65,7 @@
  </details>
  
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
-   * __SCTE-35 Cues can be added from a [Sidecar File](https://github.com/futzu/x9k3/blob/main/README.md#load-scte35-cues-from-a-text-file)__.
+   * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
    * Segments are __Split on SCTE-35 Cues__ as needed.
    * Supports __h264__ and __h265__ .
    * __Multi-protocol.__ Input sources may be __Files, Http(s), Multicast, and Udp streams__.
@@ -197,8 +197,8 @@ optional arguments:
    ```smalltalk
    cat video.ts | x9k3
    ```
-   
-#### `load scte35 cues from a text file`
+### `Sidecar Files`   
+#### load scte35 cues from a `Sidecar file`
     
     Sidecar Cues will be handled the same as SCTE35 cues from a video stream.
     
@@ -219,7 +219,7 @@ optional arguments:
   ```smalltalk
   x9k3 -i  noscte35.ts  -s sidecar.txt 
   ```
-####   `In Live Mode you can do dynamic cue injection`
+####   In Live Mode you can do dynamic cue injection with a `Sidecar file`
    ```smalltalk
    touch sidecar.txt
    
@@ -230,6 +230,40 @@ optional arguments:
    printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' > sidecar.txt
    
    ```
+#### `Sidecar files` can now accept 0 as the PTS insert time for Splice Immediate. 
+ 
+ 
+
+ Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
+
+ ```js
+ printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z > sidecar.txt
+
+ ```
+ 
+ ####  A CUE-OUT can be terminated early using a `sidecar file`.
+
+ 
+ In the middle of a CUE-OUT send a splice insert with the out_of_network_indicator flag not set and the splice immediate flag set.
+ Do the steps above ,
+ and then do this
+ ```js
+ printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==' > sidecar.txt
+```
+ It will cause the CUE-OUT to end at the next segment start.
+ ```js
+#EXT-X-CUE-OUT 13.4
+./seg5.ts:	start:112.966667	end:114.966667	duration:2.233334
+#EXT-X-CUE-OUT-CONT 2.233334/13.4
+./seg6.ts:	start:114.966667	end:116.966667	duration:2.1
+#EXT-X-CUE-OUT-CONT 4.333334/13.4
+./seg7.ts:	start:116.966667	end:118.966667	duration:2.0
+#EXT-X-CUE-OUT-CONT 6.333334/13.4
+./seg8.ts:	start:117.0	        end:119.0	duration:0.033333
+#EXT-X-CUE-IN None
+./seg9.ts:	start:119.3	        end:121.3	duration:2.3
+
+``` 
    ---
 ##   `CUE-OUT`
 
