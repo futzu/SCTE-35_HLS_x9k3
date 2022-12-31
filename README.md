@@ -51,8 +51,7 @@ pypy3 -mpip install x9k3
 * SCTE-35 cues with a preroll are inserted at the splice point.
 
 ## `How to Use`
-* the x9k3 cli tool
-
+#### Cli tool
 
 ```smalltalk
 a@debian:~/build/x9k3$ x9k3 -h
@@ -89,10 +88,7 @@ optional arguments:
 
 ```
 
-
-
-
-#### programmatically
+#### Programmatically
 ```js
 x9 = X9K3("https://iodisco.com/fu.ts")
 x9.run()
@@ -244,13 +240,16 @@ cue can be base64,hex, int, or bytes
 
 ``` 
    ---
+## CUES   
+   
 ##   `CUE-OUT`
+#### A CUE-OUT is defined as:
 
 * `A Splice Insert Command` with:
    *  the `out_of_network_indicator` set to `True` 
    *  a `break_duration`.
         
-* `A Time Signal Command` with:
+* `A Time Signal Command` and a Segmentation Descriptor with:
    *  a `segmentation_duration` 
    *  a `segmentation_type_id` of:
       * 0x10: "Program Start",
@@ -267,11 +266,11 @@ cue can be base64,hex, int, or bytes
 
 
 ## `CUE-IN`
-
+#### A CUE-IN is defined as:
 * `A Splice Insert Command`
   *  with the `out_of_network_indicator` set to `False`
 
-* `A Time Signal Command` with:
+* `A Time Signal Command` and a Segmentation Descriptor with:
    *  a `segmentation_type_id` of:
       *  0x11: "Program End",
       * 0x21: "Chapter End",
@@ -284,9 +283,13 @@ cue can be base64,hex, int, or bytes
       * 0x3F: "Distributor Promo End",
       * 0x45: "Provider Ad Block End",
       * 0x47: "Distributor Ad Block End",
-   
-    ---
+
+* For CUE-OUT and CUE-IN, `only the first Segmentation Descriptor will be used`
+---
+    
 ## `HLS  Tags`
+#### These are the HLS tags that can be generated.
+
 ####  `x_cue`
 ```lua
 #EXT-X-DISCONTINUITY
