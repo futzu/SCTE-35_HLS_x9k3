@@ -220,7 +220,7 @@ optional arguments:
   x9k3 -i  noscte35.ts  -s sidecar.txt 
   ```
 ####   In Live Mode you can do dynamic cue injection with a `Sidecar file`
-   ```smalltalk
+   ```js
    touch sidecar.txt
    
    x9k3 -i vid.ts -s sidecar.txt -l 
@@ -237,7 +237,7 @@ optional arguments:
  Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
 
  ```js
- printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z > sidecar.txt
+ printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z\n' > sidecar.txt
 
  ```
  
@@ -248,7 +248,7 @@ optional arguments:
  Do the steps above ,
  and then do this
  ```js
- printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==' > sidecar.txt
+ printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==\n' > sidecar.txt
 ```
  It will cause the CUE-OUT to end at the next segment start.
  ```js
