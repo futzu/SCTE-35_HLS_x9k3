@@ -51,6 +51,38 @@ pypy3 -mpip install x9k3
 * SCTE-35 cues with a preroll are inserted at the splice point.
 
 ## `How to Use`
+
+### `Example Usage`
+
+ #### `local file as input`
+ ```smalltalk
+    x9k3 -i video.mpegts
+ ```
+ #### `multicast stream as input with a live sliding window`   
+   ```smalltalk
+   x9k3 --live -i udp://@235.35.3.5:3535
+   ```
+  #### Live mode works with a live source or static files.
+  
+   ```js
+   # x9k3 will throttle segment creation to mimic a live stream.
+   x9k3 --live -i /some/video.ts
+   ```
+ #### `live sliding window and deleting expired segments`
+   ```smalltalk
+   x9k3  -i udp://@235.35.3.5:3535 --delete
+   ```
+#### `https stream for input, and writing segments to an output directory`
+      directory will be created if it does not exist.
+ ```smalltalk
+   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
+ ```
+  
+#### `using stdin as input`
+   ```smalltalk
+   cat video.ts | x9k3
+   ```
+   
 #### Cli tool
 
 ```smalltalk
@@ -134,6 +166,7 @@ self.args.program_date_time= True
 x9.args.window_size = 5 
 ```
 * apply args
+   * _calling apply_args works out the details like if delete is set, live gets as well, that kind of stuff_
 ```js
 x9.apply_args()
 ```
@@ -142,36 +175,7 @@ x9.apply_args()
 x9.run()
 ```
 
-## `Example Usage`
 
- #### `local file as input`
- ```smalltalk
-    x9k3 -i video.mpegts
- ```
- #### `multicast stream as input with a live sliding window`   
-   ```smalltalk
-   x9k3 --live -i udp://@235.35.3.5:3535
-   ```
-  #### Live mode works with a live source or static files.
-  
-   ```js
-   # x9k3 will throttle segment creation to mimic a live stream.
-   x9k3 --live -i /some/video.ts
-   ```
- #### `live sliding window and deleting expired segments`
-   ```smalltalk
-   x9k3  -i udp://@235.35.3.5:3535 --delete
-   ```
-#### `https stream for input, and writing segments to an output directory`
-      directory will be created if it does not exist.
-  ```smalltalk
-   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
-  ```
-  
-#### `using stdin as input`
-   ```smalltalk
-   cat video.ts | x9k3
-   ```
 ### `Sidecar Files`   
 #### load scte35 cues from a Sidecar file
 
@@ -210,6 +214,7 @@ cue can be base64,hex, int, or bytes
  
 
  Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
+ __Using 0 only works in live mode__
 
  ```js
  printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z\n' > sidecar.txt
@@ -239,6 +244,8 @@ cue can be base64,hex, int, or bytes
 ./seg9.ts:	start:119.3	        end:121.3	duration:2.3
 
 ``` 
+ __Using 0 only works in live mode__
+
    ---
 ## CUES   
    
