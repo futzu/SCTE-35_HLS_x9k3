@@ -166,7 +166,7 @@ self.args.program_date_time= True
 x9.args.window_size = 5 
 ```
 * apply args
-   * _calling apply_args works out the details like if delete is set, live gets as well, that kind of stuff_
+   * _calling apply_args works out the details like "if delete is set, live gets as well", that kind of stuff_
 ```js
 x9.apply_args()
 ```
