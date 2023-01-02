@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "83"
+MAINTAINENCE = "84"
 
 
 def version():
@@ -40,24 +40,29 @@ def version():
 
 
 class X9K3(strm.Stream):
+    """
+    X9K3 class
+    """
+
     def __init__(self, tsdata=None, show_null=False):
         super().__init__(tsdata, show_null)
         self._tsdata = tsdata
         self.in_stream = tsdata
         self.active_segment = io.BytesIO()
         self.iframer = IFramer(shush=True)
-        self.window = SlidingWindow(500)
+        self.window = SlidingWindow(5)
         self.scte35 = SCTE35()
         self.sidecar = deque()
         self.timer = Timer()
-        self.m3u8 = "index.m3u8"
+        self.args = argue()
+        self.apply_args()
+        m3u8 = "index.m3u8"
+        self.m3u8 = self.mk_uri(self.args.output_dir, m3u8)
         self.started = None
         self.next_start = None
         self.segnum = 0
         self.media_seq = 0
         self.discontinuity_sequence = 0
-        self.args = argue()
-        self.apply_args()
 
     def _args_version(self):
         if self.args.version:
@@ -147,7 +152,7 @@ class X9K3(strm.Stream):
             ]
         )
 
-    def _add_cue_tag(self, chunk, seg_time):
+    def _add_cue_tag(self, chunk):
         """
         _add_cue_tag adds SCTE-35 tags,
         handles break auto returns,
@@ -174,35 +179,43 @@ class X9K3(strm.Stream):
             chunk.add_tag("#Iframe", f"{self.started}")
             chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
-    def _write_segment(self):
-        seg_file = f"seg{self.segnum}.ts"
-        seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round(self.next_start - self.started, 6)
-
-        with open(seg_name, "wb") as seg:
-            seg.write(self.active_segment.getbuffer())
-        chunk = Chunk(seg_name, self.segnum)
-        self._add_cue_tag(chunk, seg_time)
-        self._chk_pdt_flag(chunk)
-        chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
-        self.window.push_pane(chunk)
-        self._write_m3u8()
-        self._start_next_start()
-        if self.scte35.break_timer is not None:
-            self.scte35.break_timer += seg_time
-        self.scte35.chk_cue_state()
-        print(
-            f"{seg_name}:\tstart:{self.started}\tend:{self.next_start}\tduration:{seg_time}",
-            file=sys.stderr,
-        )
+    def _chk_live(self, seg_time):
         if self.args.live:
             self.window.pop_pane()
             self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
 
+    def _mk_chunk_tags(self, chunk, seg_time):
+        self._add_cue_tag(chunk)
+        self._chk_pdt_flag(chunk)
+        chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
+
+    def _print_segment_details(self, seg_name, seg_time):
+        one = f"{seg_name}:   start: {self.started:.6f}   "
+        two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
+        print(f"{one}{two}", file=sys.stderr)
+
+    def _write_segment(self):
+        seg_file = f"seg{self.segnum}.ts"
+        seg_name = self.mk_uri(self.args.output_dir, seg_file)
+        seg_time = round(self.next_start - self.started, 6)
+        with open(seg_name, "wb") as seg:
+            seg.write(self.active_segment.getbuffer())
+        chunk = Chunk(seg_name, self.segnum)
+        self._mk_chunk_tags(chunk, seg_time)
+        self.window.push_pane(chunk)
+        self._write_m3u8()
+        self._print_segment_details(seg_name, seg_time)
+        self._start_next_start()
+        if self.scte35.break_timer is not None:
+            self.scte35.break_timer += seg_time
+        self.scte35.chk_cue_state()
+        self._chk_live(seg_time)
+
     def _write_m3u8(self):
         self.media_seq = self.window.panes[0].num
-        with open(self.m3u8, "w+") as m3u8:
+        m3u8uri = self.mk_uri(self.args.output_dir, self.m3u8)
+        with open(m3u8uri, "w+") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
             self.segnum += 1
@@ -221,13 +234,13 @@ class X9K3(strm.Stream):
                 for line in sidefile:
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
-                        pts, cue = line.split(",", 1)
-                        pts = float(pts)
-                        if pts==0.0:
-                           pts = self.next_start  
-                        if pts >= self.pid2pts(pid):
-                            if [pts, cue] not in self.sidecar:
-                                self.sidecar.append([pts, cue])
+                        insert_pts, cue = line.split(",", 1)
+                        insert_pts = float(insert_pts)
+                        if insert_pts == 0.0 and self.args.live:
+                            insert_pts = self.next_start
+                        if insert_pts >= self.pid2pts(pid):
+                            if [insert_pts, cue] not in self.sidecar:
+                                self.sidecar.append([insert_pts, cue])
                                 self.sidecar = deque(
                                     sorted(self.sidecar, key=itemgetter(0))
                                 )
@@ -247,7 +260,7 @@ class X9K3(strm.Stream):
                 self.scte35.cue_time = float(raw[0])
                 self.scte35.cue = Cue(raw[1])
                 self.scte35.cue.decode()
-                #self.scte35.cue.show()
+                # self.scte35.cue.show()
                 self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
@@ -313,7 +326,7 @@ class X9K3(strm.Stream):
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             cue.decode()
-            cue.show()
+            # cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
         return cue
@@ -323,7 +336,6 @@ class X9K3(strm.Stream):
 
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
-
         if not self.started:
             self._start_next_start(pts=now)
         if self._pusi_flag(pkt) and self.started:
@@ -601,12 +613,20 @@ class SlidingWindow:
 
 
 class Timer:
+    """
+    Timer class instances are used for
+    segment duration, and live throttling.
+    """
+
     def __init__(self):
         self.begin = None
         self.end = None
         self.lap_time = None
 
     def start(self, begin=None):
+        """
+        start starts the timer
+        """
         self.begin = begin
         if not self.begin:
             self.begin = time.time()
@@ -614,17 +634,27 @@ class Timer:
         self.lap_time = None
 
     def stop(self, end=None):
+        """
+        stop stops the timer
+        """
         self.end = end
         if not self.end:
             self.end = time.time()
         self.lap_time = self.end - self.begin
 
     def elapsed(self, now=None):
+        """
+        elapsed returns the elapsed time
+        """
         if not now:
             now = time.time()
         return now - self.begin
 
     def throttle(self, seg_time, begin=None, end=None):
+        """
+        throttle is called to slow segment creation
+        to simulate live streaming.
+        """
         self.stop(end)
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
@@ -649,11 +679,11 @@ class Chunk:
         get returns the Chunk data formated.
         """
         this = []
-        for k, v in self.tags.items():
-            if v is None:
-                this.append(k)
+        for kay, vee in self.tags.items():
+            if vee is None:
+                this.append(kay)
             else:
-                this.append(f"{k}:{v}")
+                this.append(f"{kay}:{vee}")
         this.append(self.name)
         this.append("")
         this = "\n".join(this)
