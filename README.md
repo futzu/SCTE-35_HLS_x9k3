@@ -123,6 +123,7 @@ optional arguments:
 #### Programmatically
 ```js
 x9 = X9K3("https://iodisco.com/fu.ts")
+x9.apply_args()
 x9.run()
 ```
 Setting  parameters
