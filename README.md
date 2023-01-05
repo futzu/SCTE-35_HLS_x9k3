@@ -9,7 +9,7 @@
 
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-### `Latest` is `v.0.1.83` 
+### `Latest` is `v.0.1.85` 
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
@@ -123,7 +123,6 @@ optional arguments:
 #### Programmatically
 ```js
 x9 = X9K3("https://iodisco.com/fu.ts")
-x9.apply_args()
 x9.run()
 ```
 Setting  parameters
@@ -165,11 +164,6 @@ self.args.program_date_time= True
 * set window size for live mode ( requires live ) 
 ```js
 x9.args.window_size = 5 
-```
-* apply args
-   * _calling apply_args works out the details like "if delete is set, live gets as well", that kind of stuff_
-```js
-x9.apply_args()
 ```
 * run 
 ```js
