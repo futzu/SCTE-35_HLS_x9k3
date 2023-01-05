@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "84"
+MAINTAINENCE = "85"
 
 
 def version():
@@ -377,6 +377,7 @@ class X9K3(strm.Stream):
         run calls replay() if replay is set
         or else it calls decode()
         """
+        self.apply_args()
         if self.args.replay:
             while True:
                 self.loop()
