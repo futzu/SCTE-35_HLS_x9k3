@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "85"
+MAINTAINENCE = "87"
 
 
 def version():
@@ -89,7 +89,7 @@ class X9K3(strm.Stream):
     def _args_output_dir(self):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
-        self.m3u8 = self.mk_uri(self.args.output_dir, "index.m3u8")
+        # self.m3u8 = self.mk_uri(self.args.output_dir, "index.m3u8")
 
 
     def _args_flags(self):
