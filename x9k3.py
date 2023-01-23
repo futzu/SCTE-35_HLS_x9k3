@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "87"
+MAINTAINENCE = "89"
 
 
 def version():
@@ -69,11 +69,11 @@ class X9K3(strm.Stream):
             sys.exit()
 
     def _args_input(self):
+        self.in_stream = self.args.input
         if self._tsdata is not None:
             self.args.input = self._tsdata
         else:
             self._tsdata = self.args.input
-        self.in_stream = self.args.input
 
     def _args_hls_tag(self):
         tag_map = {
@@ -90,7 +90,6 @@ class X9K3(strm.Stream):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
         # self.m3u8 = self.mk_uri(self.args.output_dir, "index.m3u8")
-
 
     def _args_flags(self):
         if self.args.program_date_time or self.args.delete or self.args.replay:
@@ -202,7 +201,7 @@ class X9K3(strm.Stream):
         seg_time = round(self.next_start - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
-        chunk = Chunk(seg_name, self.segnum)
+        chunk = Chunk(seg_file,seg_name,self.segnum)
         self._mk_chunk_tags(chunk, seg_time)
         self.window.push_pane(chunk)
         self._write_m3u8()
@@ -334,7 +333,6 @@ class X9K3(strm.Stream):
 
     def _parse(self, pkt):
         super()._parse(pkt)
-
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
         if not self.started:
@@ -671,8 +669,9 @@ class Chunk:
     for a segment.
     """
 
-    def __init__(self, name, num):
+    def __init__(self,file, name, num):
         self.tags = {}
+        self.file = file
         self.name = name
         self.num = num
 
@@ -686,7 +685,7 @@ class Chunk:
                 this.append(kay)
             else:
                 this.append(f"{kay}:{vee}")
-        this.append(self.name)
+        this.append(self.file)
         this.append("")
         this = "\n".join(this)
         return this
