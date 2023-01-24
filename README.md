@@ -289,8 +289,11 @@ cue can be base64,hex, int, or bytes
 * For CUE-OUT and CUE-IN, `only the first Segmentation Descriptor will be used`
 ---
     
-## `HLS  Tags`
-### #EXT-X-CUE, #EXT-X-DATERANGE ,#EXT-X-SCTE35 and #EXT-X-SPLICEPOINT tags can be generated.
+## `Supported HLS  Tags`
+* #EXT-X-CUE 
+* #EXT-X-DATERANGE 
+* #EXT-X-SCTE35 
+* #EXT-X-SPLICEPOINT 
 
 ###  `x_cue`
 * CUE-OUT
