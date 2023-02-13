@@ -7,6 +7,9 @@
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
+ # [PEP 668.... boo hiss! *(throws a tomato)*](https://peps.python.org/pep-0668/)
+
+
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
 ### `Latest` is `v.0.1.89` 
