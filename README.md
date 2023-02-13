@@ -8,7 +8,13 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
  # [PEP 668.... boo hiss! *(throws a tomato)*](https://peps.python.org/pep-0668/)
-
+* Pep 668 inhibits installing packages with pip and pypy3.9,  at least on Debian. 
+   * Quick fix *(notice the use of unlink for dramatic effect)*
+   ```js
+   
+   root@debian:~# unlink /usr/lib/pypy3.9/EXTERNALLY-MANAGED
+   
+   ```
 
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
