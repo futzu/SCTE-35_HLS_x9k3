@@ -5,7 +5,7 @@ RUN which x9k3
 RUN x9k3 --version
 RUN touch /sidecar.txt
 #wget https://so.slo.me/longb.ts
-ADD longb.ts /longb.ts
+#ADD longb.ts /longb.ts
 RUN ls /
 #CMD ["pypy3 x9k3"]
 
