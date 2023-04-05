@@ -8,4 +8,5 @@ RUN touch /sidecar.txt
 #ADD longb.ts /longb.ts
 RUN ls /
 #CMD ["pypy3 x9k3"]
+#start command: /opt/pypy/bin/x9k3 ...allparameters..
 
