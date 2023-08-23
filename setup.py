@@ -19,9 +19,9 @@ setuptools.setup(
     scripts=["bin/x9k3"],
     platforms="all",
     install_requires=[
-        "threefive >= 2.3.69",
-        "new_reader >= 0.1.3",
-        "iframes >= 0.0.5",
+        "threefive >= 2.4.1",
+        "new_reader >= 0.1.7",
+        "iframes >= 0.0.7",
     ],
     classifiers=[
         "License :: OSI Approved :: MIT License",
