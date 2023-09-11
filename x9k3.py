@@ -484,7 +484,6 @@ class SCTE35:
         if self.cue_state == "OUT":
             fstart = f',START-DATE="{iso8601}"'
             tag = f"{fbase}{fstart}{fdur},SCTE35-OUT={self.cue.encode_as_hex()}"
-            self.event_id += 1
             return tag
 
         if self.cue_state == "IN":
