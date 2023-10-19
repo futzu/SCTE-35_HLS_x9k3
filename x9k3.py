@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "89"
+MAINTAINENCE = "91"
 
 
 def version():
@@ -217,6 +217,8 @@ class X9K3(strm.Stream):
         m3u8uri = self.mk_uri(self.args.output_dir, self.m3u8)
         with open(m3u8uri, "w+") as m3u8:
             m3u8.write(self._header())
+            if self.args.replay:
+                m3u8.write("#EXT-X-DISCONTINUITY\n")
             m3u8.write(self.window.all_panes())
             self.segnum += 1
             if not self.args.live:
@@ -337,6 +339,7 @@ class X9K3(strm.Stream):
         now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=now)
+        self._chk_slice_point(now)
         if self._pusi_flag(pkt) and self.started:
             self._load_sidecar(pkt_pid)
             self._chk_sidecar_cues(pkt_pid)
@@ -356,31 +359,6 @@ class X9K3(strm.Stream):
         """
         self.timer.start()
         super().decode()
-
-    def loop(self):
-        """
-        loop  loops a video in the hls manifest.
-        sliding window and throttled to simulate live playback,
-        segments are deleted when they fall out the sliding window.
-        """
-        self.decode()
-        self._reset_stream()
-        with open(self.m3u8, "w+") as m3u8:
-            m3u8.write("#EXT-X-DISCONTINUITY")
-        self._tsdata = reader(self.in_stream)
-        return True
-
-    def run(self):
-        """
-        run calls replay() if replay is set
-        or else it calls decode()
-        """
-        self.apply_args()
-        if self.args.replay:
-            while True:
-                self.loop()
-        else:
-            self.decode()
 
 
 class SCTE35:
@@ -508,21 +486,7 @@ class SCTE35:
                     self.break_duration = cmd.break_duration
                     return True
 
-        upid_starts = [
-            0x10,
-            0x20,
-            0x22,
-            0x30,
-            0x32,
-            0x34,
-            0x36,
-            0x38,
-            0x3A,
-            0x3C,
-            0x3E,
-            0x44,
-            0x46,
-        ]
+        upid_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
         if cmd.command_type == 6:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
@@ -544,21 +508,7 @@ class SCTE35:
                 if not cmd.out_of_network_indicator:
                     return True
 
-            upid_stops = [
-                0x11,
-                0x21,
-                0x21,
-                0x23,
-                0x33,
-                0x35,
-                0x37,
-                0x39,
-                0x3B,
-                0x3D,
-                0x3F,
-                0x45,
-                0x47,
-            ]
+            upid_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
             if cmd.command_type == 6:
                 for dsptr in cue.descriptors:
                     if dsptr.tag == 2:
@@ -816,10 +766,15 @@ def cli():
      cli()
 
     """
-    stuff = X9K3()
-    stuff.run()
-
+    args = argue()
+    x9 = X9K3()
+    x9.decode()
+    while args.replay:
+        segnum = x9.segnum
+        x9 =X9K3()
+        x9.segnum = segnum
+        x9.decode()
 
 if __name__ == "__main__":
-    x9k = X9K3()
-    x9k.run()
+
+    cli()    
