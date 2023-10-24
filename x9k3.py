@@ -13,8 +13,8 @@ import sys
 import time
 from collections import deque
 from operator import itemgetter
-from iframes import IFramer
 from new_reader import reader
+from iframes import IFramer
 from threefive import Cue
 import threefive.stream as strm
 
@@ -55,7 +55,7 @@ class X9K3(strm.Stream):
         self.timer = Timer()
         self.m3u8 = "index.m3u8"
         self.window = SlidingWindow()
-        self.segnum = 0
+        self.segnum = None
         self.args = argue()
         self.apply_args()
         self.started = None
@@ -91,13 +91,23 @@ class X9K3(strm.Stream):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
 
+    def _chk_flags(self,flags):
+        if flags:
+            return True in flags
+        return None
+
     def _args_flags(self):
-        if self.args.program_date_time or self.args.delete or self.args.replay or self.args.continue_m3u8:
+        flags =deque([self.args.program_date_time,
+                      self.args.delete,self.args.replay])
+        if self._chk_flags(flags):
             self.args.live = True
-        if self.args.delete or self.args.replay:
+        flags.popleft() # pop self.args.program_date_time
+        if self._chk_flags(flags):
             self.window.delete = True
-        if self.args.replay:
+        flags.popleft()     # pop self.args.delete
+        if self._chk_flags(flags):
             self.args.continue_m3u8 = True
+        flags.popleft() # pop self.args.replay
 
     def _args_window_size(self):
         if self.args.live:
@@ -105,15 +115,14 @@ class X9K3(strm.Stream):
 
     def _args_continue_m3u8(self):
         if self.args.continue_m3u8:
-            m3u8uri = self.mk_uri(self.args.output_dir, self.m3u8)
             try:
-                with open(m3u8uri,'r') as manifest:
-                    last_segment = [ line for line in manifest.readlines() if not line.startswith("#")][-1]
-                    print(last_segment)
-                    self.segnum=int(last_segment.split("seg")[1].split(".")[0])+1
-                    print("SETTING SEGNUM to --->" ,self.segnum)
+                with open(self.m3u8uri(),'r') as manifest:
+                    lines = manifest.readlines()
+                    segment_list = [ line for line in lines if not line.startswith("#")]
+                    self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0])+1
+                    print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
             except:
-                segnum = 0
+                pass
 
 
     def apply_args(self):
@@ -131,6 +140,12 @@ class X9K3(strm.Stream):
 
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
+
+    def m3u8uri(self):
+        """
+        m3u8uri return full path to the output index.m3u8
+        """
+        return self.mk_uri(self.args.output_dir, self.m3u8)
 
     @staticmethod
     def mk_uri(head, tail):
@@ -170,6 +185,9 @@ class X9K3(strm.Stream):
 
 
     def add_discontinuity(self,chunk):
+        """
+        add_discontinuity adds a discontinuity tag.
+        """
         if not self.args.no_discontinuity:
             chunk.add_tag("#EXT-X-DISCONTINUITY", None)
 
@@ -217,6 +235,8 @@ class X9K3(strm.Stream):
         print(f"{one}{two}", file=sys.stderr)
 
     def _write_segment(self):
+        if self.segnum is None:
+            self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
         seg_time = round(self.next_start - self.started, 6)
@@ -235,10 +255,9 @@ class X9K3(strm.Stream):
 
     def _write_m3u8(self):
         self.media_seq = self.window.panes[0].num
-        m3u8uri = self.mk_uri(self.args.output_dir, self.m3u8)
-        with open(m3u8uri, "w+") as m3u8:
+        with open(self.m3u8uri(), "w+") as m3u8:
             m3u8.write(self._header())
-            if self.args.replay: # and not self.args.no_discontinuity:
+            if self.args.replay:
                 m3u8.write("#EXT-X-DISCONTINUITY\n")
             m3u8.write(self.window.all_panes())
             self.segnum += 1
@@ -334,18 +353,19 @@ class X9K3(strm.Stream):
         the cue is received.
         """
         if self.scte35.cue:
-           self.scte35.cue_time = self.adjusted_pts(self.scte35.cue,pid)
+            self.scte35.cue_time = self.adjusted_pts(self.scte35.cue,pid)
 
     def adjusted_pts(self,cue,pid):
         """
         adjusted_pts = (pts_time + pts_adjustment) % self.ROLLOVER
         """
-        adj_pts = 0
-        pts_adjust = cue.info_section.pts_adjustment
+        pts = 0
         if "pts_time" in cue.command.get():
-                adj_pts = (cue.command.pts_time + pts_adjust)% self.as_90k(self.ROLLOVER)
+            pts = cue.command.pts_time
         else:
-                adj_pts = (self.pid2pts(pid) + pts_adjust) % self.as_90k(self.ROLLOVER)
+            pts = self.pid2pts(pid)
+        pts_adjust = cue.info_section.pts_adjustment
+        adj_pts = (pts + pts_adjust)% self.as_90k(self.ROLLOVER)
         return round(adj_pts,6)
 
 
@@ -355,16 +375,19 @@ class X9K3(strm.Stream):
 
     def _shulga_mode(self, pkt, now):
         """
-        _shulga_mode iframe detection
+        _shulga_mode is mpeg2 video iframe detection
         """
         if self._rai_flag(pkt):
             self._chk_slice_point(now)
 
     def _parse_scte35(self, pkt, pid):
+        """
+        _parse_scte35 overrides the inherited
+        Stream._parse_scte35 method
+        """
         cue = super()._parse_scte35(pkt, pid)
         if cue:
             cue.decode()
-           # cue.show()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
             self.add2sidecar(self.adjusted_pts(cue,pid),cue.encode())
@@ -376,10 +399,9 @@ class X9K3(strm.Stream):
         now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=now)
-        #self._chk_slice_point(now)
+        self._load_sidecar(pkt_pid)
+        self._chk_sidecar_cues(pkt_pid)
         if self._pusi_flag(pkt) and self.started:
-            self._load_sidecar(pkt_pid)
-            self._chk_sidecar_cues(pkt_pid)
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
             else:
@@ -562,7 +584,7 @@ class SlidingWindow:
 
     def __init__(self, size=10000):
         self.size = size
-        self.panes = []
+        self.panes = deque()
         self.delete = False
 
     def pop_pane(self):
@@ -574,14 +596,13 @@ class SlidingWindow:
                 popped = self.panes[0].name
                 print(f"deleting {popped}")
                 os.unlink(popped)
-            self.panes = self.panes[1:]
+            self.panes.popleft()
 
     def push_pane(self, a_pane):
         """
         push appends a_pane to self.panes
         """
         self.panes.append(a_pane)
-        # print([a_pane.name for a_pane in self.panes])
 
     def all_panes(self):
         """
@@ -743,7 +764,7 @@ def argue():
         "--output_dir",
         default=".",
         help="""Directory for segments and index.m3u8
-                (created if needed) [default: '.'] """,
+                (created if needed) [default:'.'] """,
     )
 
     parser.add_argument(
@@ -752,7 +773,7 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Flag to add Program Date Time tags to index.m3u8  ( enables --live) [default: False]",
+        help="Flag to add Program Date Time tags to index.m3u8 ( enables --live) [default:False]",
     )
 
     parser.add_argument(
@@ -761,14 +782,16 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Flag for replay aka looping (enables --live and --delete and --continue_m3u8) [default: False]",
+        help="""Flag for replay aka looping
+        (enables --live,--delete,--continue_m3u8) [default:False]
+        """,
     )
 
     parser.add_argument(
         "-s",
         "--sidecar_file",
         default=None,
-        help="""Sidecar file of SCTE-35 (pts,cue) pairs.[default: None]""",
+        help="""Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]""",
     )
 
     parser.add_argument(
@@ -777,7 +800,7 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Flag to enable Shulga iframe detection mode [default: False]",
+        help="Flag to enable Shulga iframe detection mode [default:False]",
     )
 
     parser.add_argument(
@@ -785,7 +808,7 @@ def argue():
         "--time",
         default=2,
         type=float,
-        help="Segment time in seconds [default is 2]",
+        help="Segment time in seconds [default:2]",
     )
 
     parser.add_argument(
