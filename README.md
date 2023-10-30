@@ -123,7 +123,7 @@ optional arguments:
 
 -t TIME, --time TIME   Segment time in seconds [default:2]
 
--T HLS_TAG, --hls_tag HLS_TAG    x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue]
+-T HLS_TAG, --hls_tag HLS_TAG   Tag can be x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue]
 
 -w WINDOW_SIZE, --window_size WINDOW_SIZE   Sliding window size (enables --live) [default:5]
 
