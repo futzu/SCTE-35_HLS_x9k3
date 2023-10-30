@@ -15,13 +15,13 @@ from collections import deque
 from operator import itemgetter
 from new_reader import reader
 from iframes import IFramer
-from threefive import Cue
+from threefive import Cue, Segment
 import threefive.stream as strm
 
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "95"
+MAINTAINENCE = "97"
 
 
 def version():
@@ -62,7 +62,8 @@ class X9K3(strm.Stream):
         self.next_start = None
         self.media_seq = 0
         self.discontinuity_sequence = 0
-
+        self.first_segment = True
+        self.buffed = []
 
     def _args_version(self):
         if self.args.version:
@@ -91,23 +92,22 @@ class X9K3(strm.Stream):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
 
-    def _chk_flags(self,flags):
+    def _chk_flags(self, flags):
         if flags:
             return True in flags
         return None
 
     def _args_flags(self):
-        flags =deque([self.args.program_date_time,
-                      self.args.delete,self.args.replay])
+        flags = deque([self.args.program_date_time, self.args.delete, self.args.replay])
         if self._chk_flags(flags):
             self.args.live = True
-        flags.popleft() # pop self.args.program_date_time
+        flags.popleft()  # pop self.args.program_date_time
         if self._chk_flags(flags):
             self.window.delete = True
-        flags.popleft()     # pop self.args.delete
-        if self._chk_flags(flags):
-            self.args.continue_m3u8 = True
-        flags.popleft() # pop self.args.replay
+        flags.popleft()  # pop self.args.delete
+        # if self._chk_flags(flags):
+        #    self.args.continue_m3u8 = True
+        flags.popleft()  # pop self.args.replay
 
     def _args_window_size(self):
         if self.args.live:
@@ -115,15 +115,7 @@ class X9K3(strm.Stream):
 
     def _args_continue_m3u8(self):
         if self.args.continue_m3u8:
-            try:
-                with open(self.m3u8uri(),'r') as manifest:
-                    lines = manifest.readlines()
-                    segment_list = [ line for line in lines if not line.startswith("#")]
-                    self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0])+1
-                    print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
-            except:
-                pass
-
+            self.continue_m3u8()
 
     def apply_args(self):
         """
@@ -140,6 +132,16 @@ class X9K3(strm.Stream):
 
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
+
+    def continue_m3u8(self):
+        try:
+            with open(self.m3u8uri(), "r") as manifest:
+                lines = manifest.readlines()
+                segment_list = [line for line in lines if not line.startswith("#")]
+                self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
+                print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
+        except:
+            pass
 
     def m3u8uri(self):
         """
@@ -183,8 +185,7 @@ class X9K3(strm.Stream):
             ]
         )
 
-
-    def add_discontinuity(self,chunk):
+    def add_discontinuity(self, chunk):
         """
         add_discontinuity adds a discontinuity tag.
         """
@@ -220,7 +221,7 @@ class X9K3(strm.Stream):
 
     def _chk_live(self, seg_time):
         if self.args.live:
-            self.window.pop_pane()
+            self.window.popleft_pane()
             self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
 
@@ -242,7 +243,16 @@ class X9K3(strm.Stream):
         seg_time = round(self.next_start - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
-        chunk = Chunk(seg_file,seg_name,self.segnum)
+        new_seg = Segment(seg_name)
+        new_seg.shush = True
+        new_seg.decode()
+        seg_time = round((new_seg.pts_last - new_seg.pts_start) + 0.1, 6)
+        if seg_time < 0:
+            return
+        chunk = Chunk(seg_file, seg_name, self.segnum)
+        if self.first_segment:
+            if self.args.replay or self.args.continue_m3u8:
+                self.add_discontinuity(chunk)
         self._mk_chunk_tags(chunk, seg_time)
         self.window.push_pane(chunk)
         self._write_m3u8()
@@ -253,16 +263,31 @@ class X9K3(strm.Stream):
         self.scte35.chk_cue_state()
         self._chk_live(seg_time)
 
+    def _buffed_m3u8(self):
+        if self.args.continue_m3u8 and not self.args.live:
+            if self.first_segment:
+                try:
+                    with open(self.m3u8uri(), "r") as m3u8:
+                        self.buffed = m3u8.readlines()
+                        self.buffed = [
+                            line for line in self.buffed if "ENDLIST" not in line
+                        ]
+                except:
+                    pass
+
     def _write_m3u8(self):
         self.media_seq = self.window.panes[0].num
+        self._buffed_m3u8()
         with open(self.m3u8uri(), "w+") as m3u8:
-            m3u8.write(self._header())
-            if self.args.replay:
-                m3u8.write("#EXT-X-DISCONTINUITY\n")
+            if not self.args.continue_m3u8:
+                m3u8.write(self._header())
+            if self.args.continue_m3u8 and not self.buffed:
+                m3u8.write(self._header())
+            if self.buffed:
+                m3u8.write("".join(self.buffed))
             m3u8.write(self.window.all_panes())
             self.segnum += 1
-            if not self.args.live:
-                m3u8.write("#EXT-X-ENDLIST")
+            self.first_segment = False
         self.active_segment = io.BytesIO()
 
     def _load_sidecar(self, pid):
@@ -280,22 +305,20 @@ class X9K3(strm.Stream):
                         insert_pts = float(insert_pts)
                         if insert_pts == 0.0 and self.args.live:
                             insert_pts = self.next_start
-                        if insert_pts >= self.pid2pts(pid):
-                            self.add2sidecar(insert_pts,cue)
+                        if insert_pts > self.pid2pts(pid):
+                            self.add2sidecar(insert_pts, cue)
                 sidefile.close()
-            if self.args.live:
+            if self.args.live and not self.args.replay:
                 with open(self.args.sidecar_file, "w") as scf:
                     scf.close()
 
-    def add2sidecar(self, insert_pts,cue):
+    def add2sidecar(self, insert_pts, cue):
         """
         add2sidecar add insert_pts,cue to the deque
         """
         if [insert_pts, cue] not in self.sidecar:
             self.sidecar.append([insert_pts, cue])
-            self.sidecar = deque(
-                            sorted(self.sidecar, key=itemgetter(0))
-            )
+            self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
 
     def _chk_sidecar_cues(self, pid):
         """
@@ -353,9 +376,9 @@ class X9K3(strm.Stream):
         the cue is received.
         """
         if self.scte35.cue:
-            self.scte35.cue_time = self.adjusted_pts(self.scte35.cue,pid)
+            self.scte35.cue_time = self.adjusted_pts(self.scte35.cue, pid)
 
-    def adjusted_pts(self,cue,pid):
+    def adjusted_pts(self, cue, pid):
         """
         adjusted_pts = (pts_time + pts_adjustment) % self.ROLLOVER
         """
@@ -365,9 +388,8 @@ class X9K3(strm.Stream):
         else:
             pts = self.pid2pts(pid)
         pts_adjust = cue.info_section.pts_adjustment
-        adj_pts = (pts + pts_adjust)% self.as_90k(self.ROLLOVER)
-        return round(adj_pts,6)
-
+        adj_pts = (pts + pts_adjust) % self.as_90k(self.ROLLOVER)
+        return round(adj_pts, 6)
 
     @staticmethod
     def _rai_flag(pkt):
@@ -390,7 +412,7 @@ class X9K3(strm.Stream):
             cue.decode()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-            self.add2sidecar(self.adjusted_pts(cue,pid),cue.encode())
+            self.add2sidecar(self.adjusted_pts(cue, pid), cue.encode())
         return cue
 
     def _parse(self, pkt):
@@ -399,8 +421,7 @@ class X9K3(strm.Stream):
         now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=now)
-        self._load_sidecar(pkt_pid)
-        self._chk_sidecar_cues(pkt_pid)
+
         if self._pusi_flag(pkt) and self.started:
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
@@ -408,6 +429,8 @@ class X9K3(strm.Stream):
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
                     self._chk_slice_point(i_pts)
+        self._load_sidecar(pkt_pid)
+        self._chk_sidecar_cues(pkt_pid)
         self.active_segment.write(pkt)
 
     def decode(self, func=False):
@@ -419,6 +442,9 @@ class X9K3(strm.Stream):
         self.timer.start()
         super().decode()
         self._write_segment()
+        if not self.args.live:
+            with open(self.m3u8uri(), "a") as m3u8:
+                m3u8.write("#EXT-X-ENDLIST")
 
 
 class SCTE35:
@@ -587,16 +613,16 @@ class SlidingWindow:
         self.panes = deque()
         self.delete = False
 
-    def pop_pane(self):
+    def popleft_pane(self):
         """
-        pop_pane removes the first item in self.panes
+        popleft_pane removes the first item in self.panes
         """
         if len(self.panes) >= self.size:
             if self.delete:
                 popped = self.panes[0].name
                 print(f"deleting {popped}")
                 os.unlink(popped)
-            self.panes.popleft()
+            return self.panes.popleft()
 
     def push_pane(self, a_pane):
         """
@@ -613,11 +639,11 @@ class SlidingWindow:
     def slide_panes(self, a_pane):
         """
         slide calls self.push_pane with a_pane
-        and then calls self.pop_pane to trim self.panes
+        and then calls self.popleft_pane to trim self.panes
         as needed.
         """
         self.push_pane(a_pane)
-        self.pop_pane()
+        self.popleft_pane()
 
 
 class Timer:
@@ -666,7 +692,7 @@ class Timer:
         self.stop(end)
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
-            # print(f"throttling {diff}")#,file=sys.stderr, end='\r')
+            print(f"throttling {diff}")  # ,file=sys.stderr, end='\r')
             time.sleep(diff)
         self.start(begin)
 
@@ -677,7 +703,7 @@ class Chunk:
     for a segment.
     """
 
-    def __init__(self,file, name, num):
+    def __init__(self, file, name, num):
         self.tags = {}
         self.file = file
         self.name = name
@@ -706,7 +732,6 @@ class Chunk:
 
 
 def argue():
-
     """
     argue parse command line args
     """
@@ -729,7 +754,7 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Resume writing index.m3u8 (enables --live) [default:False]",
+        help="Resume writing index.m3u8 [default:False]",
     )
 
     parser.add_argument(
@@ -783,7 +808,7 @@ def argue():
         default=False,
         const=True,
         help="""Flag for replay aka looping
-        (enables --live,--delete,--continue_m3u8) [default:False]
+        (enables --live,--delete) [default:False]
         """,
     )
 
@@ -852,8 +877,10 @@ def cli():
     x9 = X9K3()
     x9.decode()
     while args.replay:
-        x9 =X9K3()
+        x9 = X9K3()
+        x9.continue_m3u8()
         x9.decode()
+
 
 if __name__ == "__main__":
     cli()
