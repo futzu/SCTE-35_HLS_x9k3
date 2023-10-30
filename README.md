@@ -15,7 +15,7 @@ ___
 
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-### `Latest` is `v.0.1.95` 
+### `Latest` is `v.0.1.97` 
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
