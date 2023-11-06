@@ -15,7 +15,7 @@ from collections import deque
 from operator import itemgetter
 from new_reader import reader
 from iframes import IFramer
-from threefive import Cue, Segment
+from threefive import Cue
 import threefive.stream as strm
 
 
@@ -134,6 +134,11 @@ class X9K3(strm.Stream):
             self._tsdata = reader(self._tsdata)
 
     def continue_m3u8(self):
+        """
+        continue_m3u8 reads self.discontinuity_sequence
+        and self.segnum from an existing index.m3u8
+        when the self.args.continue_m3u8 flag is set.
+        """
         try:
             with open(self.m3u8uri(), "r") as manifest:
                 lines = manifest.readlines()
@@ -249,11 +254,6 @@ class X9K3(strm.Stream):
         seg_time = round(self.next_start - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
-       # new_seg = Segment(seg_name)
-       # new_seg.shush = True
-       # new_seg.decode()
-       # if new_seg.pts_last is not None:
-        #    seg_time = round((new_seg.pts_last - new_seg.pts_start)+0.10 , 6)
         if seg_time <= 0:
             return
         chunk = Chunk(seg_file, seg_name, self.segnum)
@@ -367,7 +367,7 @@ class X9K3(strm.Stream):
         """
         if self.scte35.cue_time:
             if now >= self.scte35.cue_time:
-                self.next_start = self.scte35.cue_time
+                self.next_start = now
                 self._write_segment()
                 self.scte35.cue_time = None
                 self.scte35.mk_cue_state()
@@ -436,6 +436,9 @@ class X9K3(strm.Stream):
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
                     self._chk_slice_point(i_pts)
+            # Split on non-Iframes for CUE-IN or CUE-OUT
+            if self.scte35.cue_time:
+                self._chk_slice_point(now)
             self._load_sidecar(pkt_pid)
             self._chk_sidecar_cues(pkt_pid)
         self.active_segment.write(pkt)
@@ -449,7 +452,8 @@ class X9K3(strm.Stream):
         self.timer.start()
         super().decode()
         self._write_segment()
-        time.sleep(2)
+        if self.args.continue_m3u8 or self.args.replay:
+            time.sleep(self.args.time)
         if not self.args.live:
             with open(self.m3u8uri(), "a") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
@@ -610,7 +614,7 @@ class SCTE35:
             if not cmd.out_of_network_indicator:
                 return True
 
-        seg_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
+        #seg_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
         if cmd.command_type == 6:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
