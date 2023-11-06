@@ -21,7 +21,7 @@ import threefive.stream as strm
 
 MAJOR = "0"
 MINOR = "1"
-MAINTAINENCE = "97"
+MAINTAINENCE = "99"
 
 
 def version():
@@ -137,6 +137,11 @@ class X9K3(strm.Stream):
         try:
             with open(self.m3u8uri(), "r") as manifest:
                 lines = manifest.readlines()
+                match_this = "#EXT-X-DISCONTINUITY-SEQUENCE:"
+                disco_seq = [line for line in lines if match_this in line]
+                for d in disco_seq:
+                    seq = int(d.split(":")[1])
+                    self.discontinuity_sequence = seq
                 segment_list = [line for line in lines if not line.startswith("#")]
                 self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
                 print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
@@ -235,6 +240,7 @@ class X9K3(strm.Stream):
         two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
         print(f"{one}{two}", file=sys.stderr)
 
+
     def _write_segment(self):
         if self.segnum is None:
             self.segnum = 0
@@ -243,11 +249,12 @@ class X9K3(strm.Stream):
         seg_time = round(self.next_start - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
-        new_seg = Segment(seg_name)
-        new_seg.shush = True
-        new_seg.decode()
-        seg_time = round((new_seg.pts_last - new_seg.pts_start) + 0.1, 6)
-        if seg_time < 0:
+       # new_seg = Segment(seg_name)
+       # new_seg.shush = True
+       # new_seg.decode()
+       # if new_seg.pts_last is not None:
+        #    seg_time = round((new_seg.pts_last - new_seg.pts_start)+0.10 , 6)
+        if seg_time <= 0:
             return
         chunk = Chunk(seg_file, seg_name, self.segnum)
         if self.first_segment:
@@ -429,8 +436,8 @@ class X9K3(strm.Stream):
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
                     self._chk_slice_point(i_pts)
-        self._load_sidecar(pkt_pid)
-        self._chk_sidecar_cues(pkt_pid)
+            self._load_sidecar(pkt_pid)
+            self._chk_sidecar_cues(pkt_pid)
         self.active_segment.write(pkt)
 
     def decode(self, func=False):
@@ -442,6 +449,7 @@ class X9K3(strm.Stream):
         self.timer.start()
         super().decode()
         self._write_segment()
+        time.sleep(2)
         if not self.args.live:
             with open(self.m3u8uri(), "a") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
@@ -461,6 +469,7 @@ class SCTE35:
         self.break_timer = None
         self.break_duration = None
         self.event_id = 1
+        self.seg_type = None
 
     def mk_cue_tag(self):
         """
@@ -565,6 +574,8 @@ class SCTE35:
         """
         if cue is None:
             return False
+        if self.cue_state not in ["IN",None]:
+            return False
         cmd = cue.command
         if cmd.command_type == 5:
             if cmd.out_of_network_indicator:
@@ -572,13 +583,15 @@ class SCTE35:
                     self.break_duration = cmd.break_duration
                     return True
 
-        upid_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
+        seg_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
         if cmd.command_type == 6:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
-                    if dsptr.segmentation_type_id in upid_starts:
+                    if dsptr.segmentation_type_id in seg_starts:
+                        self.seg_type = dsptr.segmentation_type_id +1
                         if dsptr.segmentation_duration:
                             self.break_duration = dsptr.segmentation_duration
+                            self.cue_state="OUT"
                             return True
         return False
 
@@ -588,18 +601,24 @@ class SCTE35:
         to see if it is a cue_in event.
         Returns True for a cue_in event.
         """
-        if cue is not None:
-            cmd = cue.command
-            if cmd.command_type == 5:
-                if not cmd.out_of_network_indicator:
-                    return True
+        if cue is None:
+            return False
+        if self.cue_state not in ["OUT","CONT"]:
+            return False
+        cmd = cue.command
+        if cmd.command_type == 5:
+            if not cmd.out_of_network_indicator:
+                return True
 
-            upid_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
-            if cmd.command_type == 6:
-                for dsptr in cue.descriptors:
-                    if dsptr.tag == 2:
-                        if dsptr.segmentation_type_id in upid_stops:
-                            return True
+        seg_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
+        if cmd.command_type == 6:
+            for dsptr in cue.descriptors:
+                if dsptr.tag == 2:
+                 #   if dsptr.segmentation_type_id in seg_stops:
+                    if dsptr.segmentation_type_id == self.seg_type:
+                        self.seg_type = None
+                        self.cue_state="IN"
+                        return True
         return False
 
 
