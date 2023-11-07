@@ -20,8 +20,8 @@ import threefive.stream as strm
 
 
 MAJOR = "0"
-MINOR = "1"
-MAINTAINENCE = "99"
+MINOR = "2"
+MAINTAINENCE = "01"
 
 
 def version():
@@ -245,17 +245,20 @@ class X9K3(strm.Stream):
         two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
         print(f"{one}{two}", file=sys.stderr)
 
+    def now(self):
+        return self.as_90k(list(self.maps.prgm_pts.items())[0][1])
 
     def _write_segment(self):
         if self.segnum is None:
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round(self.next_start - self.started, 6)
+        seg_time = round(self.now() - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
             return
+
         chunk = Chunk(seg_file, seg_name, self.segnum)
         if self.first_segment:
             if self.args.replay or self.args.continue_m3u8:
@@ -367,13 +370,13 @@ class X9K3(strm.Stream):
         """
         if self.scte35.cue_time:
             if now >= self.scte35.cue_time:
-                self.next_start = now
+                self.next_start = self.now()
                 self._write_segment()
                 self.scte35.cue_time = None
                 self.scte35.mk_cue_state()
                 return
         if now >= self.started + self.args.time:
-            self.next_start = now
+            self.next_start = self.now()
             self._write_segment()
 
     def _chk_cue_time(self, pid):
@@ -426,6 +429,7 @@ class X9K3(strm.Stream):
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
+
         if not self.started:
             self._start_next_start(pts=now)
 
@@ -451,7 +455,10 @@ class X9K3(strm.Stream):
         """
         self.timer.start()
         super().decode()
-        self._write_segment()
+        buff = self.active_segment.getbuffer()
+
+        if buff:
+            self._write_segment()
         if self.args.continue_m3u8 or self.args.replay:
             time.sleep(self.args.time)
         if not self.args.live:
@@ -578,7 +585,7 @@ class SCTE35:
         """
         if cue is None:
             return False
-        if self.cue_state not in ["IN",None]:
+        if self.cue_state not in ["IN", None]:
             return False
         cmd = cue.command
         if cmd.command_type == 5:
@@ -592,10 +599,10 @@ class SCTE35:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
                     if dsptr.segmentation_type_id in seg_starts:
-                        self.seg_type = dsptr.segmentation_type_id +1
+                        self.seg_type = dsptr.segmentation_type_id + 1
                         if dsptr.segmentation_duration:
                             self.break_duration = dsptr.segmentation_duration
-                            self.cue_state="OUT"
+                            self.cue_state = "OUT"
                             return True
         return False
 
@@ -607,21 +614,18 @@ class SCTE35:
         """
         if cue is None:
             return False
-        if self.cue_state not in ["OUT","CONT"]:
+        if self.cue_state not in ["OUT", "CONT"]:
             return False
         cmd = cue.command
         if cmd.command_type == 5:
             if not cmd.out_of_network_indicator:
                 return True
-
-        #seg_stops = [0x23, 0x31, 0x33, 0x35, 0x37, 0x45, 0x47]
         if cmd.command_type == 6:
             for dsptr in cue.descriptors:
                 if dsptr.tag == 2:
-                 #   if dsptr.segmentation_type_id in seg_stops:
                     if dsptr.segmentation_type_id == self.seg_type:
                         self.seg_type = None
-                        self.cue_state="IN"
+                        self.cue_state = "IN"
                         return True
         return False
 
