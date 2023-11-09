@@ -98,6 +98,9 @@ class X9K3(strm.Stream):
         return None
 
     def _args_flags(self):
+        """
+         I really expected to do more here.
+        """
         flags = deque([self.args.program_date_time, self.args.delete, self.args.replay])
         if self._chk_flags(flags):
             self.args.live = True
@@ -105,8 +108,7 @@ class X9K3(strm.Stream):
         if self._chk_flags(flags):
             self.window.delete = True
         flags.popleft()  # pop self.args.delete
-        # if self._chk_flags(flags):
-        #    self.args.continue_m3u8 = True
+       
         flags.popleft()  # pop self.args.replay
 
     def _args_window_size(self):
@@ -230,6 +232,13 @@ class X9K3(strm.Stream):
             chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _chk_live(self, seg_time):
+        """
+        _chk_live
+        
+            * slides the sliding window
+            * throttles to simulate live stream
+            * increments discontinuity sequence
+        """
         if self.args.live:
             self.window.popleft_pane()
             self.timer.throttle(seg_time)
@@ -246,6 +255,10 @@ class X9K3(strm.Stream):
         print(f"{one}{two}", file=sys.stderr)
 
     def now(self):
+        """
+        now returns the current pts
+        for the first program available.
+        """
         return self.as_90k(list(self.maps.prgm_pts.items())[0][1])
 
     def _write_segment(self):
@@ -274,18 +287,25 @@ class X9K3(strm.Stream):
         self._chk_live(seg_time)
 
     def _buffed_m3u8(self):
+        """
+        _buffed_m3u8 is the hardest way possible
+        to remove the ENDLIST tag when the
+        continue_m3u8 flag is set.
+        """
         if self.args.continue_m3u8 and not self.args.live:
             if self.first_segment:
                 try:
                     with open(self.m3u8uri(), "r") as m3u8:
-                        self.buffed = m3u8.readlines()
                         self.buffed = [
-                            line for line in self.buffed if "ENDLIST" not in line
+                            line for line in m3u8.readlines() if "ENDLIST" not in line
                         ]
                 except:
                     pass
 
     def _write_m3u8(self):
+        """
+        _write_m3u8 writes the index.m3u8
+        """
         self.media_seq = self.window.panes[0].num
         self._buffed_m3u8()
         with open(self.m3u8uri(), "w+") as m3u8:
@@ -403,6 +423,9 @@ class X9K3(strm.Stream):
 
     @staticmethod
     def _rai_flag(pkt):
+        """
+        _rai_flag random access indicator flag
+        """
         return pkt[5] & 0x40
 
     def _shulga_mode(self, pkt, now):
@@ -426,6 +449,9 @@ class X9K3(strm.Stream):
         return cue
 
     def _parse(self, pkt):
+        """
+        _parse is run on every packet.
+        """
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
@@ -447,6 +473,28 @@ class X9K3(strm.Stream):
             self._chk_sidecar_cues(pkt_pid)
         self.active_segment.write(pkt)
 
+
+    def addendum(self):
+        """
+        addendum post stream parsing related tasks.
+            * writing the last segment
+
+            * sleeping to ensure last segment gets playing
+            when the replay flag or continue_m3u8 flag is set.
+            
+            * adding endlist tag
+            
+        """
+        buff = self.active_segment.getbuffer()
+        if buff:
+            self._write_segment()
+        if self.args.continue_m3u8 or self.args.replay:
+            time.sleep(self.args.time)
+        if not self.args.live:
+            with open(self.m3u8uri(), "a") as m3u8:
+                m3u8.write("#EXT-X-ENDLIST")        
+
+
     def decode(self, func=False):
         """
         decode iterates mpegts packets
@@ -455,15 +503,7 @@ class X9K3(strm.Stream):
         """
         self.timer.start()
         super().decode()
-        buff = self.active_segment.getbuffer()
-
-        if buff:
-            self._write_segment()
-        if self.args.continue_m3u8 or self.args.replay:
-            time.sleep(self.args.time)
-        if not self.args.live:
-            with open(self.m3u8uri(), "a") as m3u8:
-                m3u8.write("#EXT-X-ENDLIST")
+        self.addendum()
 
 
 class SCTE35:
