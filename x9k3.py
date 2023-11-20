@@ -17,11 +17,12 @@ from new_reader import reader
 from iframes import IFramer
 from threefive import Cue
 import threefive.stream as strm
+from m3ufu import M3uFu
 
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "01"
+MAINTAINENCE = "03"
 
 
 def version():
@@ -63,7 +64,6 @@ class X9K3(strm.Stream):
         self.media_seq = 0
         self.discontinuity_sequence = 0
         self.first_segment = True
-        self.buffed = []
 
     def _args_version(self):
         if self.args.version:
@@ -108,7 +108,7 @@ class X9K3(strm.Stream):
         if self._chk_flags(flags):
             self.window.delete = True
         flags.popleft()  # pop self.args.delete
-       
+
         flags.popleft()  # pop self.args.replay
 
     def _args_window_size(self):
@@ -135,6 +135,40 @@ class X9K3(strm.Stream):
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
+    def _reload_chunk(self,segment):
+        tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
+        chunk = Chunk(segment.relative_uri,segment.media,tmp_segnum)
+        for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
+            if this in segment.tags:
+                segment.tags.pop(this)
+        chunk.tags = segment.tags
+        self.window.push_pane(chunk)
+
+    def reload_m3u8(self):
+        """
+        m3u8_reload is called when the continue_m3u8 option is set.
+        The index.m3u8 file is copied to tmp.m3u8 and a "#EXT-X-ENDLIST" tag
+        is appended so that m3ufu doesn't keep trying to reload it as a live stream.
+        An M3uFu instance parses tmp.m3u8 and loads the data into
+        the SlidingWindow, X9K3.window.
+        """
+        m3 = M3uFu()
+        tmp_name = "tmp.m3u8"
+        with open(tmp_name,'w') as tmp_m3u8:
+            with open(self.m3u8uri(),"r") as m3u8:
+                tmp_m3u8.write("\n".join(m3u8.readlines()))
+                tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
+        m3.m3u8 = tmp_name
+        m3.decode()
+        segments =list(m3.segments)
+        for segment in segments:
+             self._reload_chunk(segment)
+        if self.args.live:
+            self._discontinuity_seq_plus_one()
+            self.window.slide_panes()
+        os.unlink(tmp_name)
+
+
     def continue_m3u8(self):
         """
         continue_m3u8 reads self.discontinuity_sequence
@@ -151,9 +185,11 @@ class X9K3(strm.Stream):
                     self.discontinuity_sequence = seq
                 segment_list = [line for line in lines if not line.startswith("#")]
                 self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
-                print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
+            self.reload_m3u8()
+            print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
         except:
             pass
+
 
     def m3u8uri(self):
         """
@@ -234,7 +270,7 @@ class X9K3(strm.Stream):
     def _chk_live(self, seg_time):
         """
         _chk_live
-        
+
             * slides the sliding window
             * throttles to simulate live stream
             * increments discontinuity sequence
@@ -271,7 +307,6 @@ class X9K3(strm.Stream):
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
             return
-
         chunk = Chunk(seg_file, seg_name, self.segnum)
         if self.first_segment:
             if self.args.replay or self.args.continue_m3u8:
@@ -286,35 +321,17 @@ class X9K3(strm.Stream):
         self.scte35.chk_cue_state()
         self._chk_live(seg_time)
 
-    def _buffed_m3u8(self):
-        """
-        _buffed_m3u8 is the hardest way possible
-        to remove the ENDLIST tag when the
-        continue_m3u8 flag is set.
-        """
-        if self.args.continue_m3u8 and not self.args.live:
-            if self.first_segment:
-                try:
-                    with open(self.m3u8uri(), "r") as m3u8:
-                        self.buffed = [
-                            line for line in m3u8.readlines() if "ENDLIST" not in line
-                        ]
-                except:
-                    pass
+
+    def _clear_endlist(self,lines):
+        return [line for line in lines if "ENDLIST" not in line]
 
     def _write_m3u8(self):
         """
         _write_m3u8 writes the index.m3u8
         """
         self.media_seq = self.window.panes[0].num
-        self._buffed_m3u8()
         with open(self.m3u8uri(), "w+") as m3u8:
-            if not self.args.continue_m3u8:
-                m3u8.write(self._header())
-            if self.args.continue_m3u8 and not self.buffed:
-                m3u8.write(self._header())
-            if self.buffed:
-                m3u8.write("".join(self.buffed))
+            m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
             self.segnum += 1
             self.first_segment = False
@@ -455,10 +472,8 @@ class X9K3(strm.Stream):
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         now = self.pid2pts(pkt_pid)
-
         if not self.started:
             self._start_next_start(pts=now)
-
         if self._pusi_flag(pkt) and self.started:
             if self.args.shulga:
                 self._shulga_mode(pkt, now)
@@ -481,18 +496,16 @@ class X9K3(strm.Stream):
 
             * sleeping to ensure last segment gets playing
             when the replay flag or continue_m3u8 flag is set.
-            
+
             * adding endlist tag
-            
+
         """
         buff = self.active_segment.getbuffer()
         if buff:
             self._write_segment()
-        if self.args.continue_m3u8 or self.args.replay:
-            time.sleep(self.args.time)
         if not self.args.live:
             with open(self.m3u8uri(), "a") as m3u8:
-                m3u8.write("#EXT-X-ENDLIST")        
+                m3u8.write("#EXT-X-ENDLIST")
 
 
     def decode(self, func=False):
@@ -688,7 +701,10 @@ class SlidingWindow:
             if self.delete:
                 popped = self.panes[0].name
                 print(f"deleting {popped}")
-                os.unlink(popped)
+                try:
+                    os.unlink(popped)
+                except:
+                    pass
             return self.panes.popleft()
 
     def push_pane(self, a_pane):
@@ -697,20 +713,23 @@ class SlidingWindow:
         """
         self.panes.append(a_pane)
 
+
     def all_panes(self):
         """
         all_panes returns the current window panes joined.
         """
         return "".join([a_pane.get() for a_pane in self.panes])
 
-    def slide_panes(self, a_pane):
+    def slide_panes(self, a_pane=None):
         """
         slide calls self.push_pane with a_pane
         and then calls self.popleft_pane to trim self.panes
         as needed.
         """
-        self.push_pane(a_pane)
-        self.popleft_pane()
+        if a_pane:
+            self.push_pane(a_pane)
+        while len(self.panes) >= self.size:
+            self.popleft_pane()
 
 
 class Timer:
