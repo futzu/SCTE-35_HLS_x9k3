@@ -14,7 +14,7 @@ ___
 
 # HLS + SCTE35 = x9k3
 ## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-### `Latest` is `v.0.2.01` 
+### `Latest` is `v.0.2.03` 
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
@@ -24,7 +24,6 @@ ___
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
-
 
 
 ## `Requires` 
@@ -91,6 +90,10 @@ pypy3 -mpip install x9k3
    ```
    
 #### Cli tool
+
+#### New Option, `-c` or  `--continue_m3u8` Continue an existing index.m3u8. _(Only works with x9k3 generated m3u8 files)_
+
+
 
 ```smalltalk
 a@fu:~/x9k3$ x9k3 -h
