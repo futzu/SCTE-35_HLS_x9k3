@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "03"
+MAINTAINENCE = "05"
 
 
 def version():
@@ -99,7 +99,7 @@ class X9K3(strm.Stream):
 
     def _args_flags(self):
         """
-         I really expected to do more here.
+        I really expected to do more here.
         """
         flags = deque([self.args.program_date_time, self.args.delete, self.args.replay])
         if self._chk_flags(flags):
@@ -135,9 +135,9 @@ class X9K3(strm.Stream):
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
-    def _reload_chunk(self,segment):
+    def _reload_chunk(self, segment):
         tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
-        chunk = Chunk(segment.relative_uri,segment.media,tmp_segnum)
+        chunk = Chunk(segment.relative_uri, segment.media, tmp_segnum)
         for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
             if this in segment.tags:
                 segment.tags.pop(this)
@@ -154,20 +154,19 @@ class X9K3(strm.Stream):
         """
         m3 = M3uFu()
         tmp_name = "tmp.m3u8"
-        with open(tmp_name,'w') as tmp_m3u8:
-            with open(self.m3u8uri(),"r") as m3u8:
+        with open(tmp_name, "w") as tmp_m3u8:
+            with open(self.m3u8uri(), "r") as m3u8:
                 tmp_m3u8.write("\n".join(m3u8.readlines()))
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
-        segments =list(m3.segments)
+        segments = list(m3.segments)
         for segment in segments:
-             self._reload_chunk(segment)
+            self._reload_chunk(segment)
         if self.args.live:
             self._discontinuity_seq_plus_one()
             self.window.slide_panes()
         os.unlink(tmp_name)
-
 
     def continue_m3u8(self):
         """
@@ -189,7 +188,6 @@ class X9K3(strm.Stream):
             print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
         except:
             pass
-
 
     def m3u8uri(self):
         """
@@ -321,8 +319,7 @@ class X9K3(strm.Stream):
         self.scte35.chk_cue_state()
         self._chk_live(seg_time)
 
-
-    def _clear_endlist(self,lines):
+    def _clear_endlist(self, lines):
         return [line for line in lines if "ENDLIST" not in line]
 
     def _write_m3u8(self):
@@ -488,7 +485,6 @@ class X9K3(strm.Stream):
             self._chk_sidecar_cues(pkt_pid)
         self.active_segment.write(pkt)
 
-
     def addendum(self):
         """
         addendum post stream parsing related tasks.
@@ -506,7 +502,6 @@ class X9K3(strm.Stream):
         if not self.args.live:
             with open(self.m3u8uri(), "a") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
-
 
     def decode(self, func=False):
         """
@@ -692,6 +687,7 @@ class SlidingWindow:
         self.size = size
         self.panes = deque()
         self.delete = False
+        self.delete_que = deque()
 
     def popleft_pane(self):
         """
@@ -700,11 +696,12 @@ class SlidingWindow:
         if len(self.panes) >= self.size:
             if self.delete:
                 popped = self.panes[0].name
-                print(f"deleting {popped}")
-                try:
-                    os.unlink(popped)
-                except:
-                    pass
+                self.delete_que.append(popped)
+                if len(self.delete_que) > (2 * self.size):
+                    try:
+                        del_file = self.delete_que.popleft()
+                    except:
+                        pass
             return self.panes.popleft()
 
     def push_pane(self, a_pane):
@@ -712,7 +709,6 @@ class SlidingWindow:
         push appends a_pane to self.panes
         """
         self.panes.append(a_pane)
-
 
     def all_panes(self):
         """
@@ -778,7 +774,7 @@ class Timer:
         self.stop(end)
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
-            print(f"throttling {diff}")  # ,file=sys.stderr, end='\r')
+            # print(f"throttling {diff}")  # ,file=sys.stderr, end='\r')
             time.sleep(diff)
         self.start(begin)
 
