@@ -12,9 +12,10 @@ ___
  
 
 
-# HLS + SCTE35 = x9k3
-## `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection.
-### `Latest` is `v.0.2.05` 
+### HLS + SCTE35 = x9k3
+### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
+#### `Latest` is `v.0.2.07`   _(m3u8 files with mpegts segments can now be used as input)_
+
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
@@ -88,7 +89,11 @@ pypy3 -mpip install x9k3
    ```smalltalk
    cat video.ts | x9k3
    ```
-   
+#### `live m3u8 file as input, add SCTE-35 from a sidecar file, change segment duration to 3 and output as live stream`
+```smalltalk
+x9k3 -i https://example.com/rendition.m3u8 -s sidecar.txt -t 3 -l
+```
+
 #### Cli tool
 
 #### New Option, `-c` or  `--continue_m3u8` Continue an existing index.m3u8. _(Only works with x9k3 generated m3u8 files)_
@@ -104,7 +109,7 @@ optional arguments:
   -h, --help            show this help message and exit
 
  -i INPUT, --input INPUT    Input source, like "/home/a/vid.ts" or "udp://@235.35.3.5:3535" or
-"https://futzu.com/xaa.ts" [default: stdin]
+"https://futzu.com/xaa.ts" [default: stdin] or an m3u8 file.
 
  -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
 
