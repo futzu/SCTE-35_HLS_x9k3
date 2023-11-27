@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "11"
+MAINTAINENCE = "13"
 
 
 def version():
@@ -756,7 +756,7 @@ class SlidingWindow:
         """
         if len(self.panes) >= self.size:
             if self.delete:
-                popped= self.panes.popleft()
+                popped= self.panes.popleft().name
                 print("popped", popped)
                 os.unlink(popped)
 
