@@ -22,7 +22,7 @@ setuptools.setup(
         "threefive >= 2.4.9",
         "new_reader >= 0.1.7",
         "iframes >= 0.0.7",
-        "m3ufu >= 0.0.81",
+        "m3ufu >= 0.0.83",
     ],
     classifiers=[
         "License :: OSI Approved :: MIT License",
