@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "07"
+MAINTAINENCE = "09"
 
 
 def version():
@@ -64,7 +64,7 @@ class X9K3(strm.Stream):
         self.media_seq = 0
         self.discontinuity_sequence = 0
         self.first_segment = True
-        self.media_list = []
+        self.media_list = deque()
         self.now = None
         self.last_sidelines =''
 
@@ -95,7 +95,7 @@ class X9K3(strm.Stream):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
 
-    
+
     def _chk_flags(self, flags):
         if flags:
             return True in flags
@@ -348,7 +348,7 @@ class X9K3(strm.Stream):
                 sidelines = sidefile.readlines()
                 if sidelines == self.last_sidelines:
                     return
-                for line in sidelines:     
+                for line in sidelines:
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
                         if line.split(',',1)[0] in ["0","0.0",0,0.0]:
@@ -367,7 +367,7 @@ class X9K3(strm.Stream):
         """
         insert_pts, cue = line.split(",", 1)
         insert_pts = float(insert_pts)
-        if [insert_pts, cue] not in self.sidecar:   
+        if [insert_pts, cue] not in self.sidecar:
             self.sidecar.append([insert_pts, cue])
             self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
 
@@ -491,7 +491,7 @@ class X9K3(strm.Stream):
 
             # Split on non-Iframes for CUE-IN or CUE-OUT
             if self.scte35.cue_time:
-                self._chk_slice_point()    
+                self._chk_slice_point()
         self.active_segment.write(pkt)
 
     def addendum(self):
@@ -518,7 +518,7 @@ class X9K3(strm.Stream):
         and passes them to _parse.
 
         """
-        self.timer.start()            
+        self.timer.start()
         if "m3u8" in self.args.input:
             self.decode_m3u8(self.args.input)
         else:
@@ -532,6 +532,21 @@ class X9K3(strm.Stream):
         line = line.replace("\n", "").replace("\r", "")
         return line
 
+    def parse_m3u8_media(self,media):
+        """
+        parse_m3u8_media parse a segment from
+        a m3u8 input file if it has not been parsed.
+        """
+        max_media = 200
+        if media not in self.media_list:
+            self.media_list.append(media)
+            while len(self.media_list) > max_media:
+                self.media_list.popleft()
+            self._tsdata = reader(media)
+            for pkt in self.iter_pkts():
+                self._parse(pkt)
+            self._tsdata.close()
+
     def decode_m3u8(self, manifest=None):
         """
         decode_m3u8 is called when the input file is a m3u8 playlist.
@@ -542,29 +557,24 @@ class X9K3(strm.Stream):
         else:
             base_uri = ""
         while True:
-           # self.media_list =[]
             with reader(manifest) as manifesto:
                 m3u8 = manifesto.readlines()
                 for line in m3u8:
-                    line = self._clean_line(line)
                     if not line:
                         break
+                    line = self._clean_line(line)
                     if self._endlist(line):
                         return False
-                    if not line.startswith("#"):
-                        if len(line):
-                            if base_uri not in line:
-                                media = base_uri + line
-                            else:
-                                media = line
-                            if media not in self.media_list:
-                                self.media_list.append(media)
-                                self.media_list = self.media_list[-(self.args.window_size+1):]
-                                self._tsdata = reader(media)
-                                for pkt in self.iter_pkts():
-                                    self._parse(pkt)
-                                self._tsdata.close()
- 
+                    if line.startswith("#"):
+                        media = None
+                    else:
+                        media =line
+                    if media:
+                        if base_uri not in media:
+                            media = base_uri + media
+                        self.parse_m3u8_media(media)
+
+
 
 class SCTE35:
     """
@@ -875,9 +885,10 @@ def argue():
         "-i",
         "--input",
         default=sys.stdin.buffer,
-        help=""" Input source, like "/home/a/vid.ts"
-                                or "udp://@235.35.3.5:3535"
-                                or "https://futzu.com/xaa.ts"
+        help=""" Input source, like /home/a/vid.ts
+                                or udp://@235.35.3.5:3535
+                                or https://futzu.com/xaa.ts
+                                or https://example.com/not_a_master.m3u8
                                 [default: stdin]
 
                                 """,
