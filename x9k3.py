@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "13"
+MAINTAINENCE = "15"
 
 
 def version():
@@ -141,7 +141,7 @@ class X9K3(strm.Stream):
 
     def _reload_chunk(self, segment):
         tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
-        chunk = Chunk(segment.relative_uri, segment.media, tmp_segnum)
+        chunk = Chunk(self.mkuri(self.args.output_dir,segment.relative_uri), segment.media, tmp_segnum)
         for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
             if this in segment.tags:
                 segment.tags.pop(this)
@@ -157,7 +157,7 @@ class X9K3(strm.Stream):
         the SlidingWindow, X9K3.window.
         """
         m3 = M3uFu()
-        tmp_name = "tmp.m3u8"
+        tmp_name = self.mkuri(self.args.output_dir,"tmp.m3u8")
         with open(tmp_name, "w") as tmp_m3u8:
             with open(self.m3u8uri(), "r") as m3u8:
                 tmp_m3u8.write("\n".join(m3u8.readlines()))
@@ -756,10 +756,12 @@ class SlidingWindow:
         """
         if len(self.panes) >= self.size:
             if self.delete:
-                popped= self.panes.popleft().name
-                print("popped", popped)
-                os.unlink(popped)
-
+                popped= self.panes.popleft()
+                print("popped", popped.name, popped.file)
+                try:
+                    os.unlink(popped.name)
+                except:
+                    print("pop failed")
 
     def push_pane(self, a_pane):
         """
