@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "09"
+MAINTAINENCE = "11"
 
 
 def version():
@@ -749,7 +749,6 @@ class SlidingWindow:
         self.size = size
         self.panes = deque()
         self.delete = False
-        self.delete_que = deque()
 
     def popleft_pane(self):
         """
@@ -757,15 +756,10 @@ class SlidingWindow:
         """
         if len(self.panes) >= self.size:
             if self.delete:
-                popped = self.panes[0].name
-                self.delete_que.append(popped)
-                if len(self.delete_que) > (2 * self.size):
-                    try:
-                        del_file = self.delete_que.popleft()
-                        print(f' deleting {del_file}')
-                    except:
-                        pass
-            return self.panes.popleft()
+                popped= self.panes.popleft()
+                print("popped", popped)
+                os.unlink(popped)
+
 
     def push_pane(self, a_pane):
         """
