@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "05"
+MAINTAINENCE = "07"
 
 
 def version():
@@ -64,6 +64,9 @@ class X9K3(strm.Stream):
         self.media_seq = 0
         self.discontinuity_sequence = 0
         self.first_segment = True
+        self.media_list = []
+        self.now = None
+        self.last_sidelines =''
 
     def _args_version(self):
         if self.args.version:
@@ -92,6 +95,7 @@ class X9K3(strm.Stream):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
 
+    
     def _chk_flags(self, flags):
         if flags:
             return True in flags
@@ -288,19 +292,12 @@ class X9K3(strm.Stream):
         two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
         print(f"{one}{two}", file=sys.stderr)
 
-    def now(self):
-        """
-        now returns the current pts
-        for the first program available.
-        """
-        return self.as_90k(list(self.maps.prgm_pts.items())[0][1])
-
     def _write_segment(self):
         if self.segnum is None:
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round(self.now() - self.started, 6)
+        seg_time = round(self.now - self.started, 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
@@ -320,7 +317,13 @@ class X9K3(strm.Stream):
         self._chk_live(seg_time)
 
     def _clear_endlist(self, lines):
-        return [line for line in lines if "ENDLIST" not in line]
+        return [line for line in lines if not self._endlist(line)]
+
+    @staticmethod
+    def _endlist(line):
+        if 'ENDLIST'in line:
+            return True
+        return False
 
     def _write_m3u8(self):
         """
@@ -342,25 +345,29 @@ class X9K3(strm.Stream):
         """
         if self.args.sidecar_file:
             with reader(self.args.sidecar_file) as sidefile:
-                for line in sidefile:
+                sidelines = sidefile.readlines()
+                if sidelines == self.last_sidelines:
+                    return
+                for line in sidelines:     
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
-                        insert_pts, cue = line.split(",", 1)
-                        insert_pts = float(insert_pts)
-                        if insert_pts == 0.0 and self.args.live:
-                            insert_pts = self.next_start
-                        if insert_pts > self.pid2pts(pid):
-                            self.add2sidecar(insert_pts, cue)
+                        if line.split(',',1)[0] in ["0","0.0",0,0.0]:
+                            if self.args.live:
+                                line = f'{self.next_start},{line.split(",",1)[1]}'
+                        self.add2sidecar(line)
                 sidefile.close()
             if self.args.live and not self.args.replay:
                 with open(self.args.sidecar_file, "w") as scf:
                     scf.close()
+            self.last_sidelines = sidelines
 
-    def add2sidecar(self, insert_pts, cue):
+    def add2sidecar(self, line):
         """
         add2sidecar add insert_pts,cue to the deque
         """
-        if [insert_pts, cue] not in self.sidecar:
+        insert_pts, cue = line.split(",", 1)
+        insert_pts = float(insert_pts)
+        if [insert_pts, cue] not in self.sidecar:   
             self.sidecar.append([insert_pts, cue])
             self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
 
@@ -396,21 +403,21 @@ class X9K3(strm.Stream):
             self.started = self.next_start
         self.next_start = self.started + self.args.time
 
-    def _chk_slice_point(self, now):
+    def _chk_slice_point(self):
         """
         chk_slice_time checks for the slice point
         of a segment eoither buy self.args.time
-        or by self.scte35.cue_time
+        self.maps.prgm_pts.items()or by self.scte35.cue_time
         """
         if self.scte35.cue_time:
-            if now >= self.scte35.cue_time:
-                self.next_start = self.now()
+            if self.now >= self.scte35.cue_time:
+                self.next_start = self.now
                 self._write_segment()
                 self.scte35.cue_time = None
                 self.scte35.mk_cue_state()
                 return
-        if now >= self.started + self.args.time:
-            self.next_start = self.now()
+        if self.now >= self.started + self.args.time:
+            self.next_start = self.now
             self._write_segment()
 
     def _chk_cue_time(self, pid):
@@ -442,12 +449,12 @@ class X9K3(strm.Stream):
         """
         return pkt[5] & 0x40
 
-    def _shulga_mode(self, pkt, now):
+    def _shulga_mode(self, pkt):
         """
         _shulga_mode is mpeg2 video iframe detection
         """
         if self._rai_flag(pkt):
-            self._chk_slice_point(now)
+            self._chk_slice_point()
 
     def _parse_scte35(self, pkt, pid):
         """
@@ -459,7 +466,7 @@ class X9K3(strm.Stream):
             cue.decode()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-            self.add2sidecar(self.adjusted_pts(cue, pid), cue.encode())
+            self.add2sidecar(f'{self.adjusted_pts(cue, pid)}, {cue.encode()}')
         return cue
 
     def _parse(self, pkt):
@@ -468,21 +475,23 @@ class X9K3(strm.Stream):
         """
         super()._parse(pkt)
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
-        now = self.pid2pts(pkt_pid)
+        self.now = self.pid2pts(pkt_pid)
         if not self.started:
-            self._start_next_start(pts=now)
+            self._start_next_start(pts=self.now)
         if self._pusi_flag(pkt) and self.started:
             if self.args.shulga:
-                self._shulga_mode(pkt, now)
+                self._shulga_mode(pkt)
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
-                    self._chk_slice_point(i_pts)
-            # Split on non-Iframes for CUE-IN or CUE-OUT
-            if self.scte35.cue_time:
-                self._chk_slice_point(now)
+                    self.now = i_pts
+                    self._chk_slice_point()
             self._load_sidecar(pkt_pid)
             self._chk_sidecar_cues(pkt_pid)
+
+            # Split on non-Iframes for CUE-IN or CUE-OUT
+            if self.scte35.cue_time:
+                self._chk_slice_point()    
         self.active_segment.write(pkt)
 
     def addendum(self):
@@ -509,10 +518,53 @@ class X9K3(strm.Stream):
         and passes them to _parse.
 
         """
-        self.timer.start()
-        super().decode()
+        self.timer.start()            
+        if "m3u8" in self.args.input:
+            self.decode_m3u8(self.args.input)
+        else:
+            super().decode()
         self.addendum()
 
+    @staticmethod
+    def _clean_line(line):
+        if isinstance(line, bytes):
+            line = line.decode(errors="ignore")
+        line = line.replace("\n", "").replace("\r", "")
+        return line
+
+    def decode_m3u8(self, manifest=None):
+        """
+        decode_m3u8 is called when the input file is a m3u8 playlist.
+        """
+        based = manifest.rsplit("/", 1)
+        if len(based) > 1:
+            base_uri = f"{based[0]}/"
+        else:
+            base_uri = ""
+        while True:
+           # self.media_list =[]
+            with reader(manifest) as manifesto:
+                m3u8 = manifesto.readlines()
+                for line in m3u8:
+                    line = self._clean_line(line)
+                    if not line:
+                        break
+                    if self._endlist(line):
+                        return False
+                    if not line.startswith("#"):
+                        if len(line):
+                            if base_uri not in line:
+                                media = base_uri + line
+                            else:
+                                media = line
+                            if media not in self.media_list:
+                                self.media_list.append(media)
+                                self.media_list = self.media_list[-(self.args.window_size+1):]
+                                self._tsdata = reader(media)
+                                for pkt in self.iter_pkts():
+                                    self._parse(pkt)
+                                self._tsdata.close()
+ 
 
 class SCTE35:
     """
@@ -700,6 +752,7 @@ class SlidingWindow:
                 if len(self.delete_que) > (2 * self.size):
                     try:
                         del_file = self.delete_que.popleft()
+                        print(f' deleting {del_file}')
                     except:
                         pass
             return self.panes.popleft()
