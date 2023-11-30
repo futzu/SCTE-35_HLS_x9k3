@@ -3,8 +3,6 @@
 """
 X9K3
 """
-
-
 import argparse
 import datetime
 import io
@@ -15,27 +13,24 @@ from collections import deque
 from operator import itemgetter
 from new_reader import reader
 from iframes import IFramer
-from threefive import Cue
+from threefive import Cue, print2
 import threefive.stream as strm
 from m3ufu import M3uFu
 
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "15"
+MAINTAINENCE = "17"
 
 
 def version():
     """
     version prints x9k3's version as a string
-
     Odd number versions are releases.
     Even number versions are testing builds between releases.
-
     Used to set version in setup.py
     and as an easy way to check which
     version you have installed.
-
     """
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
 
@@ -44,7 +39,6 @@ class X9K3(strm.Stream):
     """
     X9K3 class
     """
-
     def __init__(self, tsdata=None, show_null=False):
         super().__init__(tsdata, show_null)
         self._tsdata = tsdata
@@ -66,11 +60,11 @@ class X9K3(strm.Stream):
         self.first_segment = True
         self.media_list = deque()
         self.now = None
-        self.last_sidelines =''
+        self.last_sidelines = ""
 
     def _args_version(self):
         if self.args.version:
-            print(version())
+            print2(version())
             sys.exit()
 
     def _args_input(self):
@@ -94,7 +88,6 @@ class X9K3(strm.Stream):
     def _args_output_dir(self):
         if not os.path.isdir(self.args.output_dir):
             os.mkdir(self.args.output_dir)
-
 
     def _chk_flags(self, flags):
         if flags:
@@ -141,7 +134,11 @@ class X9K3(strm.Stream):
 
     def _reload_chunk(self, segment):
         tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
-        chunk = Chunk(self.mkuri(self.args.output_dir,segment.relative_uri), segment.media, tmp_segnum)
+        chunk = Chunk(
+            self.mk_uri(self.args.output_dir, segment.relative_uri),
+            segment.media,
+            tmp_segnum,
+        )
         for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
             if this in segment.tags:
                 segment.tags.pop(this)
@@ -157,18 +154,18 @@ class X9K3(strm.Stream):
         the SlidingWindow, X9K3.window.
         """
         m3 = M3uFu()
-        tmp_name = self.mkuri(self.args.output_dir,"tmp.m3u8")
-        with open(tmp_name, "w") as tmp_m3u8:
-            with open(self.m3u8uri(), "r") as m3u8:
+        tmp_name = self.mk_uri(self.args.output_dir, "tmp.m3u8")
+        with open(tmp_name, "w", encoding="utf8") as tmp_m3u8:
+            with open(self.m3u8uri(), "r", encoding="utf8") as m3u8:
                 tmp_m3u8.write("\n".join(m3u8.readlines()))
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
+        self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
         for segment in segments:
             self._reload_chunk(segment)
         if self.args.live:
-            self._discontinuity_seq_plus_one()
             self.window.slide_panes()
         os.unlink(tmp_name)
 
@@ -178,20 +175,12 @@ class X9K3(strm.Stream):
         and self.segnum from an existing index.m3u8
         when the self.args.continue_m3u8 flag is set.
         """
-        try:
-            with open(self.m3u8uri(), "r") as manifest:
-                lines = manifest.readlines()
-                match_this = "#EXT-X-DISCONTINUITY-SEQUENCE:"
-                disco_seq = [line for line in lines if match_this in line]
-                for d in disco_seq:
-                    seq = int(d.split(":")[1])
-                    self.discontinuity_sequence = seq
-                segment_list = [line for line in lines if not line.startswith("#")]
-                self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
-            self.reload_m3u8()
-            print(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
-        except:
-            pass
+        with open(self.m3u8uri(), "r", encoding="utf8") as manifest:
+            lines = manifest.readlines()
+            segment_list = [line for line in lines if not line.startswith("#")]
+            self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
+        self.reload_m3u8()
+        print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
 
     def m3u8uri(self):
         """
@@ -261,12 +250,12 @@ class X9K3(strm.Stream):
             if ":" in tag:
                 kay, vee = tag.split(":", 1)
             chunk.add_tag(kay, vee)
-            print(kay, vee, file=sys.stderr)
+            print2(f"{kay} = {vee}")
 
     def _chk_pdt_flag(self, chunk):
         if self.args.program_date_time:
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
-            chunk.add_tag("#Iframe", f"{self.started}")
+            chunk.add_tag("#Iframe", f" @ {self.started}")
             chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _chk_live(self, seg_time):
@@ -290,7 +279,7 @@ class X9K3(strm.Stream):
     def _print_segment_details(self, seg_name, seg_time):
         one = f"{seg_name}:   start: {self.started:.6f}   "
         two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
-        print(f"{one}{two}", file=sys.stderr)
+        print2(f"{one}{two}")
 
     def _write_segment(self):
         if self.segnum is None:
@@ -307,7 +296,7 @@ class X9K3(strm.Stream):
             if self.args.replay or self.args.continue_m3u8:
                 self.add_discontinuity(chunk)
         self._mk_chunk_tags(chunk, seg_time)
-        self.window.push_pane(chunk)
+        self.window.slide_panes(chunk)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
         self._start_next_start()
@@ -321,7 +310,7 @@ class X9K3(strm.Stream):
 
     @staticmethod
     def _endlist(line):
-        if 'ENDLIST'in line:
+        if "ENDLIST" in line:
             return True
         return False
 
@@ -330,7 +319,7 @@ class X9K3(strm.Stream):
         _write_m3u8 writes the index.m3u8
         """
         self.media_seq = self.window.panes[0].num
-        with open(self.m3u8uri(), "w+") as m3u8:
+        with open(self.m3u8uri(), "w+", encoding="utf8") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
             self.segnum += 1
@@ -351,15 +340,18 @@ class X9K3(strm.Stream):
                 for line in sidelines:
                     line = line.decode().strip().split("#", 1)[0]
                     if len(line):
-                        if line.split(',',1)[0] in ["0","0.0",0,0.0]:
+                        if line.split(",", 1)[0] in ["0", "0.0", 0, 0.0]:
                             if self.args.live:
                                 line = f'{self.next_start},{line.split(",",1)[1]}'
                         self.add2sidecar(line)
                 sidefile.close()
-            if self.args.live and not self.args.replay:
-                with open(self.args.sidecar_file, "w") as scf:
-                    scf.close()
-            self.last_sidelines = sidelines
+                self.last_sidelines = sidelines
+                self._clear_sidecar_file()
+
+    def _clear_sidecar_file(self):
+        if self.args.live and not self.args.replay:
+            with open(self.args.sidecar_file, "w", encoding="utf8") as scf:
+                scf.close()
 
     def add2sidecar(self, line):
         """
@@ -466,7 +458,7 @@ class X9K3(strm.Stream):
             cue.decode()
             self.scte35.cue = cue
             self._chk_cue_time(pid)
-            self.add2sidecar(f'{self.adjusted_pts(cue, pid)}, {cue.encode()}')
+            self.add2sidecar(f"{self.adjusted_pts(cue, pid)}, {cue.encode()}")
         return cue
 
     def _parse(self, pkt):
@@ -488,7 +480,6 @@ class X9K3(strm.Stream):
                     self._chk_slice_point()
             self._load_sidecar(pkt_pid)
             self._chk_sidecar_cues(pkt_pid)
-
             # Split on non-Iframes for CUE-IN or CUE-OUT
             if self.scte35.cue_time:
                 self._chk_slice_point()
@@ -498,25 +489,21 @@ class X9K3(strm.Stream):
         """
         addendum post stream parsing related tasks.
             * writing the last segment
-
             * sleeping to ensure last segment gets playing
             when the replay flag or continue_m3u8 flag is set.
-
             * adding endlist tag
-
         """
         buff = self.active_segment.getbuffer()
         if buff:
             self._write_segment()
         if not self.args.live:
-            with open(self.m3u8uri(), "a") as m3u8:
+            with open(self.m3u8uri(), "a", encoding="utf8") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
 
     def decode(self, func=False):
         """
         decode iterates mpegts packets
         and passes them to _parse.
-
         """
         self.timer.start()
         if "m3u8" in self.args.input:
@@ -532,7 +519,7 @@ class X9K3(strm.Stream):
         line = line.replace("\n", "").replace("\r", "")
         return line
 
-    def parse_m3u8_media(self,media):
+    def parse_m3u8_media(self, media):
         """
         parse_m3u8_media parse a segment from
         a m3u8 input file if it has not been parsed.
@@ -568,12 +555,11 @@ class X9K3(strm.Stream):
                     if line.startswith("#"):
                         media = None
                     else:
-                        media =line
+                        media = line
                     if media:
                         if base_uri not in media:
                             media = base_uri + media
                         self.parse_m3u8_media(media)
-
 
 
 class SCTE35:
@@ -581,7 +567,6 @@ class SCTE35:
     A SCTE35 instance is used to hold
     SCTE35 cue data by X9K5.
     """
-
     def __init__(self):
         self.cue = None
         self.cue_state = None
@@ -687,6 +672,28 @@ class SCTE35:
             return tag
         return False
 
+    def _splice_insert_cue_out(self,cue):
+        cmd = cue.command
+        if cmd.out_of_network_indicator:
+            if cmd.break_duration:
+                self.break_duration = cmd.break_duration
+            self.cue_state = "OUT"
+            return True
+        return False
+
+    def _time_signal_cue_out(self,cue):
+        seg_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
+        for dsptr in cue.descriptors:
+            if dsptr.tag != 2:
+                return
+            if dsptr.segmentation_type_id in seg_starts:
+                self.seg_type = dsptr.segmentation_type_id + 1
+                if dsptr.segmentation_duration:
+                    self.break_duration = dsptr.segmentation_duration
+                    self.cue_state = "OUT"
+                    return True
+        return False
+
     def is_cue_out(self, cue):
         """
         is_cue_out checks a Cue instance
@@ -699,21 +706,10 @@ class SCTE35:
             return False
         cmd = cue.command
         if cmd.command_type == 5:
-            if cmd.out_of_network_indicator:
-                if cmd.break_duration:
-                    self.break_duration = cmd.break_duration
-                    return True
-
-        seg_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
+            return self._splice_insert_cue_out(cue)
         if cmd.command_type == 6:
-            for dsptr in cue.descriptors:
-                if dsptr.tag == 2:
-                    if dsptr.segmentation_type_id in seg_starts:
-                        self.seg_type = dsptr.segmentation_type_id + 1
-                        if dsptr.segmentation_duration:
-                            self.break_duration = dsptr.segmentation_duration
-                            self.cue_state = "OUT"
-                            return True
+            return self._time_signal_cue_out(cue)
+
         return False
 
     def is_cue_in(self, cue):
@@ -744,7 +740,6 @@ class SlidingWindow:
     """
     The SlidingWindow class
     """
-
     def __init__(self, size=10000):
         self.size = size
         self.panes = deque()
@@ -756,12 +751,14 @@ class SlidingWindow:
         """
         if len(self.panes) >= self.size:
             if self.delete:
-                popped= self.panes.popleft()
-                print("popped", popped.name, popped.file)
+                popped = self.panes.popleft()
+                print2(
+                    f"deleting -> {popped.name}",
+                )
                 try:
                     os.unlink(popped.name)
                 except:
-                    print("pop failed")
+                    print2("delete failed")
 
     def push_pane(self, a_pane):
         """
@@ -783,8 +780,9 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        while len(self.panes) >= self.size:
-            self.popleft_pane()
+        if self.delete:
+            while len(self.panes) > self.size:
+                self.popleft_pane()
 
 
 class Timer:
@@ -792,7 +790,6 @@ class Timer:
     Timer class instances are used for
     segment duration, and live throttling.
     """
-
     def __init__(self):
         self.begin = None
         self.end = None
@@ -833,7 +830,7 @@ class Timer:
         self.stop(end)
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
-            # print(f"throttling {diff}")  # ,file=sys.stderr, end='\r')
+            print2(f"throttling {diff}")
             time.sleep(diff)
         self.start(begin)
 
@@ -843,7 +840,6 @@ class Chunk:
     Class to hold hls segment tags
     for a segment.
     """
-
     def __init__(self, file, name, num):
         self.tags = {}
         self.file = file
@@ -886,10 +882,8 @@ def argue():
                                 or https://futzu.com/xaa.ts
                                 or https://example.com/not_a_master.m3u8
                                 [default: stdin]
-
                                 """,
     )
-
     parser.add_argument(
         "-c",
         "--continue_m3u8",
@@ -898,7 +892,6 @@ def argue():
         const=True,
         help="Resume writing index.m3u8 [default:False]",
     )
-
     parser.add_argument(
         "-d",
         "--delete",
@@ -907,7 +900,6 @@ def argue():
         const=True,
         help="delete segments (enables --live) [default:False]",
     )
-
     parser.add_argument(
         "-l",
         "--live",
@@ -916,7 +908,6 @@ def argue():
         const=True,
         help="Flag for a live event (enables sliding window m3u8) [default:False]",
     )
-
     parser.add_argument(
         "-n",
         "--no_discontinuity",
@@ -925,7 +916,6 @@ def argue():
         const=True,
         help="Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False]",
     )
-
     parser.add_argument(
         "-o",
         "--output_dir",
@@ -933,7 +923,6 @@ def argue():
         help="""Directory for segments and index.m3u8
                 (created if needed) [default:'.'] """,
     )
-
     parser.add_argument(
         "-p",
         "--program_date_time",
@@ -942,7 +931,6 @@ def argue():
         const=True,
         help="Flag to add Program Date Time tags to index.m3u8 ( enables --live) [default:False]",
     )
-
     parser.add_argument(
         "-r",
         "--replay",
@@ -953,14 +941,12 @@ def argue():
         (enables --live,--delete) [default:False]
         """,
     )
-
     parser.add_argument(
         "-s",
         "--sidecar_file",
         default=None,
         help="""Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]""",
     )
-
     parser.add_argument(
         "-S",
         "--shulga",
@@ -969,7 +955,6 @@ def argue():
         const=True,
         help="Flag to enable Shulga iframe detection mode [default:False]",
     )
-
     parser.add_argument(
         "-t",
         "--time",
@@ -977,7 +962,6 @@ def argue():
         type=float,
         help="Segment time in seconds [default:2]",
     )
-
     parser.add_argument(
         "-T",
         "--hls_tag",
@@ -992,7 +976,6 @@ def argue():
         type=int,
         help="sliding window size (enables --live) [default:5]",
     )
-
     parser.add_argument(
         "-v",
         "--version",
@@ -1001,19 +984,15 @@ def argue():
         const=True,
         help="Show version",
     )
-
     return parser.parse_args()
 
 
 def cli():
     """
-    cli provides one function call
-    for running X9K3  with command line args
-    Two lines of code gives you a full X9K3 command line tool.
+    cli provides one function call for running X9K3.
 
      from X9K3 import cli
      cli()
-
     """
     args = argue()
     x9 = X9K3()
