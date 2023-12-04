@@ -750,8 +750,8 @@ class SlidingWindow:
         popleft_pane removes the first item in self.panes
         """
         if len(self.panes) >= self.size:
+            popped = self.panes.popleft()
             if self.delete:
-                popped = self.panes.popleft()
                 print2(
                     f"deleting -> {popped.name}",
                 )
