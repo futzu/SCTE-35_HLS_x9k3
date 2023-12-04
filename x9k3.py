@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "17"
+MAINTAINENCE = "19"
 
 
 def version():
@@ -267,7 +267,7 @@ class X9K3(strm.Stream):
             * increments discontinuity sequence
         """
         if self.args.live:
-            self.window.popleft_pane()
+            self.window.slide_panes()
             self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
 
@@ -380,7 +380,8 @@ class X9K3(strm.Stream):
     def _discontinuity_seq_plus_one(self):
         if self.window.panes:
             if "#EXT-X-DISCONTINUITY" in self.window.panes[0].tags:
-                self.discontinuity_sequence += 1
+                if len(self.window.panes) >= self.window.size:
+                    self.discontinuity_sequence += 1
             if "#EXT-X-DISCONTINUITY" in self.window.panes[-1].tags:
                 self._reset_stream()
 
@@ -749,16 +750,15 @@ class SlidingWindow:
         """
         popleft_pane removes the first item in self.panes
         """
-        if len(self.panes) >= self.size:
-            popped = self.panes.popleft()
-            if self.delete:
-                print2(
-                    f"deleting -> {popped.name}",
-                )
-                try:
-                    os.unlink(popped.name)
-                except:
-                    print2("delete failed")
+        popped = self.panes.popleft()
+        if self.delete:
+            print2(
+                f"deleting -> {popped.name}",
+            )
+            try:
+                os.unlink(popped.name)
+            except:
+                print2("delete failed")
 
     def push_pane(self, a_pane):
         """
@@ -780,9 +780,9 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        if self.delete:
-            while len(self.panes) > self.size:
-                self.popleft_pane()
+        while len(self.panes) > self.size:
+            self.popleft_pane()
+
 
 
 class Timer:
