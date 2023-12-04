@@ -143,7 +143,7 @@ class X9K3(strm.Stream):
             if this in segment.tags:
                 segment.tags.pop(this)
         chunk.tags = segment.tags
-        self.window.push_pane(chunk)
+        self.window.slide_panes(chunk)
 
     def reload_m3u8(self):
         """
@@ -165,7 +165,7 @@ class X9K3(strm.Stream):
         segments = list(m3.segments)
         for segment in segments:
             self._reload_chunk(segment)
-        if self.args.live:
+        if self.args.live or self.args.continue_m3u8:
             self.window.slide_panes()
         os.unlink(tmp_name)
 
@@ -325,7 +325,7 @@ class X9K3(strm.Stream):
             self.segnum += 1
             self.first_segment = False
         self.active_segment = io.BytesIO()
-        #self.window.slide_panes()
+        self.window.slide_panes()
 
     def _load_sidecar(self, pid):
         """
@@ -498,6 +498,7 @@ class X9K3(strm.Stream):
         buff = self.active_segment.getbuffer()
         if buff:
             self._write_segment()
+            time.sleep(0.5)
         if not self.args.live:
             with open(self.m3u8uri(), "a", encoding="utf8") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
@@ -753,13 +754,10 @@ class SlidingWindow:
         """
         popped = self.panes.popleft()
         if self.delete:
-            print2(
-                f"deleting -> {popped.name}",
-            )
             try:
                 os.unlink(popped.name)
             except:
-                print2("delete failed")
+                pass
 
     def push_pane(self, a_pane):
         """
