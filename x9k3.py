@@ -782,7 +782,6 @@ class SlidingWindow:
         if a_pane:
             self.push_pane(a_pane)
         if len(self.panes) > self.size:
-            print(len(self.panes), "PANES")
             self.popleft_pane()
 
 
