@@ -14,10 +14,22 @@ ___
 ### HLS + SCTE35 = x9k3
 ### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
 #### Current Version: 
-# `v.0.2.17`  
+# `v.0.2.19` 
+* Big Thanks to 
+[alfonsosiloniz](https://github.com/alfonsosiloniz) and   [edward-rafalovsky](https://github.com/edward-rafalovsky)
+for fixing my mistakes and helping me add new features.
+* __Some of the fixed stuff__:
+   * delete should work amazingly well, in every imaginable scenario.  `-d`, `--delete`
+   * manifest are truncated on continue to proper sliding window size. `-c`, `--continue_m3u8`  
+   * replay is working and working well.  `-r`, `--replay `
+   * when continuing an existing m3u8, `#EXT-X-MEDIA-SEQUENCE` and `#EXT-X-DISCONTINUITY-SEQUENCE` values are preserved.
+    
+* __Some of the new stuff__:
+   * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
+   * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
+   * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
 
-> BOOM >> BOOM goes the dynamite.
-
+## `Features`
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
