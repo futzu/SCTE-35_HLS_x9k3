@@ -506,7 +506,7 @@ class X9K3(strm.Stream):
         and passes them to _parse.
         """
         self.timer.start()
-        if "m3u8" in self.args.input:
+        if (isinstance(self.args.input, str) and ("m3u8" in self.args.input)):
             self.decode_m3u8(self.args.input)
         else:
             super().decode()
