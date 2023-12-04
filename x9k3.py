@@ -325,6 +325,7 @@ class X9K3(strm.Stream):
             self.segnum += 1
             self.first_segment = False
         self.active_segment = io.BytesIO()
+        #self.window.slide_panes()
 
     def _load_sidecar(self, pid):
         """
@@ -780,7 +781,8 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        while len(self.panes) > self.size:
+        if len(self.panes) > self.size:
+            print(len(self.panes), "PANES")
             self.popleft_pane()
 
 
