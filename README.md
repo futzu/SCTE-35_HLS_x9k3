@@ -8,7 +8,10 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 ___
+## `News Flash`
+<div> HLS ABR is really coming together. I had major moment of clarity last week and <br>I removed about 600 lines of code from umzz and it's working so much better. <br>https://github.com/futzu/umzz 
 
+<br><br></div>
  
 
 ### HLS + SCTE35 = x9k3
@@ -28,6 +31,7 @@ for fixing my mistakes and helping me add new features.
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
+
 
 ## `Features`
 
