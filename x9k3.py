@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "19"
+MAINTAINENCE = "21"
 
 
 def version():
@@ -39,6 +39,7 @@ class X9K3(strm.Stream):
     """
     X9K3 class
     """
+
     def __init__(self, tsdata=None, show_null=False):
         super().__init__(tsdata, show_null)
         self._tsdata = tsdata
@@ -61,6 +62,7 @@ class X9K3(strm.Stream):
         self.media_list = deque()
         self.now = None
         self.last_sidelines = ""
+        self.rollover_duration_pad = 0
 
     def _args_version(self):
         if self.args.version:
@@ -161,10 +163,12 @@ class X9K3(strm.Stream):
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
+        # print(m3.headers)
         self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
         for segment in segments:
             self._reload_chunk(segment)
+        self.segnum = self.window.panes[-1].num + 1
         if self.args.live or self.args.continue_m3u8:
             self.window.slide_panes()
         os.unlink(tmp_name)
@@ -175,10 +179,6 @@ class X9K3(strm.Stream):
         and self.segnum from an existing index.m3u8
         when the self.args.continue_m3u8 flag is set.
         """
-        with open(self.m3u8uri(), "r", encoding="utf8") as manifest:
-            lines = manifest.readlines()
-            segment_list = [line for line in lines if not line.startswith("#")]
-            self.segnum = int(segment_list[-1].split("seg")[1].split(".")[0]) + 1
         self.reload_m3u8()
         print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
 
@@ -286,7 +286,8 @@ class X9K3(strm.Stream):
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round(self.now - self.started, 6)
+        seg_time = round((self.now - self.started) + self.rollover_duration_pad, 6)
+        self.rollover_duration_pad = 0
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
@@ -391,11 +392,21 @@ class X9K3(strm.Stream):
         self.next_start = None
 
     def _start_next_start(self, pts=None):
+        last_start = None
+        rollover = self.ROLLOVER / 90000.0
         if pts is not None:
             self.started = pts
         else:
+            last_start = self.started
             self.started = self.next_start
         self.next_start = self.started + self.args.time
+        if self.next_start >= rollover:
+            if last_start is not None:
+                self.rollover_duration_pad = rollover - last_start
+            else:
+                self.rollover_duration_pad = 0
+            self.started = 0
+            self.next_start %= rollover
 
     def _chk_slice_point(self):
         """
@@ -509,7 +520,7 @@ class X9K3(strm.Stream):
         and passes them to _parse.
         """
         self.timer.start()
-        if (isinstance(self.args.input, str) and ("m3u8" in self.args.input)):
+        if isinstance(self.args.input, str) and ("m3u8" in self.args.input):
             self.decode_m3u8(self.args.input)
         else:
             super().decode()
@@ -570,6 +581,7 @@ class SCTE35:
     A SCTE35 instance is used to hold
     SCTE35 cue data by X9K5.
     """
+
     def __init__(self):
         self.cue = None
         self.cue_state = None
@@ -675,7 +687,7 @@ class SCTE35:
             return tag
         return False
 
-    def _splice_insert_cue_out(self,cue):
+    def _splice_insert_cue_out(self, cue):
         cmd = cue.command
         if cmd.out_of_network_indicator:
             if cmd.break_duration:
@@ -684,7 +696,7 @@ class SCTE35:
             return True
         return False
 
-    def _time_signal_cue_out(self,cue):
+    def _time_signal_cue_out(self, cue):
         seg_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
         for dsptr in cue.descriptors:
             if dsptr.tag != 2:
@@ -743,6 +755,7 @@ class SlidingWindow:
     """
     The SlidingWindow class
     """
+
     def __init__(self, size=10000):
         self.size = size
         self.panes = deque()
@@ -783,12 +796,12 @@ class SlidingWindow:
             self.popleft_pane()
 
 
-
 class Timer:
     """
     Timer class instances are used for
     segment duration, and live throttling.
     """
+
     def __init__(self):
         self.begin = None
         self.end = None
@@ -839,6 +852,7 @@ class Chunk:
     Class to hold hls segment tags
     for a segment.
     """
+
     def __init__(self, file, name, num):
         self.tags = {}
         self.file = file
