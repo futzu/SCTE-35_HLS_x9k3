@@ -13,7 +13,7 @@ ___
 ### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
 #### `Current Version`: 
 # v.0.2.23 
-## `Current Issues`
+#### `Current Issues`
 <div>I resolved rollover for mpegts files and m3u8 files inputs. <b>The current issue is that rollover is causing problems with sidecar files.</b> </div>
 
 <br><br>  
