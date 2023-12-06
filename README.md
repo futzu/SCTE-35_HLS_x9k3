@@ -8,8 +8,8 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 ___
-## `News Flash`
-<div> HLS ABR is really coming together. I had major moment of clarity last week and <br>I removed about 600 lines of code from umzz and it's working so much better. <br>https://github.com/futzu/umzz 
+## `Current Issues`
+<div>I resolved rollover for mpegts files and m3u8 files inputs. <b>The current issue is that rollover is causing problems with sidecar files.</b> </div>
 
 <br><br></div>
  
