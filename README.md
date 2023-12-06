@@ -8,17 +8,15 @@
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 ___
-## `Current Issues`
-<div>I resolved rollover for mpegts files and m3u8 files inputs. <b>The current issue is that rollover is causing problems with sidecar files.</b> </div>
-
-<br><br></div>
- 
 
 ### HLS + SCTE35 = x9k3
 ### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
-#### Current Version: 
-# `v.0.2.23` 
-  
+#### `Current Version`: 
+# v.0.2.23 
+## `Current Issues`
+<div>I resolved rollover for mpegts files and m3u8 files inputs. <b>The current issue is that rollover is causing problems with sidecar files.</b> </div>
+
+<br><br>  
 * Big Thanks to 
 [alfonsosiloniz](https://github.com/alfonsosiloniz) and   [edward-rafalovsky](https://github.com/edward-rafalovsky)
 for fixing my mistakes and helping me add new features.
