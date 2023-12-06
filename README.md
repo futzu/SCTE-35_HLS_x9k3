@@ -17,7 +17,7 @@ ___
 ### HLS + SCTE35 = x9k3
 ### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
 #### Current Version: 
-# `v.0.2.21` 
+# `v.0.2.23` 
   
 * Big Thanks to 
 [alfonsosiloniz](https://github.com/alfonsosiloniz) and   [edward-rafalovsky](https://github.com/edward-rafalovsky)
