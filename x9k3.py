@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "21"
+MAINTAINENCE = "23"
 
 
 def version():
@@ -397,16 +397,10 @@ class X9K3(strm.Stream):
         if pts is not None:
             self.started = pts
         else:
-            last_start = self.started
             self.started = self.next_start
         self.next_start = self.started + self.args.time
-        if self.next_start >= rollover:
-            if last_start is not None:
-                self.rollover_duration_pad = rollover - last_start
-            else:
-                self.rollover_duration_pad = 0
-            self.started = 0
-            self.next_start %= rollover
+        if self.next_start +self.args.time > rollover:
+            self._reset_stream()
 
     def _chk_slice_point(self):
         """
@@ -538,7 +532,7 @@ class X9K3(strm.Stream):
         parse_m3u8_media parse a segment from
         a m3u8 input file if it has not been parsed.
         """
-        max_media = 200
+        max_media = 111
         if media not in self.media_list:
             self.media_list.append(media)
             while len(self.media_list) > max_media:
