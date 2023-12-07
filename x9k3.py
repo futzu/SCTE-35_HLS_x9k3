@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "23"
+MAINTAINENCE = "25"
 
 
 def version():
@@ -53,7 +53,6 @@ class X9K3(strm.Stream):
         self.window = SlidingWindow()
         self.segnum = None
         self.args = argue()
-        self.apply_args()
         self.started = None
         self.next_start = None
         self.media_seq = 0
@@ -348,7 +347,7 @@ class X9K3(strm.Stream):
                         self.add2sidecar(line)
                 sidefile.close()
                 self.last_sidelines = sidelines
-                self._clear_sidecar_file()
+                #self._clear_sidecar_file()
 
     def _clear_sidecar_file(self):
         if self.args.live and not self.args.replay:
@@ -371,13 +370,17 @@ class X9K3(strm.Stream):
         for the next sidecar cue and inserts the cue if needed.
         """
         if self.sidecar:
-            if float(self.sidecar[0][0]) <= self.pid2pts(pid):
-                raw = self.sidecar.popleft()
-                self.scte35.cue_time = float(raw[0])
-                self.scte35.cue = Cue(raw[1])
-                self.scte35.cue.decode()
-                self.scte35.cue.show()
-                self._chk_cue_time(pid)
+            for s in list(self.sidecar):
+                splice_pts = float(s[0])
+                splice_cue = s[1]
+                if self.started:
+                    if self.started <= splice_pts <self.next_start:
+                        self.sidecar.remove(s)
+                        self.scte35.cue_time = splice_pts
+                        self.scte35.cue = Cue(splice_cue)
+                        self.scte35.cue.decode()
+                        self.scte35.cue.show()
+                    self._chk_cue_time(pid)
 
     def _discontinuity_seq_plus_one(self):
         if self.window.panes:
@@ -408,16 +411,18 @@ class X9K3(strm.Stream):
         of a segment eoither buy self.args.time
         self.maps.prgm_pts.items()or by self.scte35.cue_time
         """
-        if self.scte35.cue_time:
-            if self.now >= self.scte35.cue_time:
+        if self.started:
+
+            if self.scte35.cue_time:
+                if self.started <= self.scte35.cue_time < self.next_start:
+                    self.next_start = self.now
+                    self._write_segment()
+                    self.scte35.cue_time = None
+                    self.scte35.mk_cue_state()
+                    return
+            if self.now >= self.started + self.args.time:
                 self.next_start = self.now
                 self._write_segment()
-                self.scte35.cue_time = None
-                self.scte35.mk_cue_state()
-                return
-        if self.now >= self.started + self.args.time:
-            self.next_start = self.now
-            self._write_segment()
 
     def _chk_cue_time(self, pid):
         """
@@ -510,9 +515,11 @@ class X9K3(strm.Stream):
 
     def decode(self, func=False):
         """
-        decode iterates mpegts packets
-        and passes them to _parse.
+        decode applies any set args,
+        and starts parsing.
+        addendum is called to finish. 
         """
+        self.apply_args()
         self.timer.start()
         if isinstance(self.args.input, str) and ("m3u8" in self.args.input):
             self.decode_m3u8(self.args.input)
