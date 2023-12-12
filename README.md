@@ -10,21 +10,10 @@
 ___
 
 ### HLS + SCTE35 = x9k3
-### `x9k3` is a HLS segmenter with SCTE-35 parsing and cue injection, powered by threefive.
+### `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 #### `Current Version`: 
-# v.0.2.25 
-#### ~~Current Issues~~ FIXED.
-* ~~I resolved rollover for mpegts files and m3u8 files inputs. <b>The current issue is that rollover is causing problems with sidecar files.~~
-
-* Big Thanks to 
-[alfonsosiloniz](https://github.com/alfonsosiloniz) and   [edward-rafalovsky](https://github.com/edward-rafalovsky)
-for fixing my mistakes and helping me add new features.
-* __Some of the fixed stuff__:
-   * delete should work amazingly well, in every imaginable scenario.  `-d`, `--delete`
-   * manifest are truncated on continue to proper sliding window size. `-c`, `--continue_m3u8`  
-   * replay is working and working well.  `-r`, `--replay `
-   * when continuing an existing m3u8, `#EXT-X-MEDIA-SEQUENCE` and `#EXT-X-DISCONTINUITY-SEQUENCE` values are preserved.
-   * fixed x9k3 from stalling when rollover occurs mid-segment.
+# v.0.2.27
+* v0.2.27 Improved CUE-IN splice accuracy.
     
 * __Some of the new stuff__:
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
