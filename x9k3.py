@@ -20,17 +20,13 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "25"
+MAINTAINENCE = "27"
 
 
 def version():
     """
     version prints x9k3's version as a string
     Odd number versions are releases.
-    Even number versions are testing builds between releases.
-    Used to set version in setup.py
-    and as an easy way to check which
-    version you have installed.
     """
     return f"{MAJOR}.{MINOR}.{MAINTAINENCE}"
 
@@ -285,13 +281,16 @@ class X9K3(strm.Stream):
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round((self.now - self.started) + self.rollover_duration_pad, 6)
+        seg_time = round((self.next_start- self.started) + self.rollover_duration_pad, 6)
         self.rollover_duration_pad = 0
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
             return
         chunk = Chunk(seg_file, seg_name, self.segnum)
+        # chunk.add_tag("## started",self.started)
+        # chunk.add_tag("## next_start",self.next_start)
+        # chunk.add_tag("## now",self.now)
         if self.first_segment:
             if self.args.replay or self.args.continue_m3u8:
                 self.add_discontinuity(chunk)
@@ -299,7 +298,7 @@ class X9K3(strm.Stream):
         self.window.slide_panes(chunk)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
-        self._start_next_start()
+        self._start_next_start(pts = self.now)
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
@@ -327,7 +326,7 @@ class X9K3(strm.Stream):
         self.active_segment = io.BytesIO()
         self.window.slide_panes()
 
-    def _load_sidecar(self, pid):
+    def _load_sidecar(self):
         """
         _load_sidecar reads (pts, cue) pairs from
         the sidecar file and loads them into X9K3.sidecar
@@ -347,7 +346,6 @@ class X9K3(strm.Stream):
                         self.add2sidecar(line)
                 sidefile.close()
                 self.last_sidelines = sidelines
-                #self._clear_sidecar_file()
 
     def _clear_sidecar_file(self):
         if self.args.live and not self.args.replay:
@@ -380,7 +378,8 @@ class X9K3(strm.Stream):
                         self.scte35.cue = Cue(splice_cue)
                         self.scte35.cue.decode()
                         self.scte35.cue.show()
-                    self._chk_cue_time(pid)
+                        self._chk_cue_time(pid)
+
 
     def _discontinuity_seq_plus_one(self):
         if self.window.panes:
@@ -395,7 +394,6 @@ class X9K3(strm.Stream):
         self.next_start = None
 
     def _start_next_start(self, pts=None):
-        last_start = None
         rollover = self.ROLLOVER / 90000.0
         if pts is not None:
             self.started = pts
@@ -408,19 +406,18 @@ class X9K3(strm.Stream):
     def _chk_slice_point(self):
         """
         chk_slice_time checks for the slice point
-        of a segment eoither buy self.args.time
+        of a segment either by self.args.time
         self.maps.prgm_pts.items()or by self.scte35.cue_time
         """
         if self.started:
-
             if self.scte35.cue_time:
+                self.scte35.mk_cue_state()
                 if self.started <= self.scte35.cue_time < self.next_start:
-                    self.next_start = self.now
-                    self._write_segment()
-                    self.scte35.cue_time = None
-                    self.scte35.mk_cue_state()
-                    return
-            if self.now >= self.started + self.args.time:
+                    if self.scte35.cue_state in ["OUT"]:
+                        self.started = self.scte35.cue_time
+                    if self.scte35.cue_state in ["IN"]:
+                        self.next_start= self.scte35.cue_time
+            if self.now >= self.next_start:
                 self.next_start = self.now
                 self._write_segment()
 
@@ -482,19 +479,15 @@ class X9K3(strm.Stream):
         self.now = self.pid2pts(pkt_pid)
         if not self.started:
             self._start_next_start(pts=self.now)
+        self._chk_sidecar_cues(pkt_pid)
         if self._pusi_flag(pkt) and self.started:
+            self._load_sidecar()
             if self.args.shulga:
                 self._shulga_mode(pkt)
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
-                    self.now = i_pts
                     self._chk_slice_point()
-            self._load_sidecar(pkt_pid)
-            self._chk_sidecar_cues(pkt_pid)
-            # Split on non-Iframes for CUE-IN or CUE-OUT
-            if self.scte35.cue_time:
-                self._chk_slice_point()
         self.active_segment.write(pkt)
 
     def addendum(self):
@@ -628,7 +621,8 @@ class SCTE35:
             self.cue_state = "OUT"
             self.break_timer = 0.0
         if self.is_cue_in(self.cue):
-            self.cue_state = "IN"
+            if self.break_timer >= self.break_duration:
+                self.cue_state = "IN"
 
     def x_cue(self):
         """
@@ -701,7 +695,7 @@ class SCTE35:
         seg_starts = [0x22, 0x30, 0x32, 0x34, 0x36, 0x44, 0x46]
         for dsptr in cue.descriptors:
             if dsptr.tag != 2:
-                return
+                return False
             if dsptr.segmentation_type_id in seg_starts:
                 self.seg_type = dsptr.segmentation_type_id + 1
                 if dsptr.segmentation_duration:
