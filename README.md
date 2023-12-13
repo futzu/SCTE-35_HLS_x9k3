@@ -11,6 +11,51 @@ ___
 
 ### HLS + SCTE35 = x9k3
 ### `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
+---
+#### `Heads Up`
+<details><summary><b> Segment duration is open to interpretation... wait, let me explain.</b></summary>
+
+ 
+<div>
+ <br>
+        threefive and ffmpeg may report different durations for segments.<br>
+threefive use absolute PTS values and always start on an iframe.
+ <br>
+In the tables below, four segments are compared.<br> 
+Reported start and reported duration are values returned from the tool.<br>
+Calculate duration is (next segment start - this segment start)
+ <br><br>
+For example,<br> calculated duration for seg0.ts is<br> 
+ <i>(reported start of seg1.ts) - (reported start of seg0.ts)</i>i>
+ <br>
+</div>
+<br>
+<br>
+
+* <b>threefive</b> (what x9k3 uses)
+
+| segment| reported start|  reported duration|calculated duration|
+|--------|---------------|-------------------|-------------------|
+| seg0.ts|  3164.376089  |     2.0           |     2.0           |
+| seg1.ts|  3166.376089  |     2.0           |     2.0           |
+| seg2.ts|  3168.376089  |     2.0           |     2.0           |
+| seg3.ts|  3170.376089  |     2.0           |     2.0           |
+
+
+* <b>ffmpeg</b>
+
+| segment| reported start|  reported duration|calculated duration|
+|--------|---------------|-------------------|-------------------|
+| seg0.ts|   3164.376089 |   2.0             |    0.361333       |
+| seg1.ts|   3164.737422 |   3.64            |    2.047999       |
+| seg2.ts|   3166.785422 |   3.59            |    3.59           |
+| seg3.ts|   3170.376089 |   2.0             |    0.356000       |
+
+
+
+</details>
+
+
 #### `Current Version`: 
 # v.0.2.27
 * v0.2.27 Improved CUE-IN splice accuracy.
@@ -19,6 +64,10 @@ ___
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
+
+
+
+
 
 
 ## `Features`
