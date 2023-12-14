@@ -57,13 +57,15 @@ For example,<br> calculated duration for seg0.ts is<br>
 
 
 #### `Current Version`: 
-# v.0.2.27
-* v0.2.27 Improved CUE-IN splice accuracy.
+# v.0.2.29
+* `Fixed` sidecar splice immediate
+* `Added` auto CUE-IN
     
 * __Some of the new stuff__:
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
+   * auto `CUE-IN`
 
 
 
