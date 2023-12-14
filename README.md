@@ -61,7 +61,9 @@ For example,<br> calculated duration for seg0.ts is<br>
 * `Improved` CUE-IN accuracy
 * `Fixed` sidecar splice immediate
 * `Added` auto CUE-IN
-    
+* `cyclomatic complexity`: __A (2.8181818181818183)__
+* `pylint`:  __9.93/10__
+  
 * __Some of the new stuff__:
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
@@ -78,8 +80,9 @@ For example,<br> calculated duration for seg0.ts is<br>
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
    * Segments are __Split on SCTE-35 Cues__ as needed.
+   * Segments __Start on iframes__.
    * Supports __h264__ and __h265__ .
-   * __Multi-protocol.__ Input sources may be __Files, Http(s), Multicast, and Udp streams__.
+   * __Multi-protocol.__ Input sources may be __Files, Http(s), Multicast, and Unicast UDP streams__.
    * Supports [__Live__](https://github.com/futzu/scte35-hls-x9k3#live) __Streaming__.
    * [__amt-play__ ](https://github.com/vivoh-inc/amt-play)uses x9k3.
 ---
@@ -117,6 +120,77 @@ pypy3 -mpip install x9k3
 
 ## `How to Use`
 
+
+<details><summary><a href='#x9k3-is-a-hls-segmenter-with-scte-35-injection-and-parsing-powered-by-threefive'>All x9k3 options</summary>
+
+ 
+```smalltalk
+a@fu:~/x9k3-repo$ x9k3 -h
+
+usage: x9k3 [-h] [-i INPUT] [-c] [-d] [-l] [-n] [-o OUTPUT_DIR] [-p] [-r]
+            [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE]
+            [-v]
+
+
+options:
+
+  -h, --help            show this help message and exit
+
+  -i INPUT, --input INPUT
+                        Input source, like /home/a/vid.ts or
+                        udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or
+                        https://example.com/not_a_master.m3u8 [default: stdin]
+
+  -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
+
+  -d, --delete          delete segments (enables --live) [default:False]
+
+  -l, --live            Flag for a live event (enables sliding window m3u8)
+                        [default:False]
+
+  -n, --no_discontinuity
+                        Flag to disable adding #EXT-X-DISCONTINUITY tags at
+                        splice points [default:False]
+
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory for segments and index.m3u8 (created if
+                        needed) [default:'.']
+
+  -p, --program_date_time
+                        Flag to add Program Date Time tags to index.m3u8 (
+                        enables --live) [default:False]
+
+  -r, --replay          Flag for replay aka looping (enables --live,--delete)
+                        [default:False]
+
+  -s SIDECAR_FILE, --sidecar_file SIDECAR_FILE
+                        Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]
+
+  -S, --shulga          Flag to enable Shulga iframe detection mode
+                        [default:False]
+
+  -t TIME, --time TIME  Segment time in seconds [default:2]
+
+  -T HLS_TAG, --hls_tag HLS_TAG
+                        x_scte35, x_cue, x_daterange, or x_splicepoint
+                        [default:x_cue]
+
+  -w WINDOW_SIZE, --window_size WINDOW_SIZE
+                        sliding window size (enables --live) [default:5]
+
+  -v, --version         Show version
+```
+
+
+
+
+
+
+
+
+</details>
+
+
 ### `Example Usage`
 
  #### `local file as input`
@@ -128,9 +202,8 @@ pypy3 -mpip install x9k3
    x9k3 --live -i udp://@235.35.3.5:3535
    ```
   #### Live mode works with a live source or static files.
-  
+  *  x9k3 will throttle segment creation to mimic a live stream.
    ```js
-   # x9k3 will throttle segment creation to mimic a live stream.
    x9k3 --live -i /some/video.ts
    ```
  #### `live sliding window and deleting expired segments`
@@ -138,11 +211,14 @@ pypy3 -mpip install x9k3
    x9k3  -i udp://@235.35.3.5:3535 --delete
    ```
 #### `https stream for input, and writing segments to an output directory`
-      directory will be created if it does not exist.
+   *  directory will be created if it does not exist.
  ```smalltalk
    x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0
  ```
-  
+#### `https hls m3u8 for input, and inserting SCTE-35 from a sidecar file, and continuing from a previously create index.m3u8 in the output dir`
+ ```smalltalk
+   x9k3 -i https://slow.golf/longb.m3u8 --output_dir /home/a/variant0 -continue_m3u8 -s sidecar.txt
+ ```  
 #### `using stdin as input`
    ```smalltalk
    cat video.ts | x9k3
