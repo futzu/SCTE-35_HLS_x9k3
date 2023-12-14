@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "29"
+MAINTAINENCE = "31"
 
 
 def version():
@@ -288,9 +288,9 @@ class X9K3(strm.Stream):
         if seg_time <= 0:
             return
         chunk = Chunk(seg_file, seg_name, self.segnum)
-        # chunk.add_tag("## started",self.started)
-        # chunk.add_tag("## next_start",self.next_start)
-        # chunk.add_tag("## now",self.now)
+        #chunk.add_tag("## started",self.started)
+        #chunk.add_tag("## next_start",self.next_start)
+        #chunk.add_tag("## now",self.now)
         if self.first_segment:
             if self.args.replay or self.args.continue_m3u8:
                 self.add_discontinuity(chunk)
@@ -411,14 +411,12 @@ class X9K3(strm.Stream):
         if self.started:
             if self.scte35.cue_time:
                 self.scte35.mk_cue_state()
-                if self.started <= self.scte35.cue_time < self.next_start:
-                    if self.scte35.cue_state in ["OUT"]:
-                        self.started = self.scte35.cue_time
-                    if self.scte35.cue_state in ["IN"]:
-                        self.next_start= self.scte35.cue_time
+                if self.started < self.scte35.cue_time < self.next_start:
+                    self.next_start = self.now
+                    self.scte35.cue_time =self.now
                 # Auto CUE-IN
                 if self.scte35.break_timer and self.scte35.break_duration:
-                    if self.scte35.break_timer + (self.now -self.started) >= self.scte35.break_duration:
+                    if self.scte35.break_timer+self.args.time  >= self.scte35.break_duration:
                         self.next_start = self.now
                         self.scte35.cue_time =self.now
                         print(f"AUTO CUE IN @ {self.now}")
