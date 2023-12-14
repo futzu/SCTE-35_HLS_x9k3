@@ -57,7 +57,8 @@ For example,<br> calculated duration for seg0.ts is<br>
 
 
 #### `Current Version`: 
-# v.0.2.29
+# v.0.2.31
+* `Improved` CUE-IN accuracy
 * `Fixed` sidecar splice immediate
 * `Added` auto CUE-IN
     
