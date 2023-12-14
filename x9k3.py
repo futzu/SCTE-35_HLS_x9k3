@@ -20,7 +20,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "27"
+MAINTAINENCE = "29"
 
 
 def version():
@@ -339,18 +339,13 @@ class X9K3(strm.Stream):
                     return
                 for line in sidelines:
                     line = line.decode().strip().split("#", 1)[0]
-                    if len(line):
-                        if line.split(",", 1)[0] in ["0", "0.0", 0, 0.0]:
-                            if self.args.live:
-                                line = f'{self.next_start},{line.split(",",1)[1]}'
+                    if line:
+                       # if self.args.live:
+                        if float(line.split(",", 1)[0]) ==0.0:
+                            line = f'{self.now},{line.split(",",1)[1]}'
                         self.add2sidecar(line)
                 sidefile.close()
                 self.last_sidelines = sidelines
-
-    def _clear_sidecar_file(self):
-        if self.args.live and not self.args.replay:
-            with open(self.args.sidecar_file, "w", encoding="utf8") as scf:
-                scf.close()
 
     def add2sidecar(self, line):
         """
@@ -394,6 +389,10 @@ class X9K3(strm.Stream):
         self.next_start = None
 
     def _start_next_start(self, pts=None):
+        """
+        _start_next_start sets when the current
+        segment starts and ends.
+        """
         rollover = self.ROLLOVER / 90000.0
         if pts is not None:
             self.started = pts
@@ -417,6 +416,12 @@ class X9K3(strm.Stream):
                         self.started = self.scte35.cue_time
                     if self.scte35.cue_state in ["IN"]:
                         self.next_start= self.scte35.cue_time
+                # Auto CUE-IN
+                if self.scte35.break_timer and self.scte35.break_duration:
+                    if self.scte35.break_timer + (self.now -self.started) >= self.scte35.break_duration:
+                        self.next_start = self.now
+                        self.scte35.cue_time =self.now
+                        print(f"AUTO CUE IN @ {self.now}")
             if self.now >= self.next_start:
                 self.next_start = self.now
                 self._write_segment()
@@ -487,6 +492,7 @@ class X9K3(strm.Stream):
             else:
                 i_pts = self.iframer.parse(pkt)
                 if i_pts:
+                    self.now = i_pts
                     self._chk_slice_point()
         self.active_segment.write(pkt)
 
@@ -510,7 +516,7 @@ class X9K3(strm.Stream):
         """
         decode applies any set args,
         and starts parsing.
-        addendum is called to finish. 
+        addendum is called to finish.
         """
         self.apply_args()
         self.timer.start()
@@ -564,7 +570,7 @@ class X9K3(strm.Stream):
                         media = None
                     else:
                         media = line
-                    if media:
+                    # if media:
                         if base_uri not in media:
                             media = base_uri + media
                         self.parse_m3u8_media(media)
@@ -751,7 +757,7 @@ class SlidingWindow:
     The SlidingWindow class
     """
 
-    def __init__(self, size=10000):
+    def __init__(self, size=50000):
         self.size = size
         self.panes = deque()
         self.delete = False
@@ -798,6 +804,7 @@ class Timer:
     """
 
     def __init__(self):
+        self.started = time.time()
         self.begin = None
         self.end = None
         self.lap_time = None
@@ -827,7 +834,7 @@ class Timer:
         """
         if not now:
             now = time.time()
-        return now - self.begin
+        return now - self.started
 
     def throttle(self, seg_time, begin=None, end=None):
         """
@@ -838,7 +845,7 @@ class Timer:
         diff = round(seg_time - self.lap_time, 2)
         if diff > 0:
             print2(f"throttling {diff}")
-            time.sleep(diff)
+            time.sleep(diff *.99)
         self.start(begin)
 
 
