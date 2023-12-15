@@ -25,9 +25,7 @@ In the tables below, four segments are compared.<br>
 Reported start and reported duration are values returned from the tool.<br>
 Calculate duration is (next segment start - this segment start)
  <br><br>
-For example,<br> calculated duration for seg0.ts is<br> 
- <i>(reported start of seg1.ts) - (reported start of seg0.ts)</i>i>
- <br>
+
 </div>
 <br>
 <br>
@@ -52,27 +50,28 @@ For example,<br> calculated duration for seg0.ts is<br>
 | seg3.ts|   3170.376089 |   2.0             |    0.356000       |
 
 
+#### What does it all mean? 
+> I don't know.
+>  
+___
+
 
 </details>
 
 
 #### `Current Version`: 
 # v.0.2.31
-* `Improved` CUE-IN accuracy
-* `Fixed` sidecar splice immediate
-* `Added` auto CUE-IN
-* `cyclomatic complexity`: __A (2.8181818181818183)__
-* `pylint`:  __9.93/10__
+* __`Improved`__ CUE-IN accuracy
+* __`Fixed`__ sidecar splice immediate
+* __`Added`__ auto CUE-IN
+* __`cyclomatic complexity`__: __A (2.8181818181818183)__
+* __`pylint`__:  __9.93/10__
   
 * __Some of the new stuff__:
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
    * auto `CUE-IN`
-
-
-
-
 
 
 ## `Features`
@@ -228,7 +227,7 @@ options:
 x9k3 -i https://example.com/rendition.m3u8 -s sidecar.txt -t 3 -l
 ```
 
-#### Cli tool
+# `Cli tool`
 
 #### New Option, `-c` or  `--continue_m3u8` Continue an existing index.m3u8. _(Only works with x9k3 generated m3u8 files)_
 
