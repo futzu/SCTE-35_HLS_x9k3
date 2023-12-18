@@ -289,10 +289,10 @@ options:
 ```
 
 
-#### Programmatically
+#### Programmatically (writing code with x9k3) 
 ```js
 x9 = X9K3("https://iodisco.com/fu.ts")
-x9.run()
+x9.decode()
 ```
 Setting  parameters
 * create an instance.
@@ -338,7 +338,40 @@ x9.args.window_size = 5
 ```js
 x9.run()
 ```
+* you can get a complete set of args and the defaults like this
+```js
+from x9k3 import X9K3
+x9 = X9K3()
+print(x9.args)
 
+Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
+
+
+```
+* argue can also be called to get the defaults
+```js
+>>>> from x9k3 import X9K3, argue
+>>>> args = argue()
+
+>>>> args
+Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
+
+>>>> args.replay =True
+>>>> args.live = True
+>>>> args.time = 6
+>>>> args.window_size = 10
+
+>>>> args
+Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
+
+>>>> x9 = X9K3()
+>>>> x9.args = args
+
+>>>> x9.args
+Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
+
+```
+ 
 
 ### `Sidecar Files`   
 #### load scte35 cues from a Sidecar file
