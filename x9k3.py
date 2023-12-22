@@ -21,7 +21,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "33"
+MAINTAINENCE = "35"
 
 
 def version():
@@ -974,9 +974,8 @@ def argue():
         const=True,
         help="Show version",
     )
-    print(vars(parser))
     return parser.parse_args()
-
+    
 
 def cli():
     """
