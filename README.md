@@ -122,6 +122,26 @@ pypy3 -mpip install x9k3
 
 <details><summary><b>All x9k3 options</b></summary>
 
+
+| switch| description|
+|-------|------------|
+  | `-h`, `--help` |          show this help message and exit |
+  |` -i INPUT`, `--input INPUT`| Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin] |
+ | `-c`, `--continue_m3u8` | Resume writing index.m3u8 [default:False]  |
+ |` -d`, `--delete`   |   delete segments (enables --live) [default:False] |
+ | `-l`, ` --live `      |   Flag for a live event (enables sliding window m3u8) [default:False] |
+ | `-n`, `--no_discontinuity`  | Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False] |
+ | `-N`, `--no-throttle`|   disable live throttling [default:False]   |
+ | `-o OUTPUT_DIR`, `--output_dir OUTPUT_DIR`  |  Directory for segments and index.m3u8(created if needed) [default:'.'] |
+ | `-p`, `--program_date_time` | Flag to add Program Date Time tags to index.m3u8 (enables --live) [default:False]  |
+ | `-r`, `--replay`   | Flag for replay aka looping (enables --live,--delete) [default:False]|
+ | `-s SIDECAR_FILE`, `--sidecar_file SIDECAR_FILE`| Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]  |
+ | `-S`, `--shulga`|         Flag to enable Shulga iframe detection mode [default:False] |
+ | `-t TIME`, `--time TIME`|  Segment time in seconds [default:2]   |
+ | `-T HLS_TAG`, `--hls_tag HLS_TAG`| x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue] |
+ |`-w WINDOW_SIZE`, `--window_size WINDOW_SIZE`| sliding window size (enables --live) [default:5]    |
+ | `-v`, `--version`|       Show version|
+
  
 ```smalltalk
 a@fu:~/x9k3-repo$ x9k3 -h
