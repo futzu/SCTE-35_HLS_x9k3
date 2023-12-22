@@ -60,13 +60,15 @@ ___
 
 
 #### `Current Version`: 
-# v.0.2.31
-* __`Improved`__ CUE-IN accuracy
-* __`Fixed`__ sidecar splice immediate
-* __`Added`__ auto CUE-IN
-* __`cyclomatic complexity`__: __A (2.8181818181818183)__
-* __`pylint`__:  __9.93/10__
-  
+# v.0.2.33
+
+|  test               | command                | score                  |previous     |
+|---------------------|------------------------|------------------------|-------------|
+|cyclomatic complexity| radon cc -s -a  x9k3.py|  A (2.769230)          | A (2.818181)|
+| pylint              |  pylint  x9k3.py       |               9.97 / 10|9.94 / 10    |
+
+
+
 * __Some of the new stuff__:
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
