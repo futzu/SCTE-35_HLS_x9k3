@@ -58,7 +58,6 @@ class X9K3(strm.Stream):
         self.media_list = deque()
         self.now = None
         self.last_sidelines = ""
-        self.rollover_duration_pad = 0
 
     def _args_version(self):
         if self.args.version:
@@ -167,8 +166,7 @@ class X9K3(strm.Stream):
     def continue_m3u8(self):
         """
         continue_m3u8 reads self.discontinuity_sequence
-        and self.segnum from an existing index.m3u8
-        when the self.args.continue_m3u8 flag is set.
+        and self.segnum from an existing index.m3u8.
         """
         self._reload_m3u8()
         print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
@@ -183,7 +181,6 @@ class X9K3(strm.Stream):
     def mk_uri(head, tail):
         """
         mk_uri is used to create local filepaths
-        and resolve backslash or forwardslash seperators
         """
         sep = "/"
         if len(head.split("\\")) > len(head.split("/")):
@@ -225,8 +222,7 @@ class X9K3(strm.Stream):
     def _add_cue_tag(self, chunk):
         """
         _add_cue_tag adds SCTE-35 tags,
-        handles break auto returns,
-        and adds discontinuity tags as needed.
+        auto CUE-INs, and discontinuity tags.
         """
         if self.scte35.break_timer is not None:
             if self.scte35.break_timer >= self.scte35.break_duration:
@@ -258,7 +254,7 @@ class X9K3(strm.Stream):
         """
         if self.args.live:
             self.window.slide_panes()
-            if not self.args.disable_throttle:
+            if not self.args.no_throttle:
                 self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
 
@@ -277,8 +273,7 @@ class X9K3(strm.Stream):
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round((self.next_start- self.started) + self.rollover_duration_pad, 6)
-        self.rollover_duration_pad = 0
+        seg_time = round((self.next_start - self.started) , 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
@@ -291,7 +286,7 @@ class X9K3(strm.Stream):
         self.window.slide_panes(chunk)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
-        self._start_next_start(pts = self.now)
+        self._start_next_start(pts=self.now)
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
@@ -299,6 +294,14 @@ class X9K3(strm.Stream):
 
     def _clear_endlist(self, lines):
         return [line for line in lines if not self._endlist(line)]
+
+    @staticmethod
+    def clobber_file(the_file):
+        """
+        clobber_file  blanks the_file
+        """
+        with open(the_file,"w",encoding="utf8") as clobbered:
+            clobbered.close()
 
     @staticmethod
     def _endlist(line):
@@ -332,13 +335,13 @@ class X9K3(strm.Stream):
                 for line in sidelines:
                     line = line.decode().strip().split("#", 1)[0]
                     if line:
-                       # if self.args.live:
                         print2(f"loading  {line}")
-                        if float(line.split(",", 1)[0]) ==0.0:
+                        if float(line.split(",", 1)[0]) == 0.0:
                             line = f'{self.now},{line.split(",",1)[1]}'
                         self.add2sidecar(line)
                 sidefile.close()
                 self.last_sidelines = sidelines
+            self.clobber_file(self.args.sidecar_file)
 
     def add2sidecar(self, line):
         """
@@ -360,7 +363,7 @@ class X9K3(strm.Stream):
                 splice_pts = float(s[0])
                 splice_cue = s[1]
                 if self.started:
-                    if self.started <= splice_pts <self.next_start:
+                    if self.started <= splice_pts < self.next_start:
                         self.sidecar.remove(s)
                         self.scte35.cue_time = splice_pts
                         self.scte35.cue = Cue(splice_cue)
@@ -391,7 +394,7 @@ class X9K3(strm.Stream):
         else:
             self.started = self.next_start
         self.next_start = self.started + self.args.time
-        if self.next_start +self.args.time > rollover:
+        if self.next_start + self.args.time > rollover:
             self._reset_stream()
 
     def _chk_slice_point(self):
@@ -404,27 +407,24 @@ class X9K3(strm.Stream):
                 self.scte35.mk_cue_state()
                 if self.started < self.scte35.cue_time < self.next_start:
                     self.next_start = self.now
-                    self.scte35.cue_time =self.now
-                # Auto CUE-IN
+                    self.scte35.cue_time = self.now
                 if self.scte35.break_timer and self.scte35.break_duration:
-                    if self.scte35.break_timer+self.args.time  >= self.scte35.break_duration:
+                    if (
+                        self.scte35.break_timer + self.args.time
+                        >= self.scte35.break_duration
+                    ):
                         self.next_start = self.now
-                        self.scte35.cue_time =self.now
+                        self.scte35.cue_time = self.now
                         print2(f"AUTO CUE IN @ {self.now}")
             if self.now >= self.next_start:
                 self.next_start = self.now
                 self._write_segment()
 
     def _chk_cue_time(self, pid):
-        """
-        """
         if self.scte35.cue:
             self.scte35.cue_time = self._adjusted_pts(self.scte35.cue, pid)
 
     def _adjusted_pts(self, cue, pid):
-        """
-        _adjusted_pts = (pts_time + pts_adjustment) % self.ROLLOVER
-        """
         pts = 0
         if "pts_time" in cue.command.get():
             pts = cue.command.pts_time
@@ -450,8 +450,7 @@ class X9K3(strm.Stream):
 
     def _parse_scte35(self, pkt, pid):
         """
-        _parse_scte35 overrides the inherited
-        Stream._parse_scte35 method
+        _parse_scte35 overrides the inherited method.
         """
         cue = super()._parse_scte35(pkt, pid)
         if cue:
@@ -485,10 +484,6 @@ class X9K3(strm.Stream):
     def addendum(self):
         """
         addendum post stream parsing related tasks.
-            * writing the last segment
-            * sleeping to ensure last segment gets playing
-            when the replay flag or continue_m3u8 flag is set.
-            * adding endlist tag
         """
         buff = self.active_segment.getbuffer()
         if buff:
@@ -565,6 +560,7 @@ class SCTE35:
     A SCTE35 instance is used to hold
     SCTE35 cue data by X9K5.
     """
+
     def __init__(self):
         self.cue = None
         self.cue_state = None
@@ -607,7 +603,8 @@ class SCTE35:
             self.cue_state = "OUT"
             self.break_timer = 0.0
         if self.is_cue_in(self.cue):
-            #if self.break_timer >= self.break_duration:
+            # the next line causes splice immediate break returns to fail.
+            # if self.break_timer >= self.break_duration:
             self.cue_state = "IN"
 
     def x_cue(self):
@@ -748,7 +745,7 @@ class SlidingWindow:
         if self.delete:
             Path(popped.name).touch()
             os.unlink(popped.name)
-            print2(f'deleted {popped.name}')
+            print2(f"deleted {popped.name}")
 
     def push_pane(self, a_pane):
         """
@@ -764,13 +761,12 @@ class SlidingWindow:
 
     def slide_panes(self, a_pane=None):
         """
-        slide calls self.push_pane with a_pane
-        and then calls self.popleft_pane to trim self.panes
-        as needed.
+        slide calls self.push_pane with a_pane and then
+        calls self.popleft_pane to trim self.panes as needed.
         """
         if a_pane:
             self.push_pane(a_pane)
-        if len(self.panes) > self.size*3:
+        if len(self.panes) > self.size * 3:
             self.popleft_pane()
 
 
@@ -819,7 +815,7 @@ class Timer:
         to simulate live streaming.
         """
         self.stop(end)
-        diff = round((seg_time - self.lap_time)*0.7, 2)
+        diff = round((seg_time - self.lap_time) * 0.9, 2)
         if diff > 0:
             print2(f"throttling {diff}")
             time.sleep(diff)
@@ -869,8 +865,9 @@ def argue():
         "-i",
         "--input",
         default=sys.stdin.buffer,
-        help=""" Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or
-            https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin]""",
+        help=""" Input source, like
+                        /home/a/vid.ts  or  udp://@235.35.3.5:3535  or  https://futzu.com/xaa.ts  or  https://example.com/not_a_master.m3u8  [default: stdin]
+            """,
     )
     parser.add_argument(
         "-c",
@@ -889,14 +886,6 @@ def argue():
         help="delete segments (enables --live) [default:False]",
     )
     parser.add_argument(
-        "-D",
-        "--disable-throttle",
-        action="store_const",
-        default=False,
-        const=True,
-        help="disable live throttling [default:False]",
-    )
-    parser.add_argument(
         "-l",
         "--live",
         action="store_const",
@@ -911,6 +900,14 @@ def argue():
         default=False,
         const=True,
         help="Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False]",
+    )
+    parser.add_argument(
+        "-N",
+        "--no-throttle",
+        action="store_const",
+        default=False,
+        const=True,
+        help="disable live throttling [default:False]",
     )
     parser.add_argument(
         "-o",
@@ -938,7 +935,7 @@ def argue():
         "-s",
         "--sidecar_file",
         default=None,
-        help="""Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]""",
+        help="""Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]""",
     )
     parser.add_argument(
         "-S",
@@ -977,6 +974,7 @@ def argue():
         const=True,
         help="Show version",
     )
+    print(vars(parser))
     return parser.parse_args()
 
 
