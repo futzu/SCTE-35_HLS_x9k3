@@ -64,8 +64,8 @@ ___
 
 |  test               | command                | score                  |previous     |
 |---------------------|------------------------|------------------------|-------------|
-|cyclomatic complexity| radon cc -s -a  x9k3.py|  A (2.769230)          | A (2.818181)|
-| pylint              |  pylint  x9k3.py       |               9.97 / 10|9.94 / 10    |
+|cyclomatic complexity| radon cc -s -a  x9k3.py|  __A (2.769230)__          | A (2.818181)|
+| pylint              |  pylint  x9k3.py       |                 __9.97 / 10| 9.94 / 10__ |
 
 
 
@@ -74,6 +74,7 @@ ___
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
    * auto `CUE-IN`
+   *  live throttling can be disabled with the `-N`, `--no_throttle` flag 
 
 
 ## `Features`
@@ -121,27 +122,125 @@ pypy3 -mpip install x9k3
 
 ## `How to Use`
 
+---
+* Cli Information Flags
+---
 
-<details><summary><b>All x9k3 options</b></summary>
+<br>
+
+| switch| description|
+|-------|------------------------------------------------------|
+| `-h`, `--help`        | show this help message and exit         |
+| `-v`, `--version`| Show version                              |
+
+
+
+
+* help `-h`
+```smalltalk
+a@fu:~$ x9k3 -h
+
+```
+
+* version `-v`
+
+```smalltalk
+a@fu:~$ x9k3 -v
+0.2.35
+a@fu:~$ 
+```
+---
+* Cli Base Options
+---
+| switch| description|
+|-------|------------|
+|` -i INPUT`, `--input INPUT`| Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin] |
+| `-o OUTPUT_DIR`, `--output_dir OUTPUT_DIR`  |  Directory for segments and index.m3u8(created if needed) [default:'.'] |
+| `-s SIDECAR_FILE`, `--sidecar_file SIDECAR_FILE`| Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]  |
+ | `-t TIME`, `--time TIME`|  Segment time in seconds [default:2]   |
+
+---
+* cli base options examples
+---
+
+
+```smalltalk
+x9k3 -input  /home/a/vid.ts  
+```
+* input file and output directory
+```smalltalk
+x9k3 -i https://example.com/fu.ts   --output_dir /home/a/hls
+```
+* input from https , with an output directory
+```smalltalk
+x9k3 -i https://example.com/not_a_master.m3u8 -o /home/a/hls
+```
+* input from udp multicast, local sidecar file  
+```smalltalk
+x9k 3 --input udp://@235.35.3.5:3535  --sidecar_file sidecar.txt
+```
+* input from stdin, output directory, sidecar file 
+```smalltalk
+cat fu.ts | x9k3 -o /home/a/hls -s sidecar.t
+```
+
+
+---
+* Writing Code with options. Up and Running in Six Lines.
+---
+
+
+1. import argue and X9K3
+2. Call argue() to get a namespace of all available options.
+   * All the above options are available
+3. Set the options you want
+4.  Create an X9K3 instance
+5. Set  X9K3.args to your args
+6.     6. Call X9K3.decode()
+
+
+
+```smalltalk
+        from x9k3 import argue, X9K3     # 1
+        
+        args = argue()                   # 2
+
+        args.input='/home/a/cool.ts'     # 3
+
+        x9 = X9K3()                      # 4
+
+        x9.args = args                   # 5 
+
+        x9.decode()                      # 6 
+```
+
+
+---
+* Fine Tuning
+---
 
 
 | switch| description|
 |-------|------------|
-  | `-h`, `--help` |          show this help message and exit |
-  |` -i INPUT`, `--input INPUT`| Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin] |
+| `-T HLS_TAG`, `--hls_tag HLS_TAG`| x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue] |
+|`-w WINDOW_SIZE`, `--window_size WINDOW_SIZE`| sliding window size (enables --live) [default:5]    |
+| `-l`, ` --live `      |   Flag for a live event (enables sliding window m3u8) [default:False] |
+
+
+### Additional Flags
+| switch| description|
+|-------|------------|
  | `-c`, `--continue_m3u8` | Resume writing index.m3u8 [default:False]  |
  |` -d`, `--delete`   |   delete segments (enables --live) [default:False] |
- | `-l`, ` --live `      |   Flag for a live event (enables sliding window m3u8) [default:False] |
  | `-n`, `--no_discontinuity`  | Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False] |
  | `-N`, `--no-throttle`|   disable live throttling [default:False]   |
- | `-o OUTPUT_DIR`, `--output_dir OUTPUT_DIR`  |  Directory for segments and index.m3u8(created if needed) [default:'.'] |
  | `-p`, `--program_date_time` | Flag to add Program Date Time tags to index.m3u8 (enables --live) [default:False]  |
  | `-r`, `--replay`   | Flag for replay aka looping (enables --live,--delete) [default:False]|
- | `-s SIDECAR_FILE`, `--sidecar_file SIDECAR_FILE`| Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]  |
  | `-S`, `--shulga`|         Flag to enable Shulga iframe detection mode [default:False] |
- | `-t TIME`, `--time TIME`|  Segment time in seconds [default:2]   |
- | `-T HLS_TAG`, `--hls_tag HLS_TAG`| x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue] |
- |`-w WINDOW_SIZE`, `--window_size WINDOW_SIZE`| sliding window size (enables --live) [default:5]    |
+
+| switch| description|
+|-------|------------|
+ | `-h`, `--help` |          show this help message and exit |
  | `-v`, `--version`|       Show version|
 
  
