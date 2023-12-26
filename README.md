@@ -1,4 +1,4 @@
- [Install](#install) |
+ [Install](https://github.com/futzu/scte35-hls-segmenter-x9k3/README.md#install) |
  [Use](#how-to-use) |
  [CUE-OUT](#cue-out) |
  [CUE-IN](#cue-in)   |
