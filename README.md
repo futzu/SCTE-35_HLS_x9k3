@@ -96,6 +96,8 @@ ___
 * [new_reader](https://github.com/futzu/new_reader)
 * [iframes](https://github.com/futzu/iframes)
 
+
+
 ## `Install`
 * Use pip to install the the x9k3 lib and  executable script x9k3 (_will install threefive, new_reader and iframes too_)
 ```lua
@@ -108,6 +110,7 @@ python3 -mpip install x9k3
 pypy3 -mpip install x9k3
 ```
 
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 ## `Details` 
 
 *  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
@@ -347,6 +350,7 @@ options:
 ```smalltalk
 x9k3 -i https://example.com/rendition.m3u8 -s sidecar.txt -t 3 -l
 ```
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 
 # `Cli tool`
 
@@ -492,6 +496,7 @@ Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete
 Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
 
 ```
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
  
 
 ### `Sidecar Files`   
@@ -538,7 +543,8 @@ cue can be base64,hex, int, or bytes
  printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z\n' > sidecar.txt
 
  ```
- 
+ [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
+
  ####  A CUE-OUT can be terminated early using a `sidecar file`.
 
  
@@ -585,6 +591,7 @@ cue can be base64,hex, int, or bytes
       * 0x44: "Provider Ad Block Start",
       * 0x46: "Distributor Ad Block Start",
 
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 
 ## `CUE-IN`
 #### A CUE-IN is defined as:
@@ -686,6 +693,7 @@ seg32.ts
 seg145.ts
 
 ```
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 
 ## `VOD`
 
@@ -708,6 +716,7 @@ seg145.ts
   * implies `--delete`
   * loops a video file and throttles segment creation to fake a live stream.
 
+[⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 
 
    ![image](https://github.com/futzu/x9k3/assets/52701496/65d915f9-8721-4386-9353-2e32911c6a64)
