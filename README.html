@@ -1,0 +1,639 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<style type="text/css">
+td, th { border: 1px solid #c3c3c3; padding: 0 3px 0 3px; }
+table { border-collapse: collapse; }
+img { max-width: 100%; }
+</style>
+<meta name="generator" content="ReText 8.0.1">
+<title>README</title>
+<style type="text/css">
+</style>
+</head>
+<body>
+<p><a href="#install">Install</a> |
+ <a href="#how-to-use">Use</a> |
+ <a href="#cue-out">CUE-OUT</a> |
+ <a href="#cue-in">CUE-IN</a>   |
+ <a href="#hls--tags">SCTE-35 Tags</a> |
+ <a href="#sidecar-files">Sidecar SCTE35</a> |
+ <a href="#live">Live</a>  |
+ <a href="https://github.com/futzu/scte35-hls-segmenter-x9k3/issues">Bugs</a></p>
+<hr>
+<h3>HLS + SCTE35 = x9k3</h3>
+<h3><code>x9k3</code> is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.</h3>
+<hr>
+<h4><code>Heads Up</code></h4>
+<details><summary><b> Segment duration is open to interpretation... wait, let me explain.</b></summary>
+
+
+<div>
+ <br>
+        threefive and ffmpeg may report different durations for segments.<br>
+threefive use absolute PTS values and always start on an iframe.
+ <br>
+In the tables below, four segments are compared.<br> 
+Reported start and reported duration are values returned from the tool.<br>
+Calculate duration is (next segment start - this segment start)
+ <br><br>
+
+</div>
+<br>
+<br>
+
+* <b>threefive</b> (what x9k3 uses)
+
+| segment| reported start|  reported duration|calculated duration|
+|--------|---------------|-------------------|-------------------|
+| seg0.ts|  3164.376089  |     2.0           |     2.0           |
+| seg1.ts|  3166.376089  |     2.0           |     2.0           |
+| seg2.ts|  3168.376089  |     2.0           |     2.0           |
+| seg3.ts|  3170.376089  |     2.0           |     2.0           |
+
+
+* <b>ffmpeg</b>
+
+| segment| reported start|  reported duration|calculated duration|
+|--------|---------------|-------------------|-------------------|
+| seg0.ts|   3164.376089 |   2.0             |    0.361333       |
+| seg1.ts|   3164.737422 |   3.64            |    2.047999       |
+| seg2.ts|   3166.785422 |   3.59            |    3.59           |
+| seg3.ts|   3170.376089 |   2.0             |    0.356000       |
+
+
+#### What does it all mean? 
+> I don't know.
+>  
+___
+
+
+</details>
+
+<h4><code>Current Version</code>:</h4>
+<h1>v.0.2.35</h1>
+<table>
+<thead>
+<tr>
+<th>test</th>
+<th>command</th>
+<th>score</th>
+<th>previous</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cyclomatic complexity</td>
+<td>radon cc -s -a  x9k3.py</td>
+<td>A (2.769230)</td>
+<td>A (2.818181)</td>
+</tr>
+<tr>
+<td>pylint</td>
+<td>pylint  x9k3.py</td>
+<td>9.97 / 10</td>
+<td>9.94 / 10</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Some of the new stuff</strong>:</li>
+<li>m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. <code>-i INPUT</code>, <code>--input INPUT</code></li>
+<li>segments may be added to an existing m3u8, VOD or live. <code>-c</code>, <code>--continue_m3u8</code></li>
+<li>discontinuity tags may now be omitted. <code>-n</code>, <code>--no_discontinuity</code></li>
+<li>auto <code>CUE-IN</code></li>
+</ul>
+<h2><code>Features</code></h2>
+<ul>
+<li><strong>SCTE-35 Cues</strong> in <strong>Mpegts Streams</strong> are Translated into <strong>HLS tags</strong>.</li>
+<li><strong>SCTE-35 Cues can be added from a <a href="#sidecar-files">Sidecar File</a></strong>.</li>
+<li>Segments are <strong>Split on SCTE-35 Cues</strong> as needed.</li>
+<li>Segments <strong>Start on iframes</strong>.</li>
+<li>Supports <strong>h264</strong> and <strong>h265</strong> .</li>
+<li><strong>Multi-protocol.</strong> Input sources may be <strong>Files, Http(s), Multicast, and Unicast UDP streams</strong>.</li>
+<li>Supports <a href="https://github.com/futzu/scte35-hls-x9k3#live"><strong>Live</strong></a> <strong>Streaming</strong>.</li>
+<li><a href="https://github.com/vivoh-inc/amt-play"><strong>amt-play</strong> </a>uses x9k3.</li>
+</ul>
+<hr>
+<h2><code>Requires</code></h2>
+<ul>
+<li>python 3.6+ or pypy3</li>
+<li><a href="https://github.com/futzu/scte35-threefive">threefive</a>  </li>
+<li><a href="https://github.com/futzu/new_reader">new_reader</a></li>
+<li><a href="https://github.com/futzu/iframes">iframes</a></li>
+</ul>
+<h2><code>Install</code></h2>
+<ul>
+<li>Use pip to install the the x9k3 lib and  executable script x9k3 (<em>will install threefive, new_reader and iframes too</em>)</li>
+</ul>
+<pre><code class="language-lua"># python3
+
+python3 -mpip install x9k3
+
+# pypy3 
+
+pypy3 -mpip install x9k3
+</code></pre>
+<h2><code>Details</code></h2>
+<ul>
+<li>
+<p><strong>X-SCTE35</strong>, <strong>X-CUE</strong>, <strong>X-DATERANGE</strong>, or <strong>X-SPLICEPOINT</strong> HLS tags can be generated. set with the <code>--hls_tag</code> switch.</p>
+</li>
+<li>
+<p>reading from stdin now available</p>
+</li>
+<li>Segments are cut on iframes.</li>
+<li>Segment time is 2 seconds or more, determined by GOP size. Can be set with the <code>-t</code> switch or by setting <code>X9K3.args.time</code> </li>
+<li>Segments are named seg1.ts seg2.ts etc...</li>
+<li>For SCTE-35, Video segments are cut at the the first iframe &gt;=  the splice point pts.</li>
+<li>If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. </li>
+<li>SCTE-35 cues with a preroll are inserted at the splice point.</li>
+</ul>
+<h2><code>How to Use</code></h2>
+<details><summary><b>All x9k3 options</b></summary>
+
+
+| switch| description|
+|-------|------------|
+  | `-h`, `--help` |          show this help message and exit |
+  |` -i INPUT`, `--input INPUT`| Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin] |
+ | `-c`, `--continue_m3u8` | Resume writing index.m3u8 [default:False]  |
+ |` -d`, `--delete`   |   delete segments (enables --live) [default:False] |
+ | `-l`, ` --live `      |   Flag for a live event (enables sliding window m3u8) [default:False] |
+ | `-n`, `--no_discontinuity`  | Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False] |
+ | `-N`, `--no-throttle`|   disable live throttling [default:False]   |
+ | `-o OUTPUT_DIR`, `--output_dir OUTPUT_DIR`  |  Directory for segments and index.m3u8(created if needed) [default:'.'] |
+ | `-p`, `--program_date_time` | Flag to add Program Date Time tags to index.m3u8 (enables --live) [default:False]  |
+ | `-r`, `--replay`   | Flag for replay aka looping (enables --live,--delete) [default:False]|
+ | `-s SIDECAR_FILE`, `--sidecar_file SIDECAR_FILE`| Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]  |
+ | `-S`, `--shulga`|         Flag to enable Shulga iframe detection mode [default:False] |
+ | `-t TIME`, `--time TIME`|  Segment time in seconds [default:2]   |
+ | `-T HLS_TAG`, `--hls_tag HLS_TAG`| x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue] |
+ |`-w WINDOW_SIZE`, `--window_size WINDOW_SIZE`| sliding window size (enables --live) [default:5]    |
+ | `-v`, `--version`|       Show version|
+
+
+
+<pre><code class="language-smalltalk">a@fu:~/x9k3-repo$ x9k3 -h
+
+usage: x9k3 [-h] [-i INPUT] [-c] [-d] [-l] [-n] [-o OUTPUT_DIR] [-p] [-r]
+            [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE]
+            [-v]
+
+
+options:
+
+  -h, --help            show this help message and exit
+
+  -i INPUT, --input INPUT
+                        Input source, like /home/a/vid.ts or
+                        udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or
+                        https://example.com/not_a_master.m3u8 [default: stdin]
+
+  -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
+
+  -d, --delete          delete segments (enables --live) [default:False]
+
+  -l, --live            Flag for a live event (enables sliding window m3u8)
+                        [default:False]
+
+  -n, --no_discontinuity
+                        Flag to disable adding #EXT-X-DISCONTINUITY tags at
+                        splice points [default:False]
+
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory for segments and index.m3u8 (created if
+                        needed) [default:'.']
+
+  -p, --program_date_time
+                        Flag to add Program Date Time tags to index.m3u8 (
+                        enables --live) [default:False]
+
+  -r, --replay          Flag for replay aka looping (enables --live,--delete)
+                        [default:False]
+
+  -s SIDECAR_FILE, --sidecar_file SIDECAR_FILE
+                        Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]
+
+  -S, --shulga          Flag to enable Shulga iframe detection mode
+                        [default:False]
+
+  -t TIME, --time TIME  Segment time in seconds [default:2]
+
+  -T HLS_TAG, --hls_tag HLS_TAG
+                        x_scte35, x_cue, x_daterange, or x_splicepoint
+                        [default:x_cue]
+
+  -w WINDOW_SIZE, --window_size WINDOW_SIZE
+                        sliding window size (enables --live) [default:5]
+
+  -v, --version         Show version
+</code></pre>
+
+
+
+
+
+
+
+
+
+</details>
+
+<h3>Example Usage</h3>
+<p>#### <code>local file as input</code>
+ <code>smalltalk
+    x9k3 -i video.mpegts</code>
+ #### <code>multicast stream as input with a live sliding window</code> <br>
+<code>smalltalk
+   x9k3 --live -i udp://@235.35.3.5:3535</code>
+  #### Live mode works with a live source or static files.
+  *  x9k3 will throttle segment creation to mimic a live stream.
+   <code>js
+   x9k3 --live -i /some/video.ts</code>
+ #### <code>live sliding window and deleting expired segments</code>
+   <code>smalltalk
+   x9k3  -i udp://@235.35.3.5:3535 --delete</code></p>
+<h4><code>https stream for input, and writing segments to an output directory</code></h4>
+<ul>
+<li>directory will be created if it does not exist.
+ <code>smalltalk
+   x9k3 -i https://so.slo.me/longb.ts --output_dir /home/a/variant0</code></li>
+</ul>
+<h4><code>https hls m3u8 for input, and inserting SCTE-35 from a sidecar file, and continuing from a previously create index.m3u8 in the output dir</code></h4>
+<p><code>smalltalk
+   x9k3 -i https://slow.golf/longb.m3u8 --output_dir /home/a/variant0 -continue_m3u8 -s sidecar.txt</code>  </p>
+<h4><code>using stdin as input</code></h4>
+<p><code>smalltalk
+   cat video.ts | x9k3</code></p>
+<h4><code>live m3u8 file as input, add SCTE-35 from a sidecar file, change segment duration to 3 and output as live stream</code></h4>
+<pre><code class="language-smalltalk">x9k3 -i https://example.com/rendition.m3u8 -s sidecar.txt -t 3 -l
+</code></pre>
+<h1><code>Cli tool</code></h1>
+<h4>New Option, <code>-c</code> or  <code>--continue_m3u8</code> Continue an existing index.m3u8. <em>(Only works with x9k3 generated m3u8 files)</em></h4>
+<pre><code class="language-smalltalk">a@fu:~/x9k3-repo$ x9k3 -h
+
+usage: x9k3 [-h] [-i INPUT] [-c] [-d] [-l] [-n] [-o OUTPUT_DIR] [-p] [-r]
+            [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE]
+            [-v]
+
+
+options:
+
+  -h, --help            show this help message and exit
+
+  -i INPUT, --input INPUT
+                        Input source, like /home/a/vid.ts or
+                        udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or
+                        https://example.com/not_a_master.m3u8 [default: stdin]
+
+  -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
+
+  -d, --delete          delete segments (enables --live) [default:False]
+
+  -l, --live            Flag for a live event (enables sliding window m3u8)
+                        [default:False]
+
+  -n, --no_discontinuity
+                        Flag to disable adding #EXT-X-DISCONTINUITY tags at
+                        splice points [default:False]
+
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Directory for segments and index.m3u8 (created if
+                        needed) [default:'.']
+
+  -p, --program_date_time
+                        Flag to add Program Date Time tags to index.m3u8 (
+                        enables --live) [default:False]
+
+  -r, --replay          Flag for replay aka looping (enables --live,--delete)
+                        [default:False]
+
+  -s SIDECAR_FILE, --sidecar_file SIDECAR_FILE
+                        Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]
+
+  -S, --shulga          Flag to enable Shulga iframe detection mode
+                        [default:False]
+
+  -t TIME, --time TIME  Segment time in seconds [default:2]
+
+  -T HLS_TAG, --hls_tag HLS_TAG
+                        x_scte35, x_cue, x_daterange, or x_splicepoint
+                        [default:x_cue]
+
+  -w WINDOW_SIZE, --window_size WINDOW_SIZE
+                        sliding window size (enables --live) [default:5]
+
+  -v, --version         Show version
+</code></pre>
+<h4>Programmatically (writing code with x9k3)</h4>
+<pre><code class="language-js">x9 = X9K3(&quot;https://iodisco.com/fu.ts&quot;)
+x9.decode()
+</code></pre>
+<p>Setting  parameters
+* create an instance.</p>
+<pre><code class="language-js">x9 = X9K3()
+</code></pre>
+<ul>
+<li>input source</li>
+</ul>
+<pre><code class="language-js">x9.args.input = &quot;https://futzu.com/xaa.ts&quot;   
+</code></pre>
+<ul>
+<li>hls_tag can be x_scte35, x_cue, x_daterange, or x_splicepoint</li>
+</ul>
+<pre><code class="language-js">x9.args.hls tag = x_cue 
+</code></pre>
+<ul>
+<li>output directory default is "."</li>
+</ul>
+<pre><code class="language-js">x9.args.output_dir=&quot;/home/a/stuff&quot;
+</code></pre>
+<ul>
+<li>live</li>
+</ul>
+<pre><code class="language-js">x9.args.live = True
+</code></pre>
+<ul>
+<li>replay (loop video) ( also sets live )</li>
+</ul>
+<pre><code class="language-js">x9.args.replay = True
+</code></pre>
+<ul>
+<li>delete segments when they expire ( also sets live )</li>
+</ul>
+<pre><code class="language-js">x9.args.delete = True
+</code></pre>
+<ul>
+<li>add program date time tags ( also sets live )</li>
+</ul>
+<pre><code class="language-js">self.args.program_date_time= True
+</code></pre>
+<ul>
+<li>set window size for live mode ( requires live ) </li>
+</ul>
+<pre><code class="language-js">x9.args.window_size = 5 
+</code></pre>
+<ul>
+<li>run </li>
+</ul>
+<pre><code class="language-js">x9.run()
+</code></pre>
+<ul>
+<li>you can get a complete set of args and the defaults like this</li>
+</ul>
+<pre><code class="language-js">from x9k3 import X9K3
+x9 = X9K3()
+print(x9.args)
+
+Namespace(input=&lt;_io.BufferedReader name='&lt;stdin&gt;'&gt;, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
+
+
+</code></pre>
+<ul>
+<li>argue can also be called to get the defaults</li>
+</ul>
+<pre><code class="language-js">&gt;&gt;&gt;&gt; from x9k3 import X9K3, argue
+&gt;&gt;&gt;&gt; args = argue()
+
+&gt;&gt;&gt;&gt; args
+Namespace(input=&lt;_io.BufferedReader name='&lt;stdin&gt;'&gt;, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
+
+&gt;&gt;&gt;&gt; args.replay =True
+&gt;&gt;&gt;&gt; args.live = True
+&gt;&gt;&gt;&gt; args.time = 6
+&gt;&gt;&gt;&gt; args.window_size = 10
+
+&gt;&gt;&gt;&gt; args
+Namespace(input=&lt;_io.BufferedReader name='&lt;stdin&gt;'&gt;, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
+
+&gt;&gt;&gt;&gt; x9 = X9K3()
+&gt;&gt;&gt;&gt; x9.args = args
+
+&gt;&gt;&gt;&gt; x9.args
+Namespace(input=&lt;_io.BufferedReader name='&lt;stdin&gt;'&gt;, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
+
+</code></pre>
+<h3><code>Sidecar Files</code></h3>
+<h4>load scte35 cues from a Sidecar file</h4>
+<p>Sidecar Cues will be handled the same as SCTE35 cues from a video stream. <br>
+line format for text file  <code>insert_pts, cue</code></p>
+<p>pts is the insert time for the cue, A four second preroll is standard. 
+cue can be base64,hex, int, or bytes</p>
+<p>```smalltalk
+  a@debian:~/x9k3$ cat sidecar.txt</p>
+<p>38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ== 
+  38199.918911, /DAsAAAAAAAAAP/wDwUAAABef0/+zPACTQAAAAAADAEKQ1VFSbGfMTIxIxGolm0= </p>
+<pre><code>  ```smalltalk
+  x9k3 -i  noscte35.ts  -s sidecar.txt 
+  ```
+####   In Live Mode you can do dynamic cue injection with a `Sidecar file`
+   ```js
+   touch sidecar.txt
+
+   x9k3 -i vid.ts -s sidecar.txt -l 
+
+   # Open another terminal and printf cues into sidecar.txt
+
+   printf '38103.868589, /DAxAAAAAAAAAP/wFAUAAABdf+/+zHRtOn4Ae6DOAAAAAAAMAQpDVUVJsZ8xMjEqLYemJQ==\n' &gt; sidecar.txt
+
+   ```
+#### `Sidecar files` can now accept 0 as the PTS insert time for Splice Immediate. 
+
+
+
+ Specify 0 as the insert time,  the cue will be insert at the start of the next segment.
+ __Using 0 only works in live mode__
+
+ ```js
+ printf '0,/DAhAAAAAAAAAP/wEAUAAAAJf78A/gASZvAACQAAAACokv3z\n' &gt; sidecar.txt
+
+ ```
+
+ ####  A CUE-OUT can be terminated early using a `sidecar file`.
+
+
+ In the middle of a CUE-OUT send a splice insert with the out_of_network_indicator flag not set and the splice immediate flag set.
+ Do the steps above ,
+ and then do this
+ ```js
+ printf '0,/DAcAAAAAAAAAP/wCwUAAAABfx8AAAEAAAAA3r8DiQ==\n' &gt; sidecar.txt
+</code></pre>
+<p>It will cause the CUE-OUT to end at the next segment start.
+ ```js</p>
+<h1>EXT-X-CUE-OUT 13.4</h1>
+<p>./seg5.ts:  start:112.966667    end:114.966667  duration:2.233334</p>
+<h1>EXT-X-CUE-OUT-CONT 2.233334/13.4</h1>
+<p>./seg6.ts:  start:114.966667    end:116.966667  duration:2.1</p>
+<h1>EXT-X-CUE-OUT-CONT 4.333334/13.4</h1>
+<p>./seg7.ts:  start:116.966667    end:118.966667  duration:2.0</p>
+<h1>EXT-X-CUE-OUT-CONT 6.333334/13.4</h1>
+<p>./seg8.ts:  start:117.0         end:119.0   duration:0.033333</p>
+<h1>EXT-X-CUE-IN None</h1>
+<p>./seg9.ts:  start:119.3         end:121.3   duration:2.3</p>
+<pre><code> __Using 0 only works in live mode__
+
+   ---
+## CUES   
+
+##   `CUE-OUT`
+#### A CUE-OUT is defined as:
+
+* `A Splice Insert Command` with:
+   *  the `out_of_network_indicator` set to `True` 
+   *  a `break_duration`.
+
+* `A Time Signal Command` and a Segmentation Descriptor with:
+   *  a `segmentation_duration` 
+   *  a `segmentation_type_id` of:
+      * 0x22: &quot;Break Start&quot;,
+      * 0x30: &quot;Provider Advertisement Start&quot;,
+      * 0x32: &quot;Distributor Advertisement Start&quot;,
+      * 0x34: &quot;Provider Placement Opportunity Start&quot;,
+      * 0x36: &quot;Distributor Placement Opportunity Start&quot;,
+      * 0x44: &quot;Provider Ad Block Start&quot;,
+      * 0x46: &quot;Distributor Ad Block Start&quot;,
+
+
+## `CUE-IN`
+#### A CUE-IN is defined as:
+* `A Splice Insert Command`
+  *  with the `out_of_network_indicator` set to `False`
+
+* `A Time Signal Command` and a Segmentation Descriptor with:
+   *  a `segmentation_type_id` of:
+
+      * 0x23: &quot;Break End&quot;,
+      * 0x31: &quot;Provider Advertisement End&quot;,
+      * 0x33: &quot;Distributor Advertisement End&quot;,
+      * 0x35: &quot;Provider Placement Opportunity End&quot;,
+      * 0x37: &quot;Distributor Placement Opportunity End&quot;,
+      * 0x45: &quot;Provider Ad Block End&quot;,
+      * 0x47: &quot;Distributor Ad Block End&quot;,
+
+* For CUE-OUT and CUE-IN, `only the first Segmentation Descriptor will be used`
+---
+
+## `Supported HLS  Tags`
+* #EXT-X-CUE 
+* #EXT-X-DATERANGE 
+* #EXT-X-SCTE35 
+* #EXT-X-SPLICEPOINT 
+
+###  `x_cue`
+* CUE-OUT
+```lua
+#EXT-X-DISCONTINUITY
+#EXT-X-CUE-OUT:242.0
+#EXTINF:4.796145,
+seg32.ts
+</code></pre>
+<ul>
+<li>CUE-OUT-CONT</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-CUE-OUT-CONT:4.796145/242.0
+#EXTINF:2.12,
+</code></pre>
+<ul>
+<li>CUE-IN</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-CUE-IN
+#EXTINF:5.020145,
+seg145.ts
+
+</code></pre>
+<h3><code>x_scte35</code></h3>
+<ul>
+<li>CUE-OUT</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-SCTE35:CUE=&quot;/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=&quot; ,CUE-OUT=YES 
+#EXTINF:4.796145,
+seg32.ts
+</code></pre>
+<ul>
+<li>CUE-OUT-CONT</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-SCTE35:CUE=&quot;/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=&quot; ,CUE-OUT=CONT
+#EXTINF:2.12,
+seg33.ts
+</code></pre>
+<ul>
+<li>CUE-IN</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-SCTE35:CUE=&quot;/DAqAAAAAAAAAP/wDwUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAAAtegE5&quot; ,CUE-IN=YES 
+#EXTINF:5.020145,
+seg145.ts
+</code></pre>
+<h3><code>x_daterange</code></h3>
+<ul>
+<li>CUE-OUT</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-DATERANGE:ID=&quot;1&quot;,START-DATE=&quot;2022-10-14T17:36:58.321731Z&quot;,PLANNED-DURATION=242.0,SCTE35-OUT=0xfc302f00000000000000fff01405000002967fefffe16a1ab87e014c562000010000000a00084355454900000000ebf5a2a7
+#EXTINF:4.796145,
+seg32.ts
+</code></pre>
+<ul>
+<li>CUE-IN</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-DATERANGE:ID=&quot;2&quot;,END-DATE=&quot;2022-10-14T17:36:58.666073Z&quot;,SCTE35-IN=0xfc302a00000000000000fff00f05000002967f4fffe2b670d800010000000a000
+843554549000000002d7a0139
+#EXTINF:5.020145,
+seg145.ts
+</code></pre>
+<h3><code>x_splicepoint</code></h3>
+<ul>
+<li>CUE-OUT</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-SPLICEPOINT-SCTE35:/DAvAAAAAAAAAP/wFAUAAAKWf+//4WoauH4BTFYgAAEAAAAKAAhDVUVJAAAAAOv1oqc=
+#EXTINF:4.796145,
+seg32.ts
+</code></pre>
+<ul>
+<li>CUE-IN</li>
+</ul>
+<pre><code class="language-lua">#EXT-X-DISCONTINUITY
+#EXT-X-SPLICEPOINT-SCTE35:/DAqAAAAAAAAAP/wDwUAAAKWf0//4rZw2AABAAAACgAIQ1VFSQAAAAAtegE5
+#EXTINF:5.020145,
+seg145.ts
+
+</code></pre>
+<h2><code>VOD</code></h2>
+<ul>
+<li>x9k3 defaults to VOD style playlist generation.</li>
+<li>All segment are listed in the m3u8 file. </li>
+</ul>
+<h2><code>Live</code></h2>
+<ul>
+<li>Activated by the <code>--live</code>, <code>--delete</code>, or <code>--replay</code> switch or by setting <code>X9K3.live=True</code></li>
+</ul>
+<h3><code>--live</code></h3>
+<ul>
+<li>Like VOD except:<ul>
+<li>M3u8 manifests are regenerated every time a segment is written</li>
+<li>Segment creation is throttled when using non-live sources to simulate live streaming. ( like ffmpeg's "-re" )</li>
+<li>default Sliding Window size is 5, it can be changed with the <code>-w</code> switch or by setting <code>X9k3.window.size</code> </li>
+</ul>
+</li>
+</ul>
+<h3><code>--delete</code></h3>
+<ul>
+<li>implies <code>--live</code></li>
+<li>deletes segments when they move out of the sliding window of the m3u8.</li>
+</ul>
+<h3><code>--replay</code></h3>
+<ul>
+<li>implies <code>--live</code></li>
+<li>implies <code>--delete</code></li>
+<li>loops a video file and throttles segment creation to fake a live stream.</li>
+</ul>
+<p><img alt="image" src="https://github.com/futzu/x9k3/assets/52701496/65d915f9-8721-4386-9353-2e32911c6a64"></p>
+
+</body>
+</html>
