@@ -74,7 +74,7 @@ ___
 |  test               | command                | score                  |previous     |
 |---------------------|------------------------|------------------------|-------------|
 |cyclomatic complexity| radon cc -s -a  x9k3.py|  __A (2.807692)__          | A (2.769230)|
-| pylint              |  pylint  x9k3.py       |                 __9.97 / 10| 9.97 / 10__ |
+| pylint              |  pylint  x9k3.py       |                 __9.97 / 10__| __9.97 / 10__ |
 
 
 
