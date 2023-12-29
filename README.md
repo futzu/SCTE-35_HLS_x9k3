@@ -17,9 +17,9 @@ ___
 ### x9k3 is not finished, there are bugs. I am trying to fix them.
 ### I keep getting sidetrack by people running unit tests for every possible combination of options.
 ### This is not the time for fanatical testing of edge cases, that comes later.
-### I don't care what your boss wants. x9k3 is not production ready.  
----
+### Sorry, but If you're not sleeping with me or paying my bills, you're not a priority.
 
+---
 
 
 <details><summary><b> Segment duration is open to interpretation... wait, let me explain.</b></summary>
@@ -69,12 +69,12 @@ ___
 
 ---
 #### `Current Version`: 
-# v.0.2.35
+# v.0.2.37
 
 |  test               | command                | score                  |previous     |
 |---------------------|------------------------|------------------------|-------------|
-|cyclomatic complexity| radon cc -s -a  x9k3.py|  __A (2.769230)__          | A (2.818181)|
-| pylint              |  pylint  x9k3.py       |                 __9.97 / 10| 9.94 / 10__ |
+|cyclomatic complexity| radon cc -s -a  x9k3.py|  __A (2.807692)__          | A (2.769230)|
+| pylint              |  pylint  x9k3.py       |                 __9.97 / 10| 9.97 / 10__ |
 
 
 
