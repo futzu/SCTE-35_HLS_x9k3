@@ -13,12 +13,12 @@ ___
 ### `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
 ---
-#### `Heads Up`
+# `Heads Up`
 ### x9k3 is not finished, there are bugs. I am trying to fix them.
 ### I keep getting sidetrack by people running unit tests for every possible combination of options.
 ### This is not the time for fanatical testing of edge cases, that comes later.
 ### I don't care what your boss wants. x9k3 is not production ready.  
-
+---
 
 
 
@@ -67,7 +67,7 @@ ___
 
 </details>
 
-
+---
 #### `Current Version`: 
 # v.0.2.35
 
