@@ -21,7 +21,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "35"
+MAINTAINENCE = "37"
 
 
 def version():
