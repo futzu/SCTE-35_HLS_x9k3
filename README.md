@@ -14,73 +14,62 @@ ___
 
 ---
 # `Heads Up`
-## Now, everything works( I think). 
-### Time for fanatical edge case testing and stuff.
----
+## Now, everything works****
+**** _(I think)_
+### Check Out `adbreak`
+* adbreak generates SCTE35 Cues for CUE-OUT and CUE-IN in a sidecar file. 
+```lua
+$ adbreak -h
+usage: adbreak [-h] [-d DURATION] [-p PTS] [-s SIDECAR]
+
+options:
+  -h, --help            show this help message and exit
+  -d DURATION, --duration DURATION
+                        set duration of ad break. [ default: 60.0 ]
+  -p PTS, --pts PTS     set start pts for ad break. Not setting pts will
+                        generate a Splice Immediate CUE-OUT. [ default: 0.0 ]
+  -s SIDECAR, --sidecar SIDECAR
+                        Sidecar file of SCTE-35 (pts,cue) pairs. [ default:
+                        sidecar.txt ]
 
 
-<details><summary><b> Segment duration is open to interpretation... wait, let me explain.</b></summary>
-
- 
-<div>
- <br>
-        threefive and ffmpeg may report different durations for segments.<br>
-threefive use absolute PTS values and always start on an iframe.
- <br>
-In the tables below, four segments are compared.<br> 
-Reported start and reported duration are values returned from the tool.<br>
-Calculate duration is (next segment start - this segment start)
- <br><br>
-
-</div>
+```
+* Usage:
+```lua
+adbreak --pts 1234.567890 --duration 30 --sidecar sidecar.txt
+```
+* sidecar file has SCTE-35 Cues for CUE-OUT and CUE-IN
+```lua
+1234.56789,/DAlAAAAAAAAAP/wFAUAAAABf+/+Bp9rxv4AKTLgAAEAAAAAhzvmvQ==
+1264.56789,/DAgAAAAAAAAAP/wDwUAAAABf0/+BsiepgABAAAAAPh51T0=
+```
+* pass to x9k3
+```lua
+x9k3 -i input.ts -s sidecar.txt
+```
 <br>
-<br>
 
-* <b>threefive</b> (what x9k3 uses)
-
-| segment| reported start|  reported duration|calculated duration|
-|--------|---------------|-------------------|-------------------|
-| seg0.ts|  3164.376089  |     2.0           |     2.0           |
-| seg1.ts|  3166.376089  |     2.0           |     2.0           |
-| seg2.ts|  3168.376089  |     2.0           |     2.0           |
-| seg3.ts|  3170.376089  |     2.0           |     2.0           |
-
-
-* <b>ffmpeg</b>
-
-| segment| reported start|  reported duration|calculated duration|
-|--------|---------------|-------------------|-------------------|
-| seg0.ts|   3164.376089 |   2.0             |    0.361333       |
-| seg1.ts|   3164.737422 |   3.64            |    2.047999       |
-| seg2.ts|   3166.785422 |   3.59            |    3.59           |
-| seg3.ts|   3170.376089 |   2.0             |    0.356000       |
-
-
-#### What does it all mean? 
-> I don't know.
->  
-___
-
-
-</details>
-
----
 #### `Current Version`: 
-# v.0.2.39
+
+# v.0.2.41 
+### `cyclomatic complexity` score `Two point freakin' Seven` 
+### `pylint` score `Nine point Nine Seven out of Ten`.
+### `BOOM` goes The Dynamite.
 
 |  test               | command                | score                  |previous     |
 |---------------------|------------------------|------------------------|-------------|
-|cyclomatic complexity| radon cc -s -a  x9k3.py|  __A (2.807692)__          | A (2.769230)|
-| pylint              |  pylint  x9k3.py       |                 __9.97 / 10__| __9.97 / 10__ |
+|cyclomatic complexity| radon cc -s -a  x9k3.py| __A (2.7037037037037037)__ |  A (2.807692)         |
+| pylint              |  pylint  x9k3.py       |   __9.97 / 10__| __9.97 / 10__ |
 
 
 
 * __Some of the new stuff__:
+   * adbreak script to generate SCTE-35 Cues.
    * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
    * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
    * auto `CUE-IN`
-   *  live throttling can be disabled with the `-N`, `--no_throttle` flag 
+   * live throttling can be disabled with the `-N`, `--no_throttle` flag 
 
 
 ## `Features`
