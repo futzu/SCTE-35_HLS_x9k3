@@ -21,7 +21,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "37"
+MAINTAINENCE = "39"
 
 
 def version():
@@ -58,7 +58,6 @@ class X9K3(strm.Stream):
         self.media_list = deque()
         self.now = None
         self.last_sidelines = ""
-        self.next_iframe = False
 
     def _args_version(self):
         if self.args.version:
@@ -247,12 +246,6 @@ class X9K3(strm.Stream):
             chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _chk_live(self, seg_time):
-        """
-        _chk_live
-            * slides the sliding window
-            * throttles to simulate live stream
-            * increments discontinuity sequence
-        """
         if self.args.live:
             self.window.slide_panes()
             if not self.args.no_throttle:
@@ -274,8 +267,7 @@ class X9K3(strm.Stream):
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-      #  self.next_start = self.now
-        seg_time = round((self.next_start - self.started) , 6)
+        seg_time = round((self.next_start - self.started), 6)
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
         if seg_time <= 0:
@@ -302,7 +294,7 @@ class X9K3(strm.Stream):
         """
         clobber_file  blanks the_file
         """
-        with open(the_file,"w",encoding="utf8") as clobbered:
+        with open(the_file, "w", encoding="utf8") as clobbered:
             clobbered.close()
 
     @staticmethod
@@ -312,9 +304,7 @@ class X9K3(strm.Stream):
         return False
 
     def _write_m3u8(self):
-        """
-        _write_m3u8 writes the index.m3u8
-        """
+        print("write_m3u8", time.time())
         self.media_seq = self.window.panes[0].num
         with open(self.m3u8uri(), "w+", encoding="utf8") as m3u8:
             m3u8.write(self._header())
@@ -365,14 +355,13 @@ class X9K3(strm.Stream):
                 splice_pts = float(s[0])
                 splice_cue = s[1]
                 if self.started:
-                   # if self.started <= splice_pts :
                     if self.started <= splice_pts < self.next_start:
                         self.sidecar.remove(s)
-                       # self.scte35.cue_time = self.now
                         self.scte35.cue = Cue(splice_cue)
                         self.scte35.cue.decode()
                         self.scte35.cue.show()
                         self._chk_cue_time(pid)
+                        self._chk_slice_point()
 
     def _discontinuity_seq_plus_one(self):
         if self.window.panes:
@@ -407,42 +396,19 @@ class X9K3(strm.Stream):
         """
         if self.started:
             if self.scte35.cue_time:
-                if self.started <= self.scte35.cue_time < self.next_start:
+                if self.started <= self.scte35.cue_time <= self.next_start:
                     self.next_start = self.scte35.cue_time
-                 #   print(f"1 pre now {self.now}, started {self.started}, cue_time {self.scte35.cue_time}, next {self.next_start}")
-                    self._write_segment()
-                 #   self._start_next_start()
-                    self.scte35.mk_cue_state()
-
-
-                    return
-               #     self.scte35.cue_time = self.now
                 if self.scte35.break_timer and self.scte35.break_duration:
                     if (
                         self.scte35.break_timer + self.args.time
                         >= self.scte35.break_duration
                     ):
-                   #     print(f"2 pre now {self.now}, started {self.started}, cue_time {self.scte35.cue_time}, next {self.next_start}")
-                        self.next_start = self.scte35.cue_time
-
-                        self._write_segment()
-                     #   print(f"2 post now {self.now}, started {self.started}, cue_time {self.scte35.cue_time}, next {self.next_start}")
-
-                        self.scte35.mk_cue_state()
-
-                        return
-                    #    self.scte35.cue_time = self.now
+                        self.next_start = self.now
                         print2(f"AUTO CUE IN @ {self.now}")
             if self.now >= self.next_start:
                 self.next_start = self.now
-               # print(f"3 pre now {self.now}, started {self.started}, cue_time {self.scte35.cue_time}, next {self.next_start}")
-
                 self._write_segment()
-               # print(f"3 post now {self.now}, started {self.started}, cue_time {self.scte35.cue_time}, next {self.next_start}")
-
-             #   self._start_next_start()
-        
-
+                self.scte35.mk_cue_state()
 
     def _chk_cue_time(self, pid):
         if self.scte35.cue:
@@ -502,7 +468,6 @@ class X9K3(strm.Stream):
                     self.now = i_pts
                     self.load_sidecar()
                     self._chk_sidecar_cues(pkt_pid)
-
                     self._chk_slice_point()
 
         self.active_segment.write(pkt)
@@ -629,9 +594,9 @@ class SCTE35:
             self.cue_state = "OUT"
             self.break_timer = 0.0
             if self.cue_time and self.break_duration:
-                self.cue_time +=self.break_duration
-          #      self.cue_state='CONT'
-             #   print(f'cue_time {self.cue_time}
+                self.cue_time += self.break_duration
+        #      self.cue_state='CONT'
+        #   print(f'cue_time {self.cue_time}
         if self.is_cue_in(self.cue):
             # the next line causes splice immediate break returns to fail.
             # if self.break_timer >= self.break_duration:
