@@ -50,11 +50,10 @@ x9k3 -i input.ts -s sidecar.txt
 ```
 <br>
 
-#### `Current Version`: 
+### `Current Version`: 
 
 # v.0.2.41 
-### `cyclomatic complexity` score `Two point freakin' Seven` 
-### `pylint` score `Nine point Nine Seven out of Ten`.
+
 ### `BOOM` goes The Dynamite.
 
 |  test               | command                | score                  |previous     |
@@ -62,7 +61,9 @@ x9k3 -i input.ts -s sidecar.txt
 |cyclomatic complexity| radon cc -s -a  x9k3.py| __A (2.7037037037037037)__ |  A (2.807692)         |
 | pylint              |  pylint  x9k3.py       |   __9.97 / 10__| __9.97 / 10__ |
 
-
+* The recent __timing issues have been resolved.__
+* x9k3 was doing two different checks for AUTO CUE-IN and it was causing timing issues elsewhere.
+   
 
 * __Some of the new stuff__:
    * adbreak script to generate SCTE-35 Cues.
