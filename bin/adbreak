@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import os
+from threefive.encode import mk_splice_insert
+
+
+def argue():
+    """
+    argue parse command line args
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d",
+        "--duration",
+        type=float,
+        default=60.0,
+        help="set duration of ad break. [ default: 60.0 ]",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--pts",
+        type=float,
+        default=0.0,
+        help="set start pts for ad break. Not setting pts will generate a Splice Immediate CUE-OUT. [ default: 0.0 ]",
+    )
+
+    parser.add_argument(
+        "-s",
+        "--sidecar",
+        default='sidecar.txt',
+        help="""Sidecar file of SCTE-35 (pts,cue) pairs. [ default: sidecar.txt ] """,
+    )
+
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    args = argue()
+    start = args.pts
+    stop = args.pts+ args.duration
+    if args.pts ==0.0:
+        cue_out = mk_splice_insert(event_id=1,duration=args.duration,out=True).encode()
+    else:
+        cue_out = mk_splice_insert(event_id=1, pts =start,duration=args.duration,out=True).encode()
+
+    cue_in=mk_splice_insert(event_id=1, pts =stop,out=False).encode()
+    with open(args.sidecar,'a') as sidecar:
+        outcue =f'{start},{cue_out}\n'
+        incue =f'{stop},{cue_in}\n'
+        sidecar.write(outcue)
+        sidecar.write(incue)
