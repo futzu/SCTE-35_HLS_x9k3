@@ -14,8 +14,6 @@ ___
 
 ---
 # `Heads Up`
-## Now, everything works****
-**** _famous last words._
 ### Check Out `adbreak`
 * included with x9k3
 * adbreak generates SCTE35 Cues for CUE-OUT and CUE-IN in a sidecar file. 
@@ -182,82 +180,6 @@ options:
   -v, --version         Show version
 ```
 
-
-
-* Cli Information Flags
-
-<br>
-
-| switch| description|
-|-------|------------------------------------------------------|
-| `-h`, `--help`        | show this help message and exit         |
-| `-v`, `--version`| Show version                              |
-
-
-* Cli Base Options
-
-| switch| description|
-|-------|------------|
-|` -i INPUT`, `--input INPUT`| Input source, like /home/a/vid.ts or udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or https://example.com/not_a_master.m3u8 [default: stdin] |
-| `-o OUTPUT_DIR`, `--output_dir OUTPUT_DIR`  |  Directory for segments and index.m3u8(created if needed) [default:'.'] |
-| `-s SIDECAR_FILE`, `--sidecar_file SIDECAR_FILE`| Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]  |
- | `-t TIME`, `--time TIME`|  Segment time in seconds [default:2]   |
-
----
-* Fine Tuning
----
-
-| switch| description|
-|-------|------------|
-| `-T HLS_TAG`, `--hls_tag HLS_TAG`| x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue] |
-|`-w WINDOW_SIZE`, `--window_size WINDOW_SIZE`| sliding window size (enables --live) [default:5]    |
-| `-l`, ` --live `      |   Flag for a live event (enables sliding window m3u8) [default:False] |
- | `-c`, `--continue_m3u8` | Resume writing index.m3u8 [default:False]  |
- |` -d`, `--delete`   |   delete segments (enables --live) [default:False] |
- | `-n`, `--no_discontinuity`  | Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False] |
- | `-N`, `--no-throttle`|   disable live throttling [default:False]   |
- | `-p`, `--program_date_time` | Flag to add Program Date Time tags to index.m3u8 (enables --live) [default:False]  |
- | `-r`, `--replay`   | Flag for replay aka looping (enables --live,--delete) [default:False]|
- | `-S`, `--shulga`|         Flag to enable Shulga iframe detection mode [default:False] |
-
-
----
-
-
-# `Programmatically`
-# all of the cli options are available when writing code.
-
-* Up and Running in Six Lines.
-
-
-1. import argue and X9K3
-2. Call argue() to get a namespace of all available options.
-   * All the above options are available
-3. Set the options you want
-4.  Create an X9K3 instance
-5. Set  X9K3.args to your args
-6. Call X9K3.decode()
-
-
-
-```smalltalk
-        from x9k3 import argue, X9K3     # 1
-        
-        args = argue()                   # 2
-
-        args.input='/home/a/cool.ts'     # 3
-
-        x9 = X9K3()                      # 4
-
-        x9.args = args                   # 5 
-
-        x9.decode()                      # 6 
-```
-
-
-</details>
-
-
 ### Example Usage
 
  #### `local file as input`
@@ -296,76 +218,64 @@ x9k3 -i https://example.com/rendition.m3u8 -s sidecar.txt -t 3 -l
 ```
 [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
 
-# `Cli tool`
 
-#### New Option, `-c` or  `--continue_m3u8` Continue an existing index.m3u8. _(Only works with x9k3 generated m3u8 files)_
+
+# `Programmatically`
+
+## `Up and Running in three Lines`
 
 ```smalltalk
-a@fu:~/x9k3-repo$ x9k3 -h
-
-usage: x9k3 [-h] [-i INPUT] [-c] [-d] [-l] [-n] [-o OUTPUT_DIR] [-p] [-r]
-            [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE]
-            [-v]
-
-
-options:
-
-  -h, --help            show this help message and exit
-
-  -i INPUT, --input INPUT
-                        Input source, like /home/a/vid.ts or
-                        udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or
-                        https://example.com/not_a_master.m3u8 [default: stdin]
-
-  -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
-
-  -d, --delete          delete segments (enables --live) [default:False]
-
-  -l, --live            Flag for a live event (enables sliding window m3u8)
-                        [default:False]
-
-  -n, --no_discontinuity
-                        Flag to disable adding #EXT-X-DISCONTINUITY tags at
-                        splice points [default:False]
-
-  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Directory for segments and index.m3u8 (created if
-                        needed) [default:'.']
-
-  -p, --program_date_time
-                        Flag to add Program Date Time tags to index.m3u8 (
-                        enables --live) [default:False]
-
-  -r, --replay          Flag for replay aka looping (enables --live,--delete)
-                        [default:False]
-
-  -s SIDECAR_FILE, --sidecar_file SIDECAR_FILE
-                        Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]
-
-  -S, --shulga          Flag to enable Shulga iframe detection mode
-                        [default:False]
-
-  -t TIME, --time TIME  Segment time in seconds [default:2]
-
-  -T HLS_TAG, --hls_tag HLS_TAG
-                        x_scte35, x_cue, x_daterange, or x_splicepoint
-                        [default:x_cue]
-
-  -w WINDOW_SIZE, --window_size WINDOW_SIZE
-                        sliding window size (enables --live) [default:5]
-
-  -v, --version         Show version
+        from x9k3 import X9K3            # 1
+        x9 = X9K3('/home/a/cool.ts')     # 2
+        x9.decode()                      # 3
 ```
 
 
-#### Programmatically (writing code with x9k3) 
+
+#### Writing Code with x9k3
+
+* you can get a complete set of args and the defaults like this
+
+```js
+from x9k3 import X9K3
+x9 = X9K3()
+
+>>>> {print(k,':',v) for k,v in vars(x9.args).items()}
+
+input : <_io.BufferedReader name='<stdin>'>
+continue_m3u8 : False
+delete : False
+live : False
+no_discontinuity : False
+no_throttle : False
+output_dir : .
+program_date_time : False
+replay : False
+sidecar_file : None
+shulga : False
+time : 2
+hls_tag : x_cue
+window_size : 5
+version : False
+
+#   or just
+
+>>>> print(x9.args)
+
+Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, no_throttle=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
+
+
+```
+
 ```js
 x9 = X9K3("https://iodisco.com/fu.ts")
 x9.decode()
 ```
 Setting  parameters
 * create an instance.
+
 ```js
+from x9k3 import X9K3
 x9 = X9K3()
 ```
 *  input source
@@ -397,7 +307,7 @@ x9.args.delete = True
 
 * add program date time tags ( also sets live )
 ```js
-self.args.program_date_time= True
+x9.args.program_date_time= True
 ```
 * set window size for live mode ( requires live ) 
 ```js
@@ -407,39 +317,7 @@ x9.args.window_size = 5
 ```js
 x9.run()
 ```
-* you can get a complete set of args and the defaults like this
-```js
-from x9k3 import X9K3
-x9 = X9K3()
-print(x9.args)
 
-Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
-
-
-```
-* argue can also be called to get the defaults
-```js
->>>> from x9k3 import X9K3, argue
->>>> args = argue()
-
->>>> args
-Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
-
->>>> args.replay =True
->>>> args.live = True
->>>> args.time = 6
->>>> args.window_size = 10
-
->>>> args
-Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
-
->>>> x9 = X9K3()
->>>> x9.args = args
-
->>>> x9.args
-Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=True, no_discontinuity=False, output_dir='.', program_date_time=False, replay=True, sidecar_file=None, shulga=False, time=6, hls_tag='x_cue', window_size=10, version=False)
-
-```
 [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
  
 
