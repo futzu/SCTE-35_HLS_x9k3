@@ -272,44 +272,44 @@ Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete
 from x9k3 import X9K3
 x9 = X9K3()
 ```
-*  input source
+*  `input source`
 
 ```smalltalk
 x9.args.input = "https://futzu.com/xaa.ts"   
 ```
-* hls_tag can be x_scte35, x_cue, x_daterange, or x_splicepoint
+* `hls_tag` can be x_scte35, x_cue, x_daterange, or x_splicepoint
 
-```js
+```smalltalk
 x9.args.hls tag = x_cue 
 ```
-* output directory default is "."
+* `output directory` default is "."
 ```js
 x9.args.output_dir="/home/a/stuff"
 ```
-* live
+* `live`
 ```smalltalk 
 x9.args.live = True
 ```
-* replay (loop video) ( also sets live )
+* `replay` (loop video) ( also sets live )
 ```js
 x9.args.replay = True
 ```
-* delete segments when they expire ( also sets live )
+* `delete` segments when they expire ( also sets live )
 ```js
 x9.args.delete = True
 ```
 
-* add program date time tags ( also sets live )
+* add `program date time` tags ( also sets live )
 ```js
 x9.args.program_date_time= True
 ```
-* set window size for live mode ( requires live ) 
+* set `window size` for live mode ( requires live ) 
 ```js
 x9.args.window_size = 5 
 ```
 * run 
 ```js
-x9.run()
+x9.decode()
 ```
 
 [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
