@@ -21,7 +21,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "39"
+MAINTAINENCE = "41"
 
 
 def version():
@@ -129,9 +129,9 @@ class X9K3(strm.Stream):
         if isinstance(self._tsdata, str):
             self._tsdata = reader(self._tsdata)
 
-    def _reload_chunk(self, segment):
+    def _reload_segment_data(self, segment):
         tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
-        chunk = Chunk(
+        segment_data = SegmentData(
             segment.relative_uri,
             segment.media,
             tmp_segnum,
@@ -139,8 +139,8 @@ class X9K3(strm.Stream):
         for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
             if this in segment.tags:
                 segment.tags.pop(this)
-        chunk.tags = segment.tags
-        self.window.slide_panes(chunk)
+        segment_data.tags = segment.tags
+        self.window.slide_panes(segment_data)
 
     def _reload_m3u8(self):
         """
@@ -157,7 +157,7 @@ class X9K3(strm.Stream):
         self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
         for segment in segments:
-            self._reload_chunk(segment)
+            self._reload_segment_data(segment)
         self.segnum = self.window.panes[-1].num + 1
         if self.args.live or self.args.continue_m3u8:
             self.window.slide_panes()
@@ -212,14 +212,14 @@ class X9K3(strm.Stream):
             ]
         )
 
-    def _add_discontinuity(self, chunk):
+    def _add_discontinuity(self, segment_data):
         """
         _add_discontinuity adds a discontinuity tag.
         """
         if not self.args.no_discontinuity:
-            chunk.add_tag("#EXT-X-DISCONTINUITY", None)
+            segment_data.add_tag("#EXT-X-DISCONTINUITY", None)
 
-    def _add_cue_tag(self, chunk):
+    def _add_cue_tag(self, segment_data):
         """
         _add_cue_tag adds SCTE-35 tags,
         auto CUE-INs, and discontinuity tags.
@@ -231,19 +231,19 @@ class X9K3(strm.Stream):
         tag = self.scte35.mk_cue_tag()
         if tag:
             if self.scte35.cue_state in ["OUT", "IN"]:
-                self._add_discontinuity(chunk)
+                self._add_discontinuity(segment_data)
             kay = tag
             vee = None
             if ":" in tag:
                 kay, vee = tag.split(":", 1)
-            chunk.add_tag(kay, vee)
+            segment_data.add_tag(kay, vee)
             print2(f"{kay} = {vee}")
 
-    def _chk_pdt_flag(self, chunk):
+    def _chk_pdt_flag(self, segment_data):
         if self.args.program_date_time:
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
-            chunk.add_tag("#Iframe", f" @ {self.started}")
-            chunk.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
+            segment_data.add_tag("#Iframe", f" @ {self.started}")
+            segment_data.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _chk_live(self, seg_time):
         if self.args.live:
@@ -252,32 +252,38 @@ class X9K3(strm.Stream):
                 self.timer.throttle(seg_time)
             self._discontinuity_seq_plus_one()
 
-    def _mk_chunk_tags(self, chunk, seg_time):
-        self._add_cue_tag(chunk)
-        self._chk_pdt_flag(chunk)
-        chunk.add_tag("#EXTINF", f"{seg_time:.6f},")
+    def _mk_segment_data_tags(self, segment_data, seg_time):
+        self._add_cue_tag(segment_data)
+        self._chk_pdt_flag(segment_data)
+        segment_data.add_tag("#EXTINF", f"{seg_time:.6f},")
 
     def _print_segment_details(self, seg_name, seg_time):
         one = f"{seg_name}:   start: {self.started:.6f}   "
-        two = f"end: {self.next_start:.6f}   duration: {seg_time:.6f}"
+        two = f"end: {self.now:.6f}   duration: {seg_time:.6f}"
         print2(f"{one}{two}")
 
+    def _mk_segment_data(self, seg_file, seg_name, seg_time):
+        segment_data = SegmentData(seg_file, seg_name, self.segnum)
+        if self.first_segment:
+            if self.args.replay or self.args.continue_m3u8:
+                self._add_discontinuity(segment_data)
+        self._mk_segment_data_tags(segment_data, seg_time)
+        self.window.slide_panes(segment_data)
+
+    def _write_segment_file(self,seg_name):
+        with open(seg_name, "wb") as seg:
+            seg.write(self.active_segment.getbuffer())
+
     def _write_segment(self):
-        if self.segnum is None:
+        if not self.segnum:
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
-        seg_time = round((self.next_start - self.started), 6)
-        with open(seg_name, "wb") as seg:
-            seg.write(self.active_segment.getbuffer())
+        seg_time = round((self.now - self.started), 6)
         if seg_time <= 0:
             return
-        chunk = Chunk(seg_file, seg_name, self.segnum)
-        if self.first_segment:
-            if self.args.replay or self.args.continue_m3u8:
-                self._add_discontinuity(chunk)
-        self._mk_chunk_tags(chunk, seg_time)
-        self.window.slide_panes(chunk)
+        self._write_segment_file(seg_name)
+        self._mk_segment_data(seg_file, seg_name, seg_time)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
         self._start_next_start()
@@ -304,7 +310,6 @@ class X9K3(strm.Stream):
         return False
 
     def _write_m3u8(self):
-        print("write_m3u8", time.time())
         self.media_seq = self.window.panes[0].num
         with open(self.m3u8uri(), "w+", encoding="utf8") as m3u8:
             m3u8.write(self._header())
@@ -361,7 +366,7 @@ class X9K3(strm.Stream):
                         self.scte35.cue.decode()
                         self.scte35.cue.show()
                         self._chk_cue_time(pid)
-                        self._chk_slice_point()
+                        self._chk_splice_point()
 
     def _discontinuity_seq_plus_one(self):
         if self.window.panes:
@@ -389,22 +394,15 @@ class X9K3(strm.Stream):
         if self.next_start + self.args.time > rollover:
             self._reset_stream()
 
-    def _chk_slice_point(self):
+    def _chk_splice_point(self):
         """
-        chk_slice_time checks for the slice point
+        _chk_splice_point checks for the slice point
         of a segment.
         """
         if self.started:
             if self.scte35.cue_time:
-                if self.started <= self.scte35.cue_time <= self.next_start:
+                if self.started < self.scte35.cue_time <self.next_start:
                     self.next_start = self.scte35.cue_time
-                if self.scte35.break_timer and self.scte35.break_duration:
-                    if (
-                        self.scte35.break_timer + self.args.time
-                        >= self.scte35.break_duration
-                    ):
-                        self.next_start = self.now
-                        print2(f"AUTO CUE IN @ {self.now}")
             if self.now >= self.next_start:
                 self.next_start = self.now
                 self._write_segment()
@@ -436,7 +434,7 @@ class X9K3(strm.Stream):
         _shulga_mode is mpeg2 video iframe detection
         """
         if self._rai_flag(pkt):
-            self._chk_slice_point()
+            self._chk_splice_point()
 
     def _parse_scte35(self, pkt, pid):
         """
@@ -449,6 +447,14 @@ class X9K3(strm.Stream):
             self._chk_cue_time(pid)
             self.add2sidecar(f"{self._adjusted_pts(cue, pid)}, {cue.encode()}")
         return cue
+
+    def _chk_iframe(self,pkt,pkt_pid):
+        i_pts = self.iframer.parse(pkt)
+        if i_pts:
+            self.now = i_pts
+            self.load_sidecar()
+            self._chk_sidecar_cues(pkt_pid)
+            self._chk_splice_point()
 
     def _parse(self, pkt):
         """
@@ -463,13 +469,7 @@ class X9K3(strm.Stream):
             if self.args.shulga:
                 self._shulga_mode(pkt)
             else:
-                i_pts = self.iframer.parse(pkt)
-                if i_pts:
-                    self.now = i_pts
-                    self.load_sidecar()
-                    self._chk_sidecar_cues(pkt_pid)
-                    self._chk_slice_point()
-
+                self._chk_iframe(pkt,pkt_pid)
         self.active_segment.write(pkt)
 
     def addendum(self):
@@ -817,7 +817,7 @@ class Timer:
         self.start(begin)
 
 
-class Chunk:
+class SegmentData:
     """
     Class to hold hls segment tags
     for a segment.
@@ -831,7 +831,7 @@ class Chunk:
 
     def get(self):
         """
-        get returns the Chunk data formated.
+        get returns the segment_data data formated.
         """
         this = []
         for kay, vee in self.tags.items():
