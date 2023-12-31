@@ -257,22 +257,16 @@ time : 2
 hls_tag : x_cue
 window_size : 5
 version : False
-
-#   or just
-
+```
+*   or just
+```lua
 >>>> print(x9.args)
 
 Namespace(input=<_io.BufferedReader name='<stdin>'>, continue_m3u8=False, delete=False, live=False, no_discontinuity=False, no_throttle=False, output_dir='.', program_date_time=False, replay=False, sidecar_file=None, shulga=False, time=2, hls_tag='x_cue', window_size=5, version=False)
-
-
 ```
 
-```js
-x9 = X9K3("https://iodisco.com/fu.ts")
-x9.decode()
-```
-Setting  parameters
-* create an instance.
+
+* Setting  parameters
 
 ```js
 from x9k3 import X9K3
@@ -280,7 +274,7 @@ x9 = X9K3()
 ```
 *  input source
 
-```js
+```smalltalk
 x9.args.input = "https://futzu.com/xaa.ts"   
 ```
 * hls_tag can be x_scte35, x_cue, x_daterange, or x_splicepoint
@@ -293,7 +287,7 @@ x9.args.hls tag = x_cue
 x9.args.output_dir="/home/a/stuff"
 ```
 * live
-```js 
+```smalltalk 
 x9.args.live = True
 ```
 * replay (loop video) ( also sets live )
