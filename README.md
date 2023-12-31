@@ -15,7 +15,7 @@ ___
 ---
 # `Heads Up`
 ## Now, everything works****
-**** _(I think)_
+**** _famous last words._
 ### Check Out `adbreak`
 * included with x9k3
 * adbreak generates SCTE35 Cues for CUE-OUT and CUE-IN in a sidecar file. 
