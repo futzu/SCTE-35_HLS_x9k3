@@ -14,11 +14,8 @@ ___
 
 ---
 # `Heads Up`
-### x9k3 is not finished, there are bugs. I am trying to fix them.
-### I keep getting sidetrack by people running unit tests for every possible combination of options.
-### This is not the time for fanatical testing of edge cases, that comes later.
-### Sorry, but If you're not sleeping with me or paying my bills, you're not a priority.
-
+## Now, everything works( I think). 
+### Time for fanatical edge case testing and stuff.
 ---
 
 
