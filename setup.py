@@ -16,7 +16,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/futzu/x9k3",
     py_modules=["x9k3"],
-    scripts=["bin/x9k3"],
+    scripts=["bin/x9k3","bin/adbreak"],
     platforms="all",
     install_requires=[
         "threefive >= 2.4.9",
