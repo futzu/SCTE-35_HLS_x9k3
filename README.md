@@ -12,24 +12,30 @@ ___
 # HLS + SCTE35 = x9k3
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
-# `Current Version`:  v.0.2.41 
+  
+### `Current Version`:  v.0.2.41 
+
+
+_'V0.2.41 is sweet. I have never said that about an x9k3 release. '_ ~Adrian 
+
+
 
 |  test               | command                | score                  |previous     |
 |---------------------|------------------------|------------------------|-------------|
-|cyclomatic complexity| radon cc -s -a  x9k3.py| __A (2.7037037037037037)__ |  A (2.807692)         |
-| pylint              |  pylint  x9k3.py       |   __9.97 / 10__| __9.97 / 10__ |
+|cyclomatic complexity| radon cc -s -a  x9k3.py    | __A (2.70370)__ |  A (2.807692)         |
+| pylint              |  pylint  x9k3.py       |   __9.97 / 10__    | 9.97 / 10      |
 
 * The recent __timing issues have been resolved.__
 * x9k3 was doing two different checks for AUTO CUE-IN and it was causing timing issues elsewhere.
    
 
 * __Some of the new stuff__:
-   * adbreak script to generate SCTE-35 Cues.
-   * m3u8 files as input. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
-   * segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
-   * discontinuity tags may now be omitted. `-n`, `--no_discontinuity`
+   * `adbreak` script to generate SCTE-35 Cues.
+   * `m3u8 files as input`. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
+   * `continue an m3u8 file.` Segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
+   * `discontinuity tags` may now be `omitted`. `-n`, `--no_discontinuity`
    * auto `CUE-IN`
-   * live throttling can be disabled with the `-N`, `--no_throttle` flag 
+   * live `throttling` can be `disabled` with the `-N`, `--no_throttle` flag 
 
 ---
 # `Heads Up`
