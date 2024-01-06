@@ -37,6 +37,14 @@ _'V0.2.41 is sweet. I have never said that about an x9k3 release. '_ ~Adrian
    * auto `CUE-IN`
    * live `throttling` can be `disabled` with the `-N`, `--no_throttle` flag 
 
+
+# `Issues`
+* If you have a problem, open an issue, but please keep the following in mind.
+      * I am super cool guy for putting x9k3 out there, please be pleasaant.
+      * If you have an issue, I needa piece of the stream that can demonstrate the problem. 
+      * [I am not your momma, don't come at me like this](https://github.com/futzu/x9k3/issues/32),
+      * If you're not paying me, do not be demanding. I will get to it when I can. If you are paying me, demanding is fine.
+      * If you want to ask me a bunch of questions about HLS and SCTE-35, I have an hourly rate.
 ---
 # `Heads Up`
 ### Check Out `adbreak`
