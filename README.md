@@ -9,12 +9,12 @@
 
 ___
 
-# HLS + SCTE35 = x9k3
+# HLS + SCTE35 = `x9k3`
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
-### `Current Version`:  v.0.2.43 
-Update x9k3.py
+## `Current Version`:  v.0.2.43
+* The `only supported version is the current version`. Keep up. 
 
 * __Some of the new stuff__:
    * Segment `start time` is now always read, never calculated. 
@@ -74,7 +74,7 @@ x9k3 -i input.ts -s sidecar.txt
 
 
 
-## `Features`
+# `Features`
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
    * __SCTE-35 Cues can be added from a [Sidecar File](#sidecar-files)__.
@@ -87,7 +87,7 @@ x9k3 -i input.ts -s sidecar.txt
 ---
 
 
-## `Requires` 
+# `Requires` 
 * python 3.6+ or pypy3
 * [threefive](https://github.com/futzu/scte35-threefive)  
 * [new_reader](https://github.com/futzu/new_reader)
@@ -95,7 +95,7 @@ x9k3 -i input.ts -s sidecar.txt
 
 
 
-## `Install`
+# `Install`
 * Use pip to install the the x9k3 lib and  executable script x9k3 (_will install threefive, new_reader and iframes too_)
 ```lua
 # python3
@@ -108,7 +108,7 @@ pypy3 -mpip install x9k3
 ```
 
 [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
-## `Details` 
+# `Details` 
 
 *  __X-SCTE35__, __X-CUE__, __X-DATERANGE__, or __X-SPLICEPOINT__ HLS tags can be generated. set with the `--hls_tag` switch.
 
@@ -120,8 +120,9 @@ pypy3 -mpip install x9k3
 *  If no pts time is present in the SCTE-35 cue, the segment is cut at the next iframe. 
 * SCTE-35 cues with a preroll are inserted at the splice point.
 
-## `How to Use`
-#
+# `How to Use`
+
+
 
 # `cli`
  
