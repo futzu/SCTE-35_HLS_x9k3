@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "43"
+MAINTAINENCE = "45"
 
 
 def version():
@@ -772,7 +772,7 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        if len(self.panes) > self.size * 3:
+        if len(self.panes) > self.size:
             self.popleft_pane()
 
 
