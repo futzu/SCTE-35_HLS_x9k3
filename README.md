@@ -13,23 +13,12 @@ ___
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
-### `Current Version`:  v.0.2.41 
-
-
-_'V0.2.41 is sweet. I have never said that about an x9k3 release. '_ ~Adrian 
-
-
-
-|  test               | command                | score                  |previous     |
-|---------------------|------------------------|------------------------|-------------|
-|cyclomatic complexity| radon cc -s -a  x9k3.py    | __A (2.70370)__ |  A (2.807692)         |
-| pylint              |  pylint  x9k3.py       |   __9.97 / 10__    | 9.97 / 10      |
-
-* The recent __timing issues have been resolved.__
-* x9k3 was doing two different checks for AUTO CUE-IN and it was causing timing issues elsewhere.
-   
+### `Current Version`:  v.0.2.43 
+Update x9k3.py
 
 * __Some of the new stuff__:
+   * Segment `start time` is now always read, never calculated. 
+   * Segment `duration verification` for segments that exceed the `target duration`. 
    * `adbreak` script to generate SCTE-35 Cues.
    * `m3u8 files as input`. Resegment and add SCTE-35 to an existing m3u8. `-i INPUT`, `--input INPUT`
    * `continue an m3u8 file.` Segments may be added to an existing m3u8, VOD or live. ` -c`, `--continue_m3u8 `
@@ -40,14 +29,13 @@ _'V0.2.41 is sweet. I have never said that about an x9k3 release. '_ ~Adrian
 
 # `Issues`
 
-* If you have a problem, open an issue, but __please keep the following in mind__.
+* If you have a problem, open an issue, but `please keep the following in mind`.
 
-  * __I am super cool guy__ for putting x9k3 out there, please be pleasaant.
-      
-   * If you have an issue, __I need a piece of the stream that can demonstrate the problem.__ 
-   * If you're not paying me, __do not be demanding__. I will get to it when I can.
-   * If you are paying me, __demanding is fine__.
-   * If you want to ask me a bunch of questions about HLS and SCTE-35, __I have an hourly rate__.
+  * `I am super cool guy` for putting x9k3 out there, please be pleasaant.     
+   * If you have an issue, `I need a piece of the stream that can demonstrate the problem.` 
+   * If you're not paying me, `do not be demanding`. I will get to it when I can.
+   * If you are paying me, `demanding is fine`.
+   * If you want to ask me a bunch of questions about HLS and SCTE-35, `I have an hourly rate`.
 ---
 # `Heads Up`
 ### Check Out `adbreak`
