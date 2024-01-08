@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "45"
+MAINTAINENCE = "47"
 
 
 def version():
@@ -169,8 +169,12 @@ class X9K3(strm.Stream):
         continue_m3u8 reads self.discontinuity_sequence
         and self.segnum from an existing index.m3u8.
         """
-        self._reload_m3u8()
-        print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
+        try:
+            self._reload_m3u8()
+            print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
+        except:
+            print2(f"Cannot continue {self.m3u8uri()}.")
+            print2 (f'Creating new {self.m3u8uri()}.')
 
     def m3u8uri(self):
         """
@@ -506,9 +510,46 @@ class X9K3(strm.Stream):
         self.timer.start()
         if isinstance(self.args.input, str) and ("m3u8" in self.args.input):
             self.decode_m3u8(self.args.input)
+        elif isinstance(self.args.input, str) and ("playlist" in self.args.input):
+            self.decode_playlist(self.args.input)
         else:
             super().decode()
         self.addendum()
+
+
+    def decode_playlist(self, playlist):
+        """
+        decode_playlist parses a playlist file
+        and segments all the media into 1 stream.
+        A playlist file is a list of media OR media,sidecar lines
+        Example:
+
+        /home/a/video.ts
+        /home/a/othervideo.ts,/home/a/other_sidecar.txt
+        https://futzu.com/xaa.ts
+        
+        """
+        comma = ','
+        octothorpe ='#'
+        with reader(playlist) as playlist:
+            for line in playlist.readlines():
+                if not line:
+                    break
+                line = self._clean_line(line)
+                media = line.split(octothorpe)[0]
+                if media:
+                    if comma in media:
+                        media,sidecar = media.split(comma)
+                    try:
+                        print2(f'loading media {media}')
+                        x9 =X9K3(media)
+                        if sidecar:
+                            print2(f'loading sidecar file {sidecar}')
+                            x9.args.sidecar_file = sidecar
+                        x9.continue_m3u8()
+                        x9.decode()
+                    except:
+                        print2(f'Unable to load {line}')
 
     @staticmethod
     def _clean_line(line):
@@ -772,7 +813,7 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        if len(self.panes) > self.size:
+        if len(self.panes) > self.size :
             self.popleft_pane()
 
 
