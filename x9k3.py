@@ -14,14 +14,15 @@ from operator import itemgetter
 from pathlib import Path
 from new_reader import reader
 from iframes import IFramer
-from threefive import Cue, print2
+from threefive import Cue, print2, Segment
 import threefive.stream as strm
+
 from m3ufu import M3uFu
 
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "41"
+MAINTAINENCE = "43"
 
 
 def version():
@@ -242,7 +243,6 @@ class X9K3(strm.Stream):
     def _chk_pdt_flag(self, segment_data):
         if self.args.program_date_time:
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
-            segment_data.add_tag("#Iframe", f" @ {self.started}")
             segment_data.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
     def _chk_live(self, seg_time):
@@ -255,6 +255,7 @@ class X9K3(strm.Stream):
     def _mk_segment_data_tags(self, segment_data, seg_time):
         self._add_cue_tag(segment_data)
         self._chk_pdt_flag(segment_data)
+        segment_data.add_tag("#Iframe", f" @ {self.started}")
         segment_data.add_tag("#EXTINF", f"{seg_time:.6f},")
 
     def _print_segment_details(self, seg_name, seg_time):
@@ -270,7 +271,7 @@ class X9K3(strm.Stream):
         self._mk_segment_data_tags(segment_data, seg_time)
         self.window.slide_panes(segment_data)
 
-    def _write_segment_file(self,seg_name):
+    def _write_segment_file(self, seg_name):
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
 
@@ -283,10 +284,21 @@ class X9K3(strm.Stream):
         if seg_time <= 0:
             return
         self._write_segment_file(seg_name)
+        if seg_time > self.args.time + 1:
+            try:
+                stuff = f"Verifying {seg_name} time of {seg_time}"
+                print2(stuff)
+                s = Segment(seg_name)
+                s.decode()
+                seg_time = round(s.pts_last - s.pts_start, 6)
+                stuff = f"Setting {seg_name} time to {seg_time}"
+                print2(stuff)
+            except:
+                print2(f"Unable to verify {seg_name}  time of {seg_time}")
         self._mk_segment_data(seg_file, seg_name, seg_time)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
-        self._start_next_start()
+        self._reset_stream()
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
@@ -360,7 +372,7 @@ class X9K3(strm.Stream):
                 splice_pts = float(s[0])
                 splice_cue = s[1]
                 if self.started:
-                    if self.started <= splice_pts < self.next_start:
+                    if self.started <= splice_pts <= self.now:
                         self.sidecar.remove(s)
                         self.scte35.cue = Cue(splice_cue)
                         self.scte35.cue.decode()
@@ -401,7 +413,7 @@ class X9K3(strm.Stream):
         """
         if self.started:
             if self.scte35.cue_time:
-                if self.started < self.scte35.cue_time <self.next_start:
+                if self.started < self.scte35.cue_time < self.next_start:
                     self.next_start = self.scte35.cue_time
             if self.now >= self.next_start:
                 self.next_start = self.now
@@ -448,7 +460,7 @@ class X9K3(strm.Stream):
             self.add2sidecar(f"{self._adjusted_pts(cue, pid)}, {cue.encode()}")
         return cue
 
-    def _chk_iframe(self,pkt,pkt_pid):
+    def _chk_iframe(self, pkt, pkt_pid):
         i_pts = self.iframer.parse(pkt)
         if i_pts:
             self.now = i_pts
@@ -469,7 +481,7 @@ class X9K3(strm.Stream):
             if self.args.shulga:
                 self._shulga_mode(pkt)
             else:
-                self._chk_iframe(pkt,pkt_pid)
+                self._chk_iframe(pkt, pkt_pid)
         self.active_segment.write(pkt)
 
     def addendum(self):
@@ -490,6 +502,7 @@ class X9K3(strm.Stream):
         and starts parsing.
         """
         self.apply_args()
+        _ = {print(k, "=", v) for k, v in vars(self.args).items()}
         self.timer.start()
         if isinstance(self.args.input, str) and ("m3u8" in self.args.input):
             self.decode_m3u8(self.args.input)
@@ -509,6 +522,7 @@ class X9K3(strm.Stream):
         _parse_m3u8_media parse a segment from
         a m3u8 input file if it has not been parsed.
         """
+        # max_media  cover's CNN's gigantic sliding window size of 100.
         max_media = 111
         if media not in self.media_list:
             self.media_list.append(media)
@@ -573,8 +587,7 @@ class SCTE35:
 
     def chk_cue_state(self):
         """
-        chk_cue_state changes
-        self.cue_state
+        chk_cue_state changes self.cue_state
         """
         if self.cue_state == "OUT":
             self.cue_state = "CONT"
@@ -595,8 +608,6 @@ class SCTE35:
             self.break_timer = 0.0
             if self.cue_time and self.break_duration:
                 self.cue_time += self.break_duration
-        #      self.cue_state='CONT'
-        #   print(f'cue_time {self.cue_time}
         if self.is_cue_in(self.cue):
             # the next line causes splice immediate break returns to fail.
             # if self.break_timer >= self.break_duration:
@@ -810,7 +821,7 @@ class Timer:
         to simulate live streaming.
         """
         self.stop(end)
-        diff = round((seg_time - self.lap_time) * 0.9, 2)
+        diff = round((seg_time - self.lap_time), 2)
         if diff > 0:
             print2(f"throttling {diff}")
             time.sleep(diff)
@@ -975,9 +986,6 @@ def argue():
 def cli():
     """
     cli provides one function call for running X9K3.
-
-     from X9K3 import cli
-     cli()
     """
     args = argue()
     x9 = X9K3()
