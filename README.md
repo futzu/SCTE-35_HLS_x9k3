@@ -31,25 +31,25 @@ ___
 # `Heads Up`
 
 ## `playlist` support ( boom goes the dynamite)
-* playlist support in v0.2.47
-* a playlist file has a '.playlist' extention
-* lines in a playlist file are media or media,sidecar
-  * index.m3u8 is continued.
+* `playlist` support in v0.2.47
+* `a playlist file` has a `.playlist` extention
+* `lines` in a playlist file are `media` or `media,sidecar`
+  * `index.m3u8` is `continued`.
   * All x9k3 options are supported,
-       * sidecar files are auto loaded from playlist no need to use --sidecar_file 
-  * a sidecar file in the playlist file is only applied to the associated media.
-  * a playlist can have media with and without sidecar files.
-  * a playlist may contain other playlists. 
+       * `sidecar files` are `auto loaded` from `playlist` no need to use --sidecar_file 
+  * a `sidecar file` in the `playlist` file is `only applied to the associated media`.
+  * a playlist can have `media with and without sidecar files`.
+  * a playlist may `contain other playlists`. 
  ### Example:
  * fu.playlist
-```smalltalk
+```js
 /home/a/video.ts,sidecar.txt
 /home/a/othervideo.ts,/home/a/other_sidecar.txt  # Comments are allowed here
 https://futzu.com/xaa.ts
 # Comments are also allowed here.
 /home/a/index37.m3u8
 # A playlist can have playlists
-2.playlist
+/home/a/2.playlist
 
  ```
 ### Using:
