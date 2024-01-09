@@ -48,8 +48,9 @@ ___
 https://futzu.com/xaa.ts
 # Comments are also allowed here.
 /home/a/index37.m3u8
-2.playlist    # A playlist can have playlists
-# UDP and Multicast won't really work in a playlist, they don't work that way.
+# A playlist can have playlists
+2.playlist
+
  ```
 ### Using:
 ```lua
