@@ -13,9 +13,8 @@ ___
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
-# Current Version:  `v.0.2.47`
+# Current Version:  `v.0.2.49`
 * The `only supported version is the current version`. Keep up.
- ![image](https://github.com/futzu/x9k3/assets/52701496/85703d95-d39a-470e-b9f7-f86c80d85337)
 
 
 * __Some of the new stuff__:
