@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "47"
+MAINTAINENCE = "49"
 
 
 def version():
@@ -527,10 +527,11 @@ class X9K3(strm.Stream):
         /home/a/video.ts
         /home/a/othervideo.ts,/home/a/other_sidecar.txt
         https://futzu.com/xaa.ts
-        
+
         """
         comma = ','
         octothorpe ='#'
+        sidecar = None
         with reader(playlist) as playlist:
             for line in playlist.readlines():
                 if not line:
@@ -542,10 +543,11 @@ class X9K3(strm.Stream):
                         media,sidecar = media.split(comma)
                     try:
                         print2(f'loading media {media}')
-                        x9 =X9K3(media)
+                        x9 =X9K3()
                         if sidecar:
                             print2(f'loading sidecar file {sidecar}')
                             x9.args.sidecar_file = sidecar
+                        x9.args.input=media
                         x9.continue_m3u8()
                         x9.decode()
                     except:
