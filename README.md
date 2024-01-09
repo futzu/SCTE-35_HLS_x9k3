@@ -15,6 +15,7 @@ ___
   
 # Current Version:  `v.0.2.47`
 * The `only supported version is the current version`. Keep up. 
+![image](https://github.com/futzu/x9k3/assets/52701496/2ceb0072-d888-4c44-ae23-cb5eddef2293)
 
 * __Some of the new stuff__:
    * `Playlist` support. 
