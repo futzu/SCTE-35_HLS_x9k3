@@ -92,20 +92,6 @@ x9k3 -i input.ts -s sidecar.txt
 <br>
 
 
-
-
-
-# `Issues`
-
-* If you have a problem, open an issue, but `please keep the following in mind`.
-
-  * `I am super cool guy` for putting x9k3 out there, please be pleasaant.     
-   * If you have an issue, `I need a piece of the stream that can demonstrate the problem.` 
-   * If you're not paying me, `do not be demanding`. I will get to it when I can.
-   * If you are paying me, `demanding is fine`.
-   * If you want to ask me a bunch of questions about HLS and SCTE-35, `I have an hourly rate`.
----
-
 # `Features`
 
    * __SCTE-35 Cues__ in __Mpegts Streams__ are Translated into __HLS tags__.
