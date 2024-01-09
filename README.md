@@ -14,8 +14,9 @@ ___
 
   
 # Current Version:  `v.0.2.47`
-* The `only supported version is the current version`. Keep up. 
-![image](https://github.com/futzu/x9k3/assets/52701496/2ceb0072-d888-4c44-ae23-cb5eddef2293)
+* The `only supported version is the current version`. Keep up.
+ ![image](https://github.com/futzu/x9k3/assets/52701496/85703d95-d39a-470e-b9f7-f86c80d85337)
+
 
 * __Some of the new stuff__:
    * `Playlist` support. 
@@ -52,14 +53,15 @@ ___
   * a playlist can have media with and without sidecar files.
  ### Example:
  * fu.playlist
-```lua
+```smalltalk
 /home/a/video.ts,sidecar.txt
 /home/a/othervideo.ts,/home/a/other_sidecar.txt  # Comments are allowed here
 https://futzu.com/xaa.ts
 # Comments are also allowed here.
 /home/a/index37.m3u8
+# UDP and Multicast won't really work in a playlist, they don't work that way.
  ```
-### Using
+### Using:
 ```lua
 x9k3 -i fu.playlist -o output_dir -l
 ```
