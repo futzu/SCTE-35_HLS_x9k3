@@ -28,17 +28,6 @@ ___
    * auto `CUE-IN`
    * live `throttling` can be `disabled` with the `-N`, `--no_throttle` flag 
 
-
-# `Issues`
-
-* If you have a problem, open an issue, but `please keep the following in mind`.
-
-  * `I am super cool guy` for putting x9k3 out there, please be pleasaant.     
-   * If you have an issue, `I need a piece of the stream that can demonstrate the problem.` 
-   * If you're not paying me, `do not be demanding`. I will get to it when I can.
-   * If you are paying me, `demanding is fine`.
-   * If you want to ask me a bunch of questions about HLS and SCTE-35, `I have an hourly rate`.
----
 # `Heads Up`
 
 ## `playlist` support ( boom goes the dynamite)
@@ -50,6 +39,7 @@ ___
        * sidecar files are auto loaded from playlist no need to use --sidecar_file 
   * a sidecar file in the playlist file is only applied to the associated media.
   * a playlist can have media with and without sidecar files.
+  * a playlist may contain other playlists. 
  ### Example:
  * fu.playlist
 ```smalltalk
@@ -58,6 +48,7 @@ ___
 https://futzu.com/xaa.ts
 # Comments are also allowed here.
 /home/a/index37.m3u8
+2.playlist    # A playlist can have playlists
 # UDP and Multicast won't really work in a playlist, they don't work that way.
  ```
 ### Using:
@@ -100,6 +91,19 @@ x9k3 -i input.ts -s sidecar.txt
 <br>
 
 
+
+
+
+# `Issues`
+
+* If you have a problem, open an issue, but `please keep the following in mind`.
+
+  * `I am super cool guy` for putting x9k3 out there, please be pleasaant.     
+   * If you have an issue, `I need a piece of the stream that can demonstrate the problem.` 
+   * If you're not paying me, `do not be demanding`. I will get to it when I can.
+   * If you are paying me, `demanding is fine`.
+   * If you want to ask me a bunch of questions about HLS and SCTE-35, `I have an hourly rate`.
+---
 
 # `Features`
 
