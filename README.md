@@ -18,7 +18,6 @@ ___
 
 
 * __Some of the new stuff__:
-   * `Playlist` support. 
    * Segment `start time` is now always read, never calculated. 
    * Segment `duration verification` for segments that exceed the `target duration`. 
    * `adbreak` script to generate SCTE-35 Cues.
@@ -30,32 +29,6 @@ ___
 
 # `Heads Up`
 
-## `playlist` support ( boom goes the dynamite)
-* `playlist` support in v0.2.47
-* `a playlist file` has a `.playlist` extention
-* `lines` in a playlist file are `media` or `media,sidecar`
-  * `index.m3u8` is `continued`.
-  * All x9k3 options are supported,
-       * `sidecar files` are `auto loaded` from `playlist` no need to use --sidecar_file 
-  * a `sidecar file` in the `playlist` file is `only applied to the associated media`.
-  * a playlist can have `media with and without sidecar files`.
-  * a playlist may `contain other playlists`. 
- ### Example:
- * fu.playlist
-```js
-/home/a/video.ts,sidecar.txt
-/home/a/othervideo.ts,/home/a/other_sidecar.txt  # Comments are allowed here
-https://futzu.com/xaa.ts
-# Comments are also allowed here.
-/home/a/index37.m3u8
-# A playlist can have playlists
-/home/a/2.playlist
-
- ```
-### Using:
-```lua
-x9k3 -i fu.playlist -o output_dir -l
-```
 
 ###  `adbreak`
 * included with x9k3
