@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "49"
+MAINTAINENCE = "51"
 
 
 def version():
@@ -137,10 +137,18 @@ class X9K3(strm.Stream):
             segment.media,
             tmp_segnum,
         )
+        self.segnum = tmp_segnum
         for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
             if this in segment.tags:
                 segment.tags.pop(this)
         segment_data.tags = segment.tags
+        if "#EXTINF" in segment.tags:
+            segment.tags["#EXTINF"] = f'{segment.tags["#EXTINF"] },'
+        for line in segment.lines:
+            if "#EXT-X-CUE-IN" in line:
+                segment_data.tags["#EXT-X-CUE-IN"] = None
+            if "#EXT-X-DISCONTINUITY" in line:
+                segment_data.tags["#EXT-X-DISCONTINUITY"] = None
         self.window.slide_panes(segment_data)
 
     def _reload_m3u8(self):
@@ -148,6 +156,7 @@ class X9K3(strm.Stream):
         m3u8_reload is called when the continue_m3u8 option is set.
         """
         m3 = M3uFu()
+        m3.window_size = None
         tmp_name = self.mk_uri(self.args.output_dir, "tmp.m3u8")
         with open(tmp_name, "w", encoding="utf8") as tmp_m3u8:
             with open(self.m3u8uri(), "r", encoding="utf8") as m3u8:
@@ -155,26 +164,26 @@ class X9K3(strm.Stream):
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
-        self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
+        if "#EXT-X-DISCONTINUITY-SEQUENCE" in m3.headers:
+            self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
         for segment in segments:
             self._reload_segment_data(segment)
-        self.segnum = self.window.panes[-1].num + 1
-        if self.args.live or self.args.continue_m3u8:
+        # if self.window.panes:
+        if self.args.live:
             self.window.slide_panes()
         os.unlink(tmp_name)
+        self.first_segment = True
 
     def continue_m3u8(self):
         """
         continue_m3u8 reads self.discontinuity_sequence
         and self.segnum from an existing index.m3u8.
         """
-        try:
+        if os.path.isfile(self.m3u8uri()):
             self._reload_m3u8()
+            self.segnum += 1
             print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
-        except:
-            print2(f"Cannot continue {self.m3u8uri()}.")
-            print2 (f'Creating new {self.m3u8uri()}.')
 
     def m3u8uri(self):
         """
@@ -246,6 +255,7 @@ class X9K3(strm.Stream):
 
     def _chk_pdt_flag(self, segment_data):
         if self.args.program_date_time:
+            segment_data.add_tag("#Iframe", f" @ {self.started}")
             iso8601 = f"{datetime.datetime.utcnow().isoformat()}Z"
             segment_data.add_tag("#EXT-X-PROGRAM-DATE-TIME", f"{iso8601}")
 
@@ -259,7 +269,6 @@ class X9K3(strm.Stream):
     def _mk_segment_data_tags(self, segment_data, seg_time):
         self._add_cue_tag(segment_data)
         self._chk_pdt_flag(segment_data)
-        segment_data.add_tag("#Iframe", f" @ {self.started}")
         segment_data.add_tag("#EXTINF", f"{seg_time:.6f},")
 
     def _print_segment_details(self, seg_name, seg_time):
@@ -488,14 +497,21 @@ class X9K3(strm.Stream):
                 self._chk_iframe(pkt, pkt_pid)
         self.active_segment.write(pkt)
 
-    def addendum(self):
+    def _last_buff(self):
         """
-        addendum post stream parsing related tasks.
+        _last_buff writes antthing left in the
+        active_segment buffer for the last segment.
         """
         buff = self.active_segment.getbuffer()
         if buff:
             self._write_segment()
             time.sleep(0.5)
+
+    def addendum(self):
+        """
+        addendum post stream parsing related tasks.
+        """
+        self._last_buff()
         if not self.args.live:
             with open(self.m3u8uri(), "a", encoding="utf8") as m3u8:
                 m3u8.write("#EXT-X-ENDLIST")
@@ -510,55 +526,9 @@ class X9K3(strm.Stream):
         self.timer.start()
         if isinstance(self.args.input, str) and ("m3u8" in self.args.input):
             self.decode_m3u8(self.args.input)
-        elif isinstance(self.args.input, str) and ("playlist" in self.args.input):
-            self.decode_playlist(self.args.input)
         else:
             super().decode()
         self.addendum()
-
-
-    def decode_playlist(self, playlist):
-        """
-        decode_playlist parses a playlist file
-        and segments all the media into 1 stream.
-        A playlist file is a list of media OR media,sidecar lines
-        Example:
-
-        /home/a/video.ts
-        /home/a/othervideo.ts,/home/a/other_sidecar.txt
-        https://futzu.com/xaa.ts
-
-        """
-        comma = ','
-        octothorpe ='#'
-        sidecar = None
-        with reader(playlist) as playlist:
-            for line in playlist.readlines():
-                if not line:
-                    break
-                line = self._clean_line(line)
-                media = line.split(octothorpe)[0]
-                if media:
-                    if comma in media:
-                        media,sidecar = media.split(comma)
-                    try:
-                        print2(f'loading media {media}')
-                        x9 =X9K3()
-                        if sidecar:
-                            print2(f'loading sidecar file {sidecar}')
-                            x9.args.sidecar_file = sidecar
-                        x9.args.input=media
-                        x9.continue_m3u8()
-                        x9.decode()
-                    except:
-                        print2(f'Unable to load {line}')
-
-    @staticmethod
-    def _clean_line(line):
-        if isinstance(line, bytes):
-            line = line.decode(errors="ignore")
-        line = line.replace("\n", "").replace("\r", "")
-        return line
 
     def _parse_m3u8_media(self, media):
         """
@@ -591,7 +561,7 @@ class X9K3(strm.Stream):
                 for line in m3u8:
                     if not line:
                         break
-                    line = self._clean_line(line)
+                    line = _clean_line(line)
                     if self._endlist(line):
                         return False
                     if line.startswith("#"):
@@ -815,7 +785,7 @@ class SlidingWindow:
         """
         if a_pane:
             self.push_pane(a_pane)
-        if len(self.panes) > self.size :
+        if len(self.panes) > self.size:
             self.popleft_pane()
 
 
@@ -1026,17 +996,66 @@ def argue():
     return parser.parse_args()
 
 
+def _clean_line(line):
+    if isinstance(line, bytes):
+        line = line.decode(errors="ignore")
+    line = line.replace("\n", "").replace("\r", "")
+    return line
+
+
+def decode_playlist(playlist):
+    """
+    decode_playlist parses a playlist file
+    and segments all the media into 1 stream.
+    A playlist file is a list of media OR media,sidecar lines
+    Example:
+
+    /home/a/video.ts
+    /home/a/othervideo.ts,/home/a/other_sidecar.txt
+    https://futzu.com/xaa.ts
+
+    """
+    comma = ","
+    octothorpe = "#"
+    sidecar = None
+    first = True
+    with reader(playlist) as playlist:
+        for line in playlist.readlines():
+            if not line:
+                break
+            line = _clean_line(line)
+            media = line.split(octothorpe)[0]
+            if media:
+                if comma in media:
+                    media, sidecar = media.split(comma)
+                print2(f"loading media {media}")
+                x9 = X9K3()
+                if sidecar:
+                    print2(f"loading sidecar file {sidecar}")
+                    x9.args.sidecar_file = sidecar
+                x9.args.input = media
+                if first:
+                    x9.decode()
+                    first = False
+                else:
+                    x9.continue_m3u8()
+                    x9.decode()
+
+
 def cli():
     """
     cli provides one function call for running X9K3.
     """
     args = argue()
-    x9 = X9K3()
-    x9.decode()
-    while args.replay:
+    if isinstance(args.input, str) and ("playlist" in args.input):
+        decode_playlist(args.input)
+    else:
         x9 = X9K3()
-        x9.continue_m3u8()
         x9.decode()
+        while args.replay:
+            x9 = X9K3()
+            x9.continue_m3u8()
+            x9.decode()
 
 
 if __name__ == "__main__":
