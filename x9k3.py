@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "51"
+MAINTAINENCE = "53"
 
 
 def version():
@@ -164,9 +164,11 @@ class X9K3(strm.Stream):
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
+        print(m3.headers)
         if "#EXT-X-DISCONTINUITY-SEQUENCE" in m3.headers:
             self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
+        m3.segments[-1].tags["#EXT-X-DISCONTINUITY"] = None
         for segment in segments:
             self._reload_segment_data(segment)
         # if self.window.panes:
@@ -336,6 +338,7 @@ class X9K3(strm.Stream):
 
     def _write_m3u8(self):
         self.media_seq = self.window.panes[0].num
+        self._discontinuity_seq_plus_one()
         with open(self.m3u8uri(), "w+", encoding="utf8") as m3u8:
             m3u8.write(self._header())
             m3u8.write(self.window.all_panes())
