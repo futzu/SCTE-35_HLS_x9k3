@@ -13,11 +13,13 @@ ___
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
-# Current Version:  `v.0.2.53`
+# Current Version:  `v.0.2.55`
 * The `only supported version is the current version`. Keep up.
  * playlists.
 
 * __Some of the new stuff__:
+   * x9k3 can now generate byterange m3u8 files with `-b` or `--byterange` 
+   * `Playlists` can now be used as input.
    * Segment `start time` is now always read, never calculated. 
    * Segment `duration verification` for segments that exceed the `target duration`. 
    * `adbreak` script to generate SCTE-35 Cues.
