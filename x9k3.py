@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "53"
+MAINTAINENCE = "55"
 
 
 def version():
@@ -59,6 +59,8 @@ class X9K3(strm.Stream):
         self.media_list = deque()
         self.now = None
         self.last_sidelines = ""
+        self.started_byte = 0
+        self.now_byte = 0
 
     def _args_version(self):
         if self.args.version:
@@ -164,7 +166,6 @@ class X9K3(strm.Stream):
                 tmp_m3u8.write("\n#EXT-X-ENDLIST\n")
         m3.m3u8 = tmp_name
         m3.decode()
-        print(m3.headers)
         if "#EXT-X-DISCONTINUITY-SEQUENCE" in m3.headers:
             self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
         segments = list(m3.segments)
@@ -210,7 +211,7 @@ class X9K3(strm.Stream):
         header generates the m3u8 header lines
         """
         m3u = "#EXTM3U"
-        m3u_version = "#EXT-X-VERSION:3"
+        m3u_version = "#EXT-X-VERSION:4"
         target = f"#EXT-X-TARGETDURATION:{int(self.args.time+1)}"
         seq = f"#EXT-X-MEDIA-SEQUENCE:{self.media_seq}"
         dseq = f"#EXT-X-DISCONTINUITY-SEQUENCE:{self.discontinuity_sequence}"
@@ -272,6 +273,10 @@ class X9K3(strm.Stream):
         self._add_cue_tag(segment_data)
         self._chk_pdt_flag(segment_data)
         segment_data.add_tag("#EXTINF", f"{seg_time:.6f},")
+        tag = "#EXT-X-BYTERANGE"
+        val = f"{self.now_byte - self.started_byte}@{self.started_byte}"
+        if self.is_byterange():
+            segment_data.add_tag(tag, val)
 
     def _print_segment_details(self, seg_name, seg_time):
         one = f"{seg_name}:   start: {self.started:.6f}   "
@@ -290,34 +295,49 @@ class X9K3(strm.Stream):
         with open(seg_name, "wb") as seg:
             seg.write(self.active_segment.getbuffer())
 
+    def is_byterange(self):
+        """
+        is byterange returns True if m3u8 is byterange.
+        """
+        if self.args.byterange and ".ts" in self.args.input:
+            return True
+        return False
+
     def _write_segment(self):
         if not self.segnum:
             self.segnum = 0
         seg_file = f"seg{self.segnum}.ts"
         seg_name = self.mk_uri(self.args.output_dir, seg_file)
+        if self.is_byterange():
+            seg_name = self.args.input
+            seg_file = self.args.input
         seg_time = round((self.now - self.started), 6)
         if seg_time <= 0:
             return
-        self._write_segment_file(seg_name)
-        if seg_time > self.args.time + 1:
-            try:
-                stuff = f"Verifying {seg_name} time of {seg_time}"
-                print2(stuff)
-                s = Segment(seg_name)
-                s.decode()
-                seg_time = round(s.pts_last - s.pts_start, 6)
-                stuff = f"Setting {seg_name} time to {seg_time}"
-                print2(stuff)
-            except:
-                print2(f"Unable to verify {seg_name}  time of {seg_time}")
+        if not self.is_byterange():
+            self._write_segment_file(seg_name)
+            if seg_time > self.args.time + 2:
+                try:
+                    stuff = f"Verifying {seg_name} time of {seg_time}"
+                    print2(stuff)
+                    s = Segment(seg_name)
+                    s.decode()
+                    seg_time = round(s.pts_last - s.pts_start, 6)
+                    stuff = f"Setting {seg_name} time to {seg_time}"
+                    print2(stuff)
+                except:
+                    print2(f"Unable to verify {seg_name}  time of {seg_time}")
         self._mk_segment_data(seg_file, seg_name, seg_time)
         self._write_m3u8()
         self._print_segment_details(seg_name, seg_time)
-        self._reset_stream()
+        #   self._reset_stream()
         if self.scte35.break_timer is not None:
             self.scte35.break_timer += seg_time
         self.scte35.chk_cue_state()
         self._chk_live(seg_time)
+        self._start_next_start(pts=self.now)
+        print2(f"Byte Range: {self.now_byte - self.started_byte}@{self.now_byte}")
+        self.started_byte = self.now_byte
 
     def _clear_endlist(self, lines):
         return [line for line in lines if not self._endlist(line)]
@@ -489,6 +509,7 @@ class X9K3(strm.Stream):
         _parse is run on every packet.
         """
         super()._parse(pkt)
+        self.now_byte += 188
         pkt_pid = self._parse_pid(pkt[1], pkt[2])
         self.now = self.pid2pts(pkt_pid)
         if not self.started:
@@ -498,7 +519,8 @@ class X9K3(strm.Stream):
                 self._shulga_mode(pkt)
             else:
                 self._chk_iframe(pkt, pkt_pid)
-        self.active_segment.write(pkt)
+        if not self.is_byterange():
+            self.active_segment.write(pkt)
 
     def _last_buff(self):
         """
@@ -538,8 +560,7 @@ class X9K3(strm.Stream):
         _parse_m3u8_media parse a segment from
         a m3u8 input file if it has not been parsed.
         """
-        # max_media  cover's CNN's gigantic sliding window size of 100.
-        max_media = 111
+        max_media = 10101
         if media not in self.media_list:
             self.media_list.append(media)
             while len(self.media_list) > max_media:
@@ -887,9 +908,18 @@ def argue():
         "-i",
         "--input",
         default=sys.stdin.buffer,
-        help=""" Input source, like
-                        /home/a/vid.ts  or  udp://@235.35.3.5:3535  or  https://futzu.com/xaa.ts  or  https://example.com/not_a_master.m3u8  [default: stdin]
+        help=""" The Input video  can be mpegts or m3u8 with mpegts segments,
+                        or a playlist with mpegts files and/or mpegts m3u8 files.
+                    The input can be a local video, http(s), udp, multicast or stdin.
             """,
+    )
+    parser.add_argument(
+        "-b",
+        "--byterange",
+        action="store_const",
+        default=False,
+        const=True,
+        help="Flag for byterange hls [default:False]",
     )
     parser.add_argument(
         "-c",
@@ -1022,8 +1052,8 @@ def decode_playlist(playlist):
     octothorpe = "#"
     sidecar = None
     first = True
-    with reader(playlist) as playlist:
-        for line in playlist.readlines():
+    with reader(playlist) as plist:
+        for line in plist.readlines():
             if not line:
                 break
             line = _clean_line(line)
