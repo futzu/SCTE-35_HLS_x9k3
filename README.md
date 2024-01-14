@@ -122,20 +122,20 @@ pypy3 -mpip install x9k3
  
 ```smalltalk
 a@fu:~/x9k3-repo$ x9k3 -h
+usage: x9k3 [-h] [-i INPUT] [-b] [-c] [-d] [-l] [-n] [-N] [-o OUTPUT_DIR] [-p]
+            [-r] [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG]
+            [-w WINDOW_SIZE] [-v]
 
-usage: x9k3 [-h] [-i INPUT] [-c] [-d] [-l] [-n] [-o OUTPUT_DIR] [-p] [-r]
-            [-s SIDECAR_FILE] [-S] [-t TIME] [-T HLS_TAG] [-w WINDOW_SIZE]
-            [-v]
-
-
-options:
-
+optional arguments:
   -h, --help            show this help message and exit
 
   -i INPUT, --input INPUT
-                        Input source, like /home/a/vid.ts or
-                        udp://@235.35.3.5:3535 or https://futzu.com/xaa.ts or
-                        https://example.com/not_a_master.m3u8 [default: stdin]
+                        The Input video can be mpegts or m3u8 with mpegts
+                        segments, or a playlist with mpegts files and/or
+                        mpegts m3u8 files. The input can be a local video,
+                        http(s), udp, multicast or stdin.
+
+  -b, --byterange       Flag for byterange hls [default:False]
 
   -c, --continue_m3u8   Resume writing index.m3u8 [default:False]
 
@@ -143,13 +143,14 @@ options:
 
   -l, --live            Flag for a live event (enables sliding window m3u8)
                         [default:False]
-
   -n, --no_discontinuity
                         Flag to disable adding #EXT-X-DISCONTINUITY tags at
                         splice points [default:False]
 
+  -N, --no-throttle     disable live throttling [default:False]
+
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Directory for segments and index.m3u8 (created if
+                        Directory for segments and index.m3u8(created if
                         needed) [default:'.']
 
   -p, --program_date_time
@@ -160,7 +161,8 @@ options:
                         [default:False]
 
   -s SIDECAR_FILE, --sidecar_file SIDECAR_FILE
-                        Sidecar file of SCTE-35 (pts,cue) pairs.[default:None]
+                        Sidecar file of SCTE-35 (pts,cue) pairs.
+                        [default:None]
 
   -S, --shulga          Flag to enable Shulga iframe detection mode
                         [default:False]
@@ -175,6 +177,7 @@ options:
                         sliding window size (enables --live) [default:5]
 
   -v, --version         Show version
+
 ```
 
 ### Example Usage
