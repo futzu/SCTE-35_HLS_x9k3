@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "57"
+MAINTAINENCE = "58"
 
 
 def version():
@@ -217,6 +217,8 @@ class X9K3(strm.Stream):
         dseq = f"#EXT-X-DISCONTINUITY-SEQUENCE:{self.discontinuity_sequence}"
         x9k3v = f"#EXT-X-X9K3-VERSION:{version()}"
         bumper = ""
+        if self.args.iframe:
+            bumper = "#EXT-X-I-FRAMES-ONLY\n"+ bumper
         return "\n".join(
             [
                 m3u,
@@ -501,6 +503,8 @@ class X9K3(strm.Stream):
         i_pts = self.iframer.parse(pkt)
         if i_pts:
             self.now = i_pts
+            if self.args.iframe:
+                self.next_start = i_pts
             self.load_sidecar()
             self._chk_sidecar_cues(pkt_pid)
             self._chk_splice_point()
@@ -913,6 +917,14 @@ def argue():
                         or a playlist with mpegts files and/or mpegts m3u8 files.
                     The input can be a local video, http(s), udp, multicast or stdin.
             """,
+    )
+    parser.add_argument(
+        "-I",
+        "--iframe",
+        action="store_const",
+        default=False,
+        const=True,
+        help="Flag for iframe only hls [default:False]",
     )
     parser.add_argument(
         "-b",
