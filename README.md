@@ -4,6 +4,7 @@
  [CUE-IN](#cue-in)   |
  [SCTE-35 Tags](#hls--tags) |
  [Sidecar SCTE35](#sidecar-files) |
+ [Byterange](#byterange)
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
@@ -313,8 +314,46 @@ x9.decode()
 ```
 
 [⇪ top](https://github.com/futzu/x9k3/blob/main/README.md#hls--scte35--x9k3)
- 
 
+
+ ### `byterange`
+ * with the cli tool
+    * use __full path to video file__  when creating byterange m3u8. 
+```smalltalk
+x9k3 -i /home/a/input.ts -b
+```
+* programmatically
+```smalltalk
+from x9k3 import X9K3
+x9 = X9K3()
+x9.self.args.byterange = True
+x9.decode()
+```
+* output
+```lua
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-TARGETDURATION:3
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-DISCONTINUITY-SEQUENCE:0
+#EXT-X-X9K3-VERSION:0.2.55
+#EXTINF:2.000000,
+#EXT-X-BYTERANGE:135548@0
+msnbc1000.ts
+#EXTINF:2.000000,
+#EXT-X-BYTERANGE:137992@135548
+msnbc1000.ts
+#EXTINF:2.000000,
+#EXT-X-BYTERANGE:134796@273540
+msnbc1000.ts
+#EXTINF:2.000000,
+#EXT-X-BYTERANGE:140436@408336
+msnbc1000.ts
+#EXTINF:2.000000,
+#EXT-X-BYTERANGE:130096@548772
+msnbc1000.ts
+<SNIP>
+```
 ### `Sidecar Files`   
 #### load scte35 cues from a Sidecar file
 
