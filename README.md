@@ -4,9 +4,9 @@
  [CUE-IN](#cue-in)   |
  [SCTE-35 Tags](#hls--tags) |
  [Sidecar SCTE35](#sidecar-files) |
- [Byterange](#byterange) |
- [playlist](#playlist) |
- [Live](#live)  |
+ [Byterange m3u8](#byterange) |
+ [Playlists](#playlist) |
+ [Live hls](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
 ___
@@ -362,6 +362,7 @@ msnbc1000.ts
 * lines are  video or  video, sidecar
    * if video,sidecar, the sidecar file only applies to that video
 * playlists can have mpegts video, mpegts m3u8, and playlists.
+ 
 * example playlist
 ```lua
 f10.ts,f10sidecar.txt # comments can be here
