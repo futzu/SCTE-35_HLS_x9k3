@@ -4,7 +4,8 @@
  [CUE-IN](#cue-in)   |
  [SCTE-35 Tags](#hls--tags) |
  [Sidecar SCTE35](#sidecar-files) |
- [Byterange](#byterange)
+ [Byterange](#byterange) |
+ [playlist](#playlist) |
  [Live](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
@@ -14,7 +15,7 @@ ___
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
-# Current Version:  `v.0.2.55`
+# Current Version:  `v.0.2.57`
 * The `only supported version is the current version`. Keep up.
 
 
@@ -361,6 +362,24 @@ msnbc1000.ts
 * lines are  video or  video, sidecar
    * if video,sidecar, the sidecar file only applies to that video
 * playlists can have mpegts video, mpegts m3u8, and playlists.
+* example playlist
+```lua
+f10.ts,f10sidecar.txt # comments can be here
+f17.ts
+f60.ts
+flat-striped.ts
+# Comments can go here too.
+flat.ts
+input.ts
+nmax.ts
+nmx.ts,nmx-sidecar.txt
+https://futzu.com/xaa.ts
+https://example.com/index.m3u8,another-sidecar.txt
+```
+* using
+```lua
+ x9k3 -i out.playlist
+```
 
 
 ### `Sidecar Files`   
