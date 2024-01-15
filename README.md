@@ -20,7 +20,7 @@ ___
 
 
 * __Some of the new stuff__:
-   * x9k3 can now generate byterange m3u8 files with `-b` or `--byterange` 
+   * x9k3 can now generate [byterange](#byterange) m3u8 files with `-b` or `--byterange` 
    * `Playlists` can now be used as input.
    * Segment `start time` is now always read, never calculated. 
    * Segment `duration verification` for segments that exceed the `target duration`. 
@@ -354,6 +354,15 @@ msnbc1000.ts
 msnbc1000.ts
 <SNIP>
 ```
+
+### `playlists`
+* playlists can be used as input
+* playlist files must end in `.playlist`
+* lines are  video or  video, sidecar
+   * if video,sidecar, the sidecar file only applies to that video
+* playlists can have mpegts video, mpegts m3u8, and playlists.
+
+
 ### `Sidecar Files`   
 #### load scte35 cues from a Sidecar file
 
