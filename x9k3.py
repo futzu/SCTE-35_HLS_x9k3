@@ -22,7 +22,7 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "55"
+MAINTAINENCE = "57"
 
 
 def version():
@@ -273,12 +273,15 @@ class X9K3(strm.Stream):
         self._add_cue_tag(segment_data)
         self._chk_pdt_flag(segment_data)
         segment_data.add_tag("#EXTINF", f"{seg_time:.6f},")
-        tag = "#EXT-X-BYTERANGE"
-        val = f"{self.now_byte - self.started_byte}@{self.started_byte}"
+
         if self.is_byterange():
+            tag = "#EXT-X-BYTERANGE"
+            val = f"{self.now_byte - self.started_byte}@{self.started_byte}"
             segment_data.add_tag(tag, val)
 
     def _print_segment_details(self, seg_name, seg_time):
+        if not self.started:
+            return 
         one = f"{seg_name}:   start: {self.started:.6f}   "
         two = f"end: {self.now:.6f}   duration: {seg_time:.6f}"
         print2(f"{one}{two}")
@@ -317,18 +320,17 @@ class X9K3(strm.Stream):
         if not self.is_byterange():
             self._write_segment_file(seg_name)
             if seg_time > self.args.time + 2:
-                try:
-                    stuff = f"Verifying {seg_name} time of {seg_time}"
-                    print2(stuff)
-                    s = Segment(seg_name)
-                    s.decode()
+                stuff = f"Verifying {seg_name} time of {seg_time}"
+                print2(stuff)
+                s = Segment(seg_name)
+                s.decode()
+                if s.pts_start and s.pts_last:
                     seg_time = round(s.pts_last - s.pts_start, 6)
                     stuff = f"Setting {seg_name} time to {seg_time}"
                     print2(stuff)
-                except:
-                    print2(f"Unable to verify {seg_name}  time of {seg_time}")
         self._mk_segment_data(seg_file, seg_name, seg_time)
         self._write_m3u8()
+        
         self._print_segment_details(seg_name, seg_time)
         #   self._reset_stream()
         if self.scte35.break_timer is not None:
@@ -336,7 +338,6 @@ class X9K3(strm.Stream):
         self.scte35.chk_cue_state()
         self._chk_live(seg_time)
         self._start_next_start(pts=self.now)
-        print2(f"Byte Range: {self.now_byte - self.started_byte}@{self.now_byte}")
         self.started_byte = self.now_byte
 
     def _clear_endlist(self, lines):
