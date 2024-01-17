@@ -22,7 +22,10 @@ from m3ufu import M3uFu
 
 MAJOR = "0"
 MINOR = "2"
-MAINTAINENCE = "58"
+MAINTAINENCE = "59"
+
+ON = "\033[1m"
+OFF = "\033[0m"
 
 
 def version():
@@ -49,7 +52,7 @@ class X9K3(strm.Stream):
         self.timer = Timer()
         self.m3u8 = "index.m3u8"
         self.window = SlidingWindow()
-        self.segnum = None
+        self.segnum = 0
         self.args = argue()
         self.started = None
         self.next_start = None
@@ -64,7 +67,7 @@ class X9K3(strm.Stream):
 
     def _args_version(self):
         if self.args.version:
-            print2(version())
+            print2(f'{ON}version(){OFF}')
             sys.exit()
 
     def _args_input(self):
@@ -82,7 +85,7 @@ class X9K3(strm.Stream):
             "x_splicepoint": self.scte35.x_splicepoint,
         }
         if self.args.hls_tag not in tag_map:
-            raise ValueError(f"hls tag  must be in {tag_map.keys()}")
+            raise ValueError(f"{ON}hls tag  must be in {tag_map.keys()}{NORM}")
         self.scte35.tag_method = tag_map[self.args.hls_tag]
 
     def _args_output_dir(self):
@@ -133,25 +136,26 @@ class X9K3(strm.Stream):
             self._tsdata = reader(self._tsdata)
 
     def _reload_segment_data(self, segment):
-        tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
-        segment_data = SegmentData(
-            segment.relative_uri,
-            segment.media,
-            tmp_segnum,
-        )
-        self.segnum = tmp_segnum
-        for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
-            if this in segment.tags:
-                segment.tags.pop(this)
-        segment_data.tags = segment.tags
-        if "#EXTINF" in segment.tags:
-            segment.tags["#EXTINF"] = f'{segment.tags["#EXTINF"] },'
-        for line in segment.lines:
-            if "#EXT-X-CUE-IN" in line:
-                segment_data.tags["#EXT-X-CUE-IN"] = None
-            if "#EXT-X-DISCONTINUITY" in line:
-                segment_data.tags["#EXT-X-DISCONTINUITY"] = None
-        self.window.slide_panes(segment_data)
+        if '#EXT-X-BYTERANGE' not in segment.tags:
+            tmp_segnum = int(segment.relative_uri.split("seg")[1].split(".")[0])
+            segment_data = SegmentData(
+                segment.relative_uri,
+                segment.media,
+                tmp_segnum,
+            )
+            self.segnum = tmp_segnum
+            for this in ["#EXT-X-X9K3-VERSION", "#EXT-X-ENDLIST"]:
+                if this in segment.tags:
+                    segment.tags.pop(this)
+            segment_data.tags = segment.tags
+            if "#EXTINF" in segment.tags:
+                segment.tags["#EXTINF"] = f'{segment.tags["#EXTINF"] },'
+            for line in segment.lines:
+                if "#EXT-X-CUE-IN" in line:
+                    segment_data.tags["#EXT-X-CUE-IN"] = None
+                if "#EXT-X-DISCONTINUITY" in line:
+                    segment_data.tags["#EXT-X-DISCONTINUITY"] = None
+            self.window.slide_panes(segment_data)
 
     def _reload_m3u8(self):
         """
@@ -167,7 +171,9 @@ class X9K3(strm.Stream):
         m3.m3u8 = tmp_name
         m3.decode()
         if "#EXT-X-DISCONTINUITY-SEQUENCE" in m3.headers:
-            self.discontinuity_sequence = m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"]
+            self.discontinuity_sequence = int(m3.headers["#EXT-X-DISCONTINUITY-SEQUENCE"])
+        if "#EXT-X-MEDIA-SEQUENCE" in m3.headers:
+            self.media_seq = int(m3.headers["#EXT-X-MEDIA-SEQUENCE"])    
         segments = list(m3.segments)
         m3.segments[-1].tags["#EXT-X-DISCONTINUITY"] = None
         for segment in segments:
@@ -183,10 +189,13 @@ class X9K3(strm.Stream):
         continue_m3u8 reads self.discontinuity_sequence
         and self.segnum from an existing index.m3u8.
         """
+        if self.args.iframe or self.args.byterange:
+            print2(f"{ON}Cannot continue m3u8  as 'iframe only' or 'byterange' hls.{OFF}")
+            return
         if os.path.isfile(self.m3u8uri()):
             self._reload_m3u8()
             self.segnum += 1
-            print2(f"Continuing {self.m3u8uri()} @ segment number {self.segnum}")
+            print2(f"{ON}Continuing {self.m3u8uri()} @ segment number {self.segnum}{OFF}")
 
     def m3u8uri(self):
         """
@@ -322,17 +331,14 @@ class X9K3(strm.Stream):
         if not self.is_byterange():
             self._write_segment_file(seg_name)
             if seg_time > self.args.time + 2:
-                stuff = f"Verifying {seg_name} time of {seg_time}"
-                print2(stuff)
+                print2(f"{ON}Verifying {seg_name} time of {seg_time}{OFF}")
                 s = Segment(seg_name)
                 s.decode()
-                if s.pts_start and s.pts_last:
-                    seg_time = round(s.pts_last - s.pts_start, 6)
-                    stuff = f"Setting {seg_name} time to {seg_time}"
-                    print2(stuff)
+                if s.duration:
+                    seg_time = s.duration
+                    print2( f"{ON}Setting {seg_name} time to {seg_time}{OFF}")
         self._mk_segment_data(seg_file, seg_name, seg_time)
-        self._write_m3u8()
-        
+        self._write_m3u8()   
         self._print_segment_details(seg_name, seg_time)
         #   self._reset_stream()
         if self.scte35.break_timer is not None:
@@ -383,7 +389,7 @@ class X9K3(strm.Stream):
                 for line in sidelines:
                     line = line.decode().strip().split("#", 1)[0]
                     if line:
-                        print2(f"loading  {line}")
+                        print2(f"{ON}loading  {line}{OFF}")
                         if float(line.split(",", 1)[0]) == 0.0:
                             line = f'{self.now},{line.split(",",1)[1]}'
                         self.add2sidecar(line)
@@ -919,36 +925,36 @@ def argue():
             """,
     )
     parser.add_argument(
-        "-I",
-        "--iframe",
-        action="store_const",
-        default=False,
-        const=True,
-        help="Flag for iframe only hls [default:False]",
+        "-s",
+        "--sidecar_file",
+        default=None,
+        help=f"Sidecar file of SCTE-35 (pts,cue) pairs   [default:{ON}None{OFF}]",
     )
     parser.add_argument(
-        "-b",
-        "--byterange",
-        action="store_const",
-        default=False,
-        const=True,
-        help="Flag for byterange hls [default:False]",
+        "-o",
+        "--output_dir",
+        default=".",
+        help=f" output directory f(created if needed)   [default:{ON}'.'{OFF}]",
     )
     parser.add_argument(
-        "-c",
-        "--continue_m3u8",
-        action="store_const",
-        default=False,
-        const=True,
-        help="Resume writing index.m3u8 [default:False]",
+        "-t",
+        "--time",
+        default=2,
+        type=float,
+        help=f"segment time in seconds   [default:{ON}2{OFF}]",
     )
     parser.add_argument(
-        "-d",
-        "--delete",
-        action="store_const",
-        default=False,
-        const=True,
-        help="delete segments (enables --live) [default:False]",
+        "-T",
+        "--hls_tag",
+        default="x_cue",
+        help=f"x_scte35, x_cue, x_daterange, or x_splicepoint   [default:{ON}x_cue{OFF}]",
+    )
+    parser.add_argument(
+        "-w",
+        "--window_size",
+        default=5,
+        type=int,
+        help=f"sliding window size   [default:{ON}5{OFF}]",
     )
     parser.add_argument(
         "-l",
@@ -956,15 +962,39 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Flag for a live event (enables sliding window m3u8) [default:False]",
+        help=f"enable sliding window   [default:{ON}False{OFF}]",
     )
     parser.add_argument(
-        "-n",
-        "--no_discontinuity",
+        "-I",
+        "--iframe",
         action="store_const",
         default=False,
         const=True,
-        help="Flag to disable adding #EXT-X-DISCONTINUITY tags at splice points [default:False]",
+        help=f" iframe only hls   [default:{ON}False{OFF}]",
+    )
+    parser.add_argument(
+        "-b",
+        "--byterange",
+        action="store_const",
+        default=False,
+        const=True,
+        help=f"byterange hls   [default:{ON}False{OFF}]",
+    )
+    parser.add_argument(
+        "-c",
+        "--continue_m3u8",
+        action="store_const",
+        default=False,
+        const=True,
+        help=f"resume an index.m3u8   [default:{ON}False{OFF}]",
+    )
+    parser.add_argument(
+        "-d",
+        "--delete",
+        action="store_const",
+        default=False,
+        const=True,
+        help=f"delete segments  [default:{ON}False{OFF}]",
     )
     parser.add_argument(
         "-N",
@@ -972,21 +1002,16 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="disable live throttling [default:False]",
+        help=f"disable live throttling   [default:{ON}False{OFF}]",
     )
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=".",
-        help="Directory for segments and index.m3u8(created if needed) [default:'.']",
-    )
+
     parser.add_argument(
         "-p",
         "--program_date_time",
         action="store_const",
         default=False,
         const=True,
-        help="Flag to add Program Date Time tags to index.m3u8 ( enables --live) [default:False]",
+        help=f"Program Date Time tags    [default:{ON}False{OFF}]",
     )
     parser.add_argument(
         "-r",
@@ -994,42 +1019,24 @@ def argue():
         action="store_const",
         default=False,
         const=True,
-        help="Flag for replay aka looping (enables --live,--delete) [default:False]",
+        help=f"replay aka looping   [default:{ON}False]{OFF}",
     )
-    parser.add_argument(
-        "-s",
-        "--sidecar_file",
-        default=None,
-        help="""Sidecar file of SCTE-35 (pts,cue) pairs. [default:None]""",
-    )
+
     parser.add_argument(
         "-S",
         "--shulga",
         action="store_const",
         default=False,
         const=True,
-        help="Flag to enable Shulga iframe detection mode [default:False]",
+        help=f"Shulga iframe detection    [default:{ON}False{OFF}]",
     )
     parser.add_argument(
-        "-t",
-        "--time",
-        default=2,
-        type=float,
-        help="Segment time in seconds [default:2]",
-    )
-    parser.add_argument(
-        "-T",
-        "--hls_tag",
-        default="x_cue",
-        help="x_scte35, x_cue, x_daterange, or x_splicepoint [default:x_cue]",
-    )
-
-    parser.add_argument(
-        "-w",
-        "--window_size",
-        default=5,
-        type=int,
-        help="sliding window size (enables --live) [default:5]",
+        "-n",
+        "--no_discontinuity",
+        action="store_const",
+        default=False,
+        const=True,
+        help=f"disable #EXT-X-DISCONTINUITY tags on ad breaks   [default:{ON}False{OFF}]",
     )
     parser.add_argument(
         "-v",
@@ -1074,10 +1081,10 @@ def decode_playlist(playlist):
             if media:
                 if comma in media:
                     media, sidecar = media.split(comma)
-                print2(f"loading media {media}")
+                print2(f"{ON}loading media {media}{OFF}")
                 x9 = X9K3()
                 if sidecar:
-                    print2(f"loading sidecar file {sidecar}")
+                    print2(f"{ON}loading sidecar file {sidecar}{OFF}")
                     x9.args.sidecar_file = sidecar
                 x9.args.input = media
                 if first:
