@@ -1,3 +1,11 @@
+"""
+x9k3
+
+pane.py.
+
+a Pane instance holds segment data in a sliding window.
+"""
+
 
 class Pane:
     """
