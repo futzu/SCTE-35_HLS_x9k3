@@ -19,7 +19,7 @@ setuptools.setup(
     scripts=["bin/x9k3","bin/adbreak"],
     platforms="all",
     install_requires=[
-        "threefive >= 2.4.23",
+        "threefive >= 2.4.25",
         "new_reader >= 0.1.7",
         "iframes >= 0.0.7",
         "m3ufu >= 0.0.83",
