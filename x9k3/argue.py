@@ -1,3 +1,19 @@
+"""
+x9k3
+
+argue.py
+
+home of the argue function.
+"""
+
+
+import argparse
+import sys
+
+
+ON = "\033[1m"
+OFF = "\033[0m"
+
 
 def argue():
     """
@@ -136,4 +152,3 @@ def argue():
         help="Show version",
     )
     return parser.parse_args()
-
