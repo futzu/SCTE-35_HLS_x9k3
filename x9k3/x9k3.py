@@ -1,9 +1,12 @@
-#!/usr/bin/env python3
-
 """
 X9K3
+
+x9k3.py
+
+Home of the X9K3 class, the cli and decode_playlist functions and stuff.
 """
-import argparse
+
+
 import datetime
 import io
 import os
@@ -11,13 +14,17 @@ import sys
 import time
 from collections import deque
 from operator import itemgetter
-from pathlib import Path
+
 from new_reader import reader
 from iframes import IFramer
 from threefive import Cue, print2, Segment
 import threefive.stream as strm
-
 from m3ufu import M3uFu
+from .argue import argue
+from .pane import Pane
+from .scte35 import SCTE35
+from .timer import Timer
+from .window import SlidingWindow
 
 
 MAJOR = "0"
