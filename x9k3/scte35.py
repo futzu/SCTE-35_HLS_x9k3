@@ -1,8 +1,18 @@
+"""
+x9k3
+
+scte35.py
+
+the SCTE35 class used by x9k3.
+"""
+
+
+import datetime
 
 class SCTE35:
     """
     A SCTE35 instance is used to hold
-    SCTE35 cue data by X9K5.
+    SCTE35 cue data by X9K3.
     """
 
     def __init__(self):
@@ -170,4 +180,3 @@ class SCTE35:
                         self.cue_state = "IN"
                         return True
         return False
-
