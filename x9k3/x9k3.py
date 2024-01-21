@@ -21,8 +21,8 @@ from m3ufu import M3uFu
 
 
 MAJOR = "0"
-MINOR = "2"
-MAINTAINENCE = "59"
+MINOR = "3"
+MAINTAINENCE = "00"
 
 ON = "\033[1m"
 OFF = "\033[0m"
