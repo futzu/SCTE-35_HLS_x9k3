@@ -9,6 +9,7 @@
  [Live hls](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
+[Checkout np](https://github.com/futzu/np)
 ___
 
 # HLS + SCTE35 = `x9k3`
