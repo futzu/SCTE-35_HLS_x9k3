@@ -19,6 +19,8 @@ ___
 # Current Version:  `v.0.2.57`
 * The `only supported version is the current version`. Keep up.
 
+* x9k3 running on my server for over 3517 hours of cpu time
+![image](https://github.com/futzu/x9k3/assets/52701496/1cd0ee44-b8fd-4ff7-98f3-41899bd58615)
 
 
 * __Some of the new stuff__:
