@@ -9,7 +9,6 @@
  [Live hls](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
 
-# ⇢ ⇢ ⇢ [checkout sideways](https://github.com/futzu/np)  ⇠ ⇠ ⇠ 
 ___
 
 # HLS + SCTE35 = `x9k3`
@@ -17,11 +16,7 @@ ___
 
   
 # Current Version:  `v.0.2.57`
-* The `only supported version is the current version`. Keep up.
-
-* __x9k3__ running on my server running continuously for __over 146 days, using only 1% CPU__.
-  ![image](https://github.com/futzu/x9k3/assets/52701496/e55a652d-d077-4ce4-8bed-3a65c414eb6c)
-
+### The `only supported version is the current version`. Keep up.
 
 
 * __Some of the new stuff__:
@@ -72,6 +67,14 @@ adbreak --pts 1234.567890 --duration 30 --sidecar sidecar.txt
 x9k3 -i input.ts -s sidecar.txt
 ```
 <br>
+
+
+###  __x9k3__ running on my server running continuously for __over 146 days, using only 1% CPU__.<br><br>
+
+
+  ![image](https://github.com/futzu/x9k3/assets/52701496/e55a652d-d077-4ce4-8bed-3a65c414eb6c)
+
+
 
 
 # `Features`
