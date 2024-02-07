@@ -7,7 +7,11 @@
  [Byterange m3u8](#byterange) |
  [Playlists](#playlist) |
  [Live hls](#live)  |
- [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues)
+ [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
+ [Online SCTE-35 encoder](https://iodisco.com/cgi-bin/scte35encoder)
+
+
+
 
 ___
 
