@@ -15,6 +15,10 @@
 
 ___
 
+### Heads up. This is no longer maintained. It's been fun, but it's time for me to go find a real job. ~ Adrian 02/15/2024
+
+
+
 # HLS + SCTE35 = `x9k3`
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
