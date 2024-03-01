@@ -15,7 +15,12 @@
 
 ___
 
-![image](https://github.com/futzu/x9k3/assets/52701496/35cea8ca-7ec3-43a1-8678-53faa3ec06d1)
+
+# `475 days` 
+* is how long x9k3 has been running continously on my server
+* The segment count  is over `20,500,000`
+* CPU usage is `1%`
+* https://iodisco.com/bb/index.m3u8
 
 
 
@@ -76,11 +81,6 @@ x9k3 -i input.ts -s sidecar.txt
 ```
 <br>
 
-
-###  __x9k3__ running on my server running continuously for __over 146 days, using only 1% CPU__.<br><br>
-
-
-  ![image](https://github.com/futzu/x9k3/assets/52701496/e55a652d-d077-4ce4-8bed-3a65c414eb6c)
 
 
 
