@@ -17,11 +17,11 @@ ___
 
 
 # `475 days` 
-* is how long x9k3 has been running continously on my server
+* is how long x9k3 has been running continously on my server, since `Nov 2922`. 
 * The segment count  is over `20,500,000`
 * CPU usage is `1%`
-* https://iodisco.com/bb/index.m3u8
-
+* check it out: https://iodisco.com/bb/index.m3u8
+     * _it's a $10 a month server, be nice to it, please_
 
 
 # HLS + SCTE35 = `x9k3`
