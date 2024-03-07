@@ -16,12 +16,15 @@
 ___
 
 
-# `475 days` 
-* is how long x9k3 has been running continously on my server, since `Nov 2922`. 
-* The segment count  is over `20,500,000`
-* CPU usage is `1%`
+# `484 days` 
+![image](https://github.com/futzu/x9k3/assets/52701496/24db0354-f262-430b-bbc9-990d39ac1cfc)
+
+
+###  is how long x9k3 has been running continously on my server. Since Nov 2922. 
+* The segment count  is over __20,900,000__
+* CPU usage is __1%__
 * check it out: https://iodisco.com/bb/index.m3u8
-     * _it's a $10 a month server, be nice to it, please_
+* _it's a $10 a month server, be nice to it, please_
 
 
 # HLS + SCTE35 = `x9k3`
