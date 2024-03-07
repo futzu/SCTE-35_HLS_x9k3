@@ -15,6 +15,9 @@
 
 ___
 
+# HLS + SCTE35 = `x9k3`
+# `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
+
 
 # `484 days` 
 ![image](https://github.com/futzu/x9k3/assets/52701496/24db0354-f262-430b-bbc9-990d39ac1cfc)
@@ -26,9 +29,6 @@ ___
 * check it out: https://iodisco.com/bb/index.m3u8
 * _it's a $10 a month server, be nice to it, please_
 
-
-# HLS + SCTE35 = `x9k3`
-# `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
   
 # Current Version:  `v.0.2.57`
