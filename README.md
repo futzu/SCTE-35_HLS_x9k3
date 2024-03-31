@@ -2,10 +2,10 @@
  [Use](#how-to-use) |
  [CUE-OUT](#cue-out) |
  [CUE-IN](#cue-in)   |
- [SCTE-35 Tags](#hls--tags) |
+ [SCTE-35 Tags](#supported-hls--tags) |
  [Sidecar SCTE35](#sidecar-files) |
  [Byterange m3u8](#byterange) |
- [Playlists](#playlist) |
+ [Playlists](#playlists) |
  [Live hls](#live)  |
  [Bugs](https://github.com/futzu/scte35-hls-segmenter-x9k3/issues) |
  [Online SCTE-35 encoder](https://iodisco.com/cgi-bin/scte35encoder)
@@ -15,25 +15,22 @@
 
 ___
 
-# HLS + SCTE35 = `x9k3`
-# `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
+# Q. Is x9k3 production ready?
 
-# Isw x9k3 production ready?
-* I have an x9k3 instance on my server that has been running for __507 Days__ nonstop.
-   * __Output__ so far __13.1 TerraBytes__
-   * __Memory__ usage is __only 3.5 MegaBytes__.
-   * __CPU__ being used __0.5%__
+# A. I believe so.
+### I have an x9k3 instance on my server that has been running for __507 Days__ nonstop.
+* __Output__ so far __13.1 TerraBytes__
+* __Memory__ usage is __only 3.5 MegaBytes__.
+* __CPU__ being used __0.5%__
+* check it out: https://iodisco.com/bb/index.m3u8
+
+* _it's a $10 a month server, be nice to it, please_
+
 * __Beat that you dirty hippie__
 
 ![image](https://github.com/futzu/x9k3/assets/52701496/47364458-a08d-4f10-aedd-4779e8580fe4)
 
 
-
-###  is how long x9k3 has been running continously on my server. Since Nov 2922. 
-* The segment count  is over __20,900,000__
-* CPU usage is __1%__
-* check it out: https://iodisco.com/bb/index.m3u8
-* _it's a $10 a month server, be nice to it, please_
 
 
   
