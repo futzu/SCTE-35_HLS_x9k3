@@ -18,9 +18,15 @@ ___
 # HLS + SCTE35 = `x9k3`
 # `x9k3` is a HLS segmenter with SCTE-35 injection and parsing, powered by threefive.
 
+# Isw x9k3 production ready?
+* I have an x9k3 instance on my server that has been running for __507 Days__ nonstop.
+   * __Output__ so far __13.1 TerraBytes__
+   * __Memory__ usage is __only 3.5 MegaBytes__.
+   * __CPU__ being used __0.5%__
+* __Beat that you dirty hippie__
 
-# `484 days` 
-![image](https://github.com/futzu/x9k3/assets/52701496/24db0354-f262-430b-bbc9-990d39ac1cfc)
+![image](https://github.com/futzu/x9k3/assets/52701496/47364458-a08d-4f10-aedd-4779e8580fe4)
+
 
 
 ###  is how long x9k3 has been running continously on my server. Since Nov 2922. 
