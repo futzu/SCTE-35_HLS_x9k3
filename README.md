@@ -18,17 +18,13 @@ ___
 # Q. Is x9k3 production ready?
 
 # A. I believe so.
-### I have an x9k3 instance on my server that has been running for __507 Days__ nonstop.
-* __Output__ so far __13.1 TerraBytes__
-* __Memory__ usage is __only 3.5 MegaBytes__.
-* __CPU__ being used __0.5%__
-* check it out: https://iodisco.com/bb/index.m3u8
+### I have an x9k3 instance on my server that has been running for _`530 Days`_ nonstop.
+* __Output__ so far _`13.6 TerraBytes`_
+* __Memory__ usage  _`3.5 MegaBytes`._
+* __CPU__ usage _`0.5%`_
+* __check it out__: https://iodisco.com/bb/index.m3u8
 
-* _it's a $10 a month server, be nice to it, please_
-
-* __Beat that you dirty hippie__
-
-![image](https://github.com/futzu/x9k3/assets/52701496/47364458-a08d-4f10-aedd-4779e8580fe4)
+![image](https://github.com/futzu/x9k3/assets/52701496/421a3a0a-3750-49dc-aede-fa7ec83c2590)
 
 
 
