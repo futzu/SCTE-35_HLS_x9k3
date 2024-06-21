@@ -30,7 +30,7 @@ root@stream:/var/www/mo# ps -C x9k3 -oetime
 590-18:07:15
 
 ```
-# That's Over Twenty Five Million Segments Served from one x9k3 instance.
+# Over Twenty Five Million Segments Served from one x9k3 instance in 590 days.
 
 
 
