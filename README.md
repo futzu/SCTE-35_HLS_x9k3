@@ -18,7 +18,6 @@
 #  x9k3 is an HLS segmenter that injects SCTE-35 into m3u8 files.
 
 
-# Over Twenty Five Million Segments Served.
 ### I have an x9k3 instance on my server that has been running for _`590 Days`_ nonstop.
 
 * __Output__ so far _`15.2 TerraBytes`_
@@ -29,7 +28,9 @@
 root@stream:/var/www/mo# ps -C x9k3 -oetime
     ELAPSED
 590-18:07:15
+
 ```
+# That's Over Twenty Five Million Segments Served from one x9k3 instance.
 
 
 
