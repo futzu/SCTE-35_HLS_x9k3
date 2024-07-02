@@ -16,25 +16,6 @@
 
 ![image](https://github.com/futzu/SCTE-35_HLS_x9k3/assets/52701496/4a273002-cf69-45ea-83dc-c85d09b6bdcc)
 #  x9k3 is an HLS segmenter that injects SCTE-35 into m3u8 files.
-
-
-### I have an x9k3 instance on my server that has been running for _`590 Days`_ nonstop.
-
-* __Output__ so far _`15.2 TerraBytes`_
-* __Memory__ usage  _`2.8 MegaBytes`._
-* __CPU__ usage _`0.5%`_
-* __check it out__: https://iodisco.com/bb/index.m3u8
-```js
-root@stream:/var/www/mo# ps -C x9k3 -oetime
-    ELAPSED
-590-18:07:15
-
-```
-# Over Twenty Five Million Segments Served from one x9k3 instance in 590 days.
-
-
-
-
   
 # Current Version:  `v.0.2.57`
 ### The `only supported version is the current version`. Keep up.
