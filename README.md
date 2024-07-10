@@ -19,7 +19,14 @@
   
 # Current Version:  `v.0.2.57`
 ### The `only supported version is the current version`. Keep up.
-
+## Heads up! upgrade threefive to  `2`.`4`.`55`
+```js
+python3 -mpip install --upgrade threefive
+```
+* and / or 
+```js
+pypy3 -mpip install --upgrade threefive
+```
 
 * __Some of the new stuff__:
    * x9k3 can now generate [byterange](#byterange) m3u8 files with `-b` or `--byterange` 
